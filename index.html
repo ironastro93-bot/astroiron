@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ASTRO IRON — 미국 주식 시그널</title>
+<meta name="description" content="실시간 시세와 뉴스를 AI가 요약해 상승·하락 신호를 정리해 드립니다. 투자 판단을 돕는 참고 지표 서비스." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#FFFFFF; --soft:#F7F8FA; --line:#E8EAEE; --line-d:#D8DBE2;
+    --ink:#1D2025; --charcoal:#26292F; --charcoal-d:#1B1E23;
+    --sub:#6B7280; --faint:#9CA3AF; --steel:#2B3A55;
+    --up:#E5484D; --down:#3B6FE0; --hold:#8A919E;
+  }
+  * { box-sizing:border-box; margin:0; -webkit-font-smoothing:antialiased; }
+  body { background:var(--bg); color:var(--ink); font-family:'Noto Sans KR','Inter',sans-serif; }
+  button { font-family:inherit; cursor:pointer; }
+  input:focus { outline:none; border-color:var(--steel)!important; }
+  .wrap { max-width:880px; margin:0 auto; padding:40px 24px 72px; position:relative; z-index:1; }
+  .num { font-family:'Inter',sans-serif; }
+
+  /* 우주 배경 */
+  #sky { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+  #sky .nebula { position:absolute; top:0; left:0; right:0; height:460px;
+    background:
+      radial-gradient(ellipse 90% 60% at 15% -10%, rgba(43,58,85,.16), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 85% -15%, rgba(90,70,140,.10), transparent 60%),
+      linear-gradient(180deg, rgba(24,32,52,.10) 0%, rgba(255,255,255,0) 85%); }
+
+  nav { border-bottom:1px solid var(--line); background:rgba(255,255,255,.82); backdrop-filter:blur(8px); position:sticky; top:0; z-index:10; }
+  nav .inner { max-width:880px; margin:0 auto; padding:15px 24px; display:flex; align-items:center; gap:10px; }
+  .logo { width:27px; height:27px; border-radius:8px; background:var(--charcoal); display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; font-weight:700; font-family:'Inter',sans-serif; }
+  .brand { font-size:17px; font-weight:700; font-family:'Inter',sans-serif; color:var(--charcoal-d); }
+  .brand-sub { font-size:12.5px; color:var(--faint); }
+  #quotaBtn { margin-left:auto; font-size:12.5px; font-weight:600; color:var(--sub); background:none; border:1px solid var(--line); border-radius:999px; padding:5px 13px; }
+  #quotaBtn.pro { color:var(--steel); border-color:var(--steel); font-weight:700; }
+
+  h1 { font-size:25px; font-weight:700; letter-spacing:-.02em; color:var(--charcoal-d); margin-bottom:6px; }
+  .lede { font-size:14.5px; color:var(--sub); line-height:1.65; margin-bottom:22px; }
+  .searchRow { display:flex; gap:10px; max-width:520px; margin-bottom:32px; }
+  .searchRow input { flex:1; padding:12px 16px; font-size:15px; border-radius:10px; background:rgba(255,255,255,.9); border:1.5px solid var(--line-d); color:var(--ink); }
+  .btn-primary { padding:12px 26px; font-size:14.5px; font-weight:700; border-radius:10px; background:var(--charcoal); color:#fff; border:none; }
+  .btn-primary:disabled { background:#B9C0CE; cursor:default; }
+
+  .card { border:1px solid var(--line); border-radius:16px; background:rgba(255,255,255,.92); overflow:hidden; margin-bottom:40px; }
+  .card-head { padding:18px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  .btn-sm { padding:9px 18px; font-size:13px; font-weight:700; border-radius:9px; background:var(--charcoal); color:#fff; border:none; }
+  .btn-sm:disabled { background:#B9C0CE; cursor:default; }
+  .btn-ghost { padding:8px 14px; font-size:12.5px; border-radius:9px; background:#fff; border:1px solid var(--line); color:var(--sub); }
+
+  .strip { display:flex; flex-wrap:wrap; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .strip .cell { flex:1 1 140px; min-width:130px; padding:14px 18px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .pill { font-size:12.5px; padding:5px 12px; border-radius:999px; font-weight:700; display:inline-block; }
+
+  .loading { border:1px solid var(--line); border-radius:14px; padding:40px 24px; text-align:center; margin-bottom:36px; background:rgba(247,248,250,.85); }
+  @keyframes pulse { 50% { opacity:.35 } }
+  .loading b { color:var(--steel); font-weight:500; font-size:14.5px; animation:pulse 1.6s infinite; }
+  .errbox { border:1px solid rgba(229,72,77,.35); background:#FFF6F6; border-radius:14px; padding:18px 22px; font-size:14px; line-height:1.6; margin-bottom:36px; }
+
+  .gaugeTrack { position:relative; height:8px; border-radius:4px; border:1px solid var(--line);
+    background:linear-gradient(90deg, rgba(59,111,224,.13), var(--soft) 45%, var(--soft) 55%, rgba(229,72,77,.13)); margin:20px 0 4px; }
+  .gaugeMid { position:absolute; top:0; bottom:0; width:1px; left:50%; background:var(--line-d); }
+  .gaugeDot { position:absolute; top:-4px; width:14px; height:14px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.18); transition:left .8s cubic-bezier(.2,.8,.2,1); }
+  .gaugeLbl { display:flex; justify-content:space-between; margin-top:12px; font-size:11.5px; color:var(--faint); }
+
+  .tickerBtn { padding:8px 14px; font-size:13px; border-radius:10px; background:rgba(255,255,255,.85); border:1px solid var(--line); color:var(--ink); display:inline-flex; align-items:center; gap:8px; transition:border-color .15s, background .15s; }
+  .tickerBtn:hover { border-color:var(--steel); background:var(--soft); }
+  .tickerBtn b { font-family:'Inter',sans-serif; font-size:12.5px; }
+  .tickerBtn span { color:var(--faint); }
+
+  footer { margin-top:48px; border-radius:16px; background:var(--charcoal-d); color:#B8BDC7; padding:26px 28px; font-size:12px; line-height:1.75; }
+  footer b { color:#E8EAEE; }
+
+  /* 모달 */
+  #modalBg { position:fixed; inset:0; z-index:50; background:rgba(15,20,32,.45); display:none; align-items:center; justify-content:center; padding:20px; }
+  #modalBg.show { display:flex; }
+  .modal { background:#fff; border-radius:18px; max-width:420px; width:100%; padding:30px 28px; box-shadow:0 20px 60px rgba(15,20,32,.25); }
+  .modal input { width:100%; padding:11px 14px; font-size:14px; border-radius:10px; border:1.5px solid var(--line-d); }
+</style>
+</head>
+<body>
+
+<div id="sky"><div class="nebula"></div><svg id="stars" style="position:absolute;top:0;left:0;width:100%;height:440px" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div>
+
+<nav><div class="inner">
+  <div class="logo">AI</div>
+  <span class="brand">ASTRO IRON</span>
+  <span class="brand-sub">미국 주식 시그널</span>
+  <button id="quotaBtn"></button>
+</div></nav>
+
+<div class="wrap">
+  <h1>지금 시장은 어느 쪽을 보고 있을까?</h1>
+  <p class="lede">티커를 선택하거나 입력하면 실시간 시세와 뉴스를 모아 상승 · 하락 신호를 정리해 드려요.</p>
+
+  <div class="searchRow">
+    <input id="tickerInput" placeholder="티커 검색  ·  예) SPCX, TSLA" autocomplete="off" />
+    <button id="analyzeBtn" class="btn-primary" disabled>분석</button>
+  </div>
+
+  <!-- 시장 브리핑 -->
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div style="font-size:15.5px;font-weight:700;color:var(--charcoal-d)">오늘의 시장 브리핑</div>
+        <div style="font-size:12.5px;color:var(--faint);margin-top:2px">주요 지수 · 환율 · 비트코인 · 공포탐욕지수를 한 번에</div>
+      </div>
+      <button id="briefBtn" class="btn-sm">브리핑 보기</button>
+    </div>
+    <div id="briefBody"></div>
+  </div>
+
+  <div id="resultArea"></div>
+
+  <h2 style="font-size:16px;font-weight:700;margin-bottom:4px">종목 둘러보기</h2>
+  <p style="font-size:13px;color:var(--faint);margin-bottom:20px">누르면 바로 분석이 시작돼요.</p>
+  <div id="directory"></div>
+
+  <footer>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <div class="logo" style="width:20px;height:20px;font-size:9px;background:#3A3E46;border-radius:6px">AI</div>
+      <span style="font-weight:700;color:#E8EAEE;font-family:'Inter',sans-serif;font-size:13px">ASTRO IRON</span>
+    </div>
+    <p style="margin-bottom:8px">본 서비스의 신호는 공개된 시세와 뉴스를 AI가 자동 요약·해석한 <b>참고 지표</b>이며, 「자본시장법」상 투자자문·투자권유에 해당하지 않습니다. 특정 종목의 매수·매도를 권유하지 않으며, 수익을 보장하지 않습니다. 투자 판단과 그 결과에 대한 책임은 전적으로 이용자 본인에게 있습니다.</p>
+    <p style="margin-bottom:8px">시세와 뉴스에는 지연·오차가 있을 수 있습니다. 뉴스는 원문을 복제하지 않고 출처 기반으로 요약합니다. 본 서비스는 회원가입이 없으며 이름·연락처·계좌번호 등 개인정보를 수집하지 않습니다.</p>
+    <p style="color:#8A8F99">문의 · 환불 요청: ironastro93@gmail.com</p>
+  </footer>
+</div>
+
+<!-- Pro 모달 -->
+<div id="modalBg">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div style="font-size:12px;font-weight:700;color:var(--steel);letter-spacing:.1em;margin-bottom:6px">ASTRO IRON PRO</div>
+    <h3 style="font-size:21px;font-weight:700;margin-bottom:8px">오늘의 무료 분석을 모두 썼어요</h3>
+    <p style="font-size:14px;color:var(--sub);line-height:1.65;margin-bottom:18px">무료는 하루 3회까지예요. Pro로 업그레이드하면 제한 없이 분석할 수 있어요.</p>
+    <div style="background:var(--soft);border-radius:12px;padding:16px 18px;margin-bottom:18px">
+      <div style="font-size:13.5px;margin-bottom:6px">✓ 무제한 종목 분석</div>
+      <div style="font-size:13.5px;margin-bottom:6px">✓ 시장 브리핑 무제한</div>
+      <div style="font-size:13.5px;margin-bottom:6px">✓ 새 기능 우선 제공</div>
+      <div style="font-size:15px;font-weight:700;margin-top:10px">4,900원 · 30일 이용권 (자동결제 없음)</div>
+    </div>
+    <a href="mailto:ironastro93@gmail.com?subject=ASTRO%20IRON%20Pro%20%EA%B5%AC%EB%A7%A4%20%EB%AC%B8%EC%9D%98" style="display:block;text-align:center;padding:13px 0;border-radius:10px;background:var(--charcoal);color:#fff;font-weight:700;font-size:14.5px;text-decoration:none;margin-bottom:10px">이메일로 구매 문의하기</a>
+    <p style="font-size:11.5px;color:var(--faint);line-height:1.6;margin-bottom:14px">1회 결제 · 자동결제 없음 · 입금 확인 후 24시간 내 코드 발송 · 코드 미사용 시 7일 이내 전액 환불</p>
+    <div style="display:flex;gap:8px">
+      <input id="proCode" placeholder="해제 코드 입력" />
+      <button id="unlockBtn" class="btn-ghost" style="font-weight:700;color:var(--ink)">확인</button>
+    </div>
+    <div id="codeErr" style="font-size:12.5px;color:var(--up);margin-top:8px;display:none">코드가 맞지 않아요. 다시 확인해 주세요.</div>
+    <button id="closeModal" style="margin-top:16px;background:none;border:none;color:var(--faint);font-size:13px;padding:0">다음에 할게요</button>
+  </div>
+</div>
+
+<script>
+// ═══ 설정 ═══
+const PRO_CODE_HASH = "c7257f5ae3597dbf5dbfa1fb5c9876ed4cdf6d59f78306eba955dccb1fd0a255"; // AIRN-NZ7I-7PUY
+const FREE_DAILY_LIMIT = 3;
+
+const SIGNAL_META = {
+  strong_buy:{label:"상승 신호 강함",color:"var(--up)"}, buy:{label:"상승 우위",color:"var(--up)"},
+  hold:{label:"중립 · 관망",color:"var(--hold)"}, sell:{label:"하락 우위",color:"var(--down)"},
+  strong_sell:{label:"하락 신호 강함",color:"var(--down)"},
+};
+const MOOD_META = { fear:{label:"공포 국면",c:"var(--down)"}, neutral:{label:"중립 국면",c:"var(--hold)"}, greed:{label:"탐욕 국면",c:"var(--up)"} };
+const DIRECTORY = [
+  ["우주 · 방산",[["SPCX","SpaceX"],["RKLB","Rocket Lab"],["LMT","Lockheed Martin"],["BA","Boeing"],["RTX","RTX"],["ASTS","AST SpaceMobile"]]],
+  ["빅테크",[["AAPL","Apple"],["MSFT","Microsoft"],["GOOGL","Alphabet"],["AMZN","Amazon"],["META","Meta"],["NFLX","Netflix"]]],
+  ["반도체 · AI",[["NVDA","NVIDIA"],["AMD","AMD"],["TSM","TSMC"],["AVGO","Broadcom"],["MU","Micron"],["PLTR","Palantir"]]],
+  ["전기차 · 에너지",[["TSLA","Tesla"],["RIVN","Rivian"],["ENPH","Enphase"],["XOM","Exxon Mobil"]]],
+  ["금융 · 크립토",[["JPM","JPMorgan"],["V","Visa"],["COIN","Coinbase"],["MSTR","Strategy"]]],
+];
+const LOADING_MSGS = ["최신 시세를 확인하고 있어요","최근 뉴스를 모으고 있어요","추세와 모멘텀을 살펴보는 중이에요","신호 근거를 정리하고 있어요"];
+
+// ═══ 상태 ═══
+const todayKey = () => "ai_usage_" + new Date().toISOString().slice(0,10);
+const getUsage = () => parseInt(localStorage.getItem(todayKey())||"0",10)||0;
+const addUsage = () => { const n=getUsage()+1; localStorage.setItem(todayKey(),n); return n; };
+const isPro = () => localStorage.getItem("ai_pro") === PRO_CODE_HASH;
+let loading = false;
+
+async function sha256(t){ const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join(""); }
+const esc = s => String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+
+// ═══ API ═══
+async function callApi(body){
+  const res = await fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const data = await res.json().catch(()=>({error:"응답을 읽지 못했어요."}));
+  if(!res.ok || data.error) throw new Error(data.error || "오류가 발생했어요 ("+res.status+")");
+  return data;
+}
+
+// ═══ UI 렌더 ═══
+function renderQuota(){
+  const btn = document.getElementById("quotaBtn");
+  if(isPro()){ btn.textContent="PRO"; btn.classList.add("pro"); }
+  else btn.textContent = "오늘 " + Math.max(0, FREE_DAILY_LIMIT-getUsage()) + "회 남음 · Pro";
+}
+
+function renderStars(){
+  const svg = document.getElementById("stars");
+  let html="";
+  for(let i=0;i<90;i++){
+    const x=Math.random()*100, y=Math.random()*100, r=(Math.random()*1.3+0.4)*0.12, o=(Math.random()*0.5+0.15)*(1-y/110);
+    html += `<circle cx="${x}" cy="${y}" r="${r}" fill="#2B3A55" opacity="${Math.max(0,o)}"/>`;
+  }
+  svg.innerHTML = html;
+}
+
+function renderDirectory(){
+  document.getElementById("directory").innerHTML = DIRECTORY.map(([g,items])=>`
+    <div style="margin-bottom:22px">
+      <div style="font-size:12.5px;font-weight:700;color:var(--sub);margin-bottom:10px">${g}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${items.map(([t,n])=>`<button class="tickerBtn" data-t="${t}"><b>${t}</b><span>${n}</span></button>`).join("")}
+      </div>
+    </div>`).join("");
+  document.querySelectorAll(".tickerBtn").forEach(b=>b.addEventListener("click",()=>analyze(b.dataset.t)));
+}
+
+function gaugeHtml(score,color){
+  const pct=(Math.max(-100,Math.min(100,score||0))+100)/2;
+  return `<div class="gaugeTrack"><div class="gaugeMid"></div><div class="gaugeDot" style="left:calc(${pct}% - 7px);border:4px solid ${color}"></div></div>
+    <div class="gaugeLbl"><span>하락 신호</span><span>중립</span><span>상승 신호</span></div>`;
+}
+
+function renderResult(r){
+  const m = SIGNAL_META[r.signal]||SIGNAL_META.hold;
+  const cc = r.changePercent>=0 ? "var(--up)" : "var(--down)";
+  const pts=(arr,title,color)=>`<div style="flex:1;min-width:250px"><div style="font-size:12.5px;font-weight:700;color:${color};margin-bottom:10px">${title}</div>
+    ${(arr||[]).map(p=>`<div style="display:flex;gap:9px;font-size:14px;line-height:1.6;margin-bottom:8px"><span style="color:${color};font-size:12px;margin-top:3px">●</span><span>${esc(p)}</span></div>`).join("")}</div>`;
+  document.getElementById("resultArea").innerHTML = `
+  <div class="card" style="box-shadow:0 2px 14px rgba(20,25,40,.06)">
+    <div style="padding:24px 28px 20px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--line)">
+      <div>
+        <div class="num" style="font-size:13px;font-weight:600;color:var(--faint);letter-spacing:.04em">${esc(r.ticker)}</div>
+        <div class="num" style="font-size:20px;font-weight:700;margin-top:2px">${esc(r.companyName)}</div>
+        <div style="font-size:12px;color:var(--faint);margin-top:6px">기준 ${esc(r.asOf)} · 실제 호가와 차이가 있을 수 있어요</div>
+      </div>
+      <div style="text-align:right">
+        <div class="num" style="font-size:28px;font-weight:700">$${Number(r.price).toLocaleString(undefined,{maximumFractionDigits:2})}</div>
+        <div class="num" style="font-size:15px;font-weight:700;color:${cc}">${r.changePercent>=0?"▲":"▼"} ${Math.abs(r.changePercent).toFixed(2)}%</div>
+      </div>
+    </div>
+    <div style="padding:24px 28px;border-bottom:1px solid var(--line)">
+      <span class="pill" style="background:color-mix(in srgb, ${m.color} 9%, white);color:${m.color}">${m.label}</span>
+      <span class="num" style="font-size:13px;color:var(--faint);margin-left:10px">score ${r.score>0?"+":""}${r.score}</span>
+      ${gaugeHtml(r.score,m.color)}
+      <p style="margin-top:18px;font-size:14.5px;line-height:1.75">${esc(r.summary)}</p>
+    </div>
+    <div style="padding:24px 28px;display:flex;gap:28px;flex-wrap:wrap;border-bottom:1px solid var(--line)">
+      ${pts(r.bullPoints,"이런 점은 좋아요","var(--up)")}
+      ${pts(r.bearPoints,"이런 점은 조심해야 해요","var(--down)")}
+    </div>
+    ${(r.news&&r.news.length)?`<div style="padding:20px 28px;background:var(--soft)">
+      <div style="font-size:12.5px;font-weight:700;color:var(--sub);margin-bottom:10px">최근 뉴스</div>
+      ${r.news.map(n=>`<div style="font-size:13.5px;line-height:1.65;color:var(--sub);margin-bottom:6px">· ${esc(n)}</div>`).join("")}
+    </div>`:""}
+  </div>`;
+}
+
+// ═══ 동작 ═══
+let loadTimer=null;
+async function analyze(t){
+  const input=document.getElementById("tickerInput");
+  const symbol=(t||input.value).trim().toUpperCase();
+  if(!symbol||loading) return;
+  if(!/^[A-Z0-9.]{1,6}$/.test(symbol)){
+    document.getElementById("resultArea").innerHTML=`<div class="errbox"><b style="color:var(--up)">분석하지 못했어요.</b> 티커는 영문·숫자 1~6자만 입력할 수 있어요. 예) TSLA, SPCX</div>`;
+    return;
+  }
+  if(!isPro() && getUsage()>=FREE_DAILY_LIMIT){ showModal(); return; }
+
+  input.value=symbol; loading=true; updateBtn();
+  let i=0;
+  document.getElementById("resultArea").innerHTML=`<div class="loading"><b id="loadMsg">${LOADING_MSGS[0]}···</b><div style="margin-top:8px;font-size:12.5px;color:var(--faint)">실시간 검색 중이라 10~20초 정도 걸려요</div></div>`;
+  document.getElementById("resultArea").scrollIntoView({behavior:"smooth",block:"start"});
+  loadTimer=setInterval(()=>{ i=(i+1)%LOADING_MSGS.length; const el=document.getElementById("loadMsg"); if(el) el.textContent=LOADING_MSGS[i]+"···"; },2400);
+
+  try{
+    const data=await callApi({type:"stock",ticker:symbol});
+    renderResult(data);
+    if(!isPro()) addUsage();
+  }catch(e){
+    document.getElementById("resultArea").innerHTML=`<div class="errbox"><b style="color:var(--up)">분석하지 못했어요.</b> ${esc(e.message)}</div>`;
+  }finally{
+    clearInterval(loadTimer); loading=false; updateBtn(); renderQuota();
+  }
+}
+
+async function loadBrief(){
+  const btn=document.getElementById("briefBtn"), body=document.getElementById("briefBody");
+  btn.disabled=true; btn.textContent="불러오는 중···";
+  try{
+    const b=await callApi({type:"market"});
+    const mood=MOOD_META[b.mood]||MOOD_META.neutral;
+    const score=Math.max(0,Math.min(100,b.moodScore||50));
+    body.innerHTML=`
+      <div class="strip">${(b.items||[]).map(it=>{
+        const cc=it.changePercent>=0?"var(--up)":"var(--down)";
+        return `<div class="cell"><div style="font-size:12px;color:var(--faint)">${esc(it.name)}</div>
+          <div class="num" style="font-size:15.5px;font-weight:700;margin-top:3px">${esc(it.value)}</div>
+          <div class="num" style="font-size:12.5px;font-weight:700;color:${cc}">${it.changePercent>=0?"▲":"▼"} ${Math.abs(it.changePercent).toFixed(2)}%</div></div>`;
+      }).join("")}</div>
+      <div style="padding:18px 24px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+          <span class="pill" style="background:color-mix(in srgb, ${mood.c} 9%, white);color:${mood.c}">${mood.label} · ${score}/100</span>
+          <span style="font-size:11.5px;color:var(--faint)">기준 ${esc(b.asOf)}</span>
+        </div>
+        <div style="position:relative;height:6px;border-radius:3px;background:linear-gradient(90deg,rgba(59,111,224,.2),rgba(138,145,158,.13),rgba(229,72,77,.2));margin-bottom:14px">
+          <div style="position:absolute;left:calc(${score}% - 5px);top:-3px;width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid ${mood.c}"></div>
+        </div>
+        <p style="font-size:14px;line-height:1.7">${esc(b.summary)}</p>
+      </div>`;
+    btn.textContent="새로고침";
+  }catch(e){
+    body.innerHTML=`<div style="padding:0 24px 18px;font-size:13px;color:var(--up)">${esc(e.message)}</div>`;
+    btn.textContent="다시 시도";
+  }finally{ btn.disabled=false; }
+}
+
+function updateBtn(){
+  const input=document.getElementById("tickerInput"), btn=document.getElementById("analyzeBtn");
+  btn.disabled = loading || !input.value.trim();
+  btn.textContent = loading ? "분석 중" : "분석";
+}
+function showModal(){ document.getElementById("modalBg").classList.add("show"); }
+function hideModal(){ document.getElementById("modalBg").classList.remove("show"); }
+
+// ═══ 초기화 ═══
+renderStars(); renderQuota(); renderDirectory(); updateBtn();
+document.getElementById("tickerInput").addEventListener("input",e=>{ e.target.value=e.target.value.toUpperCase(); updateBtn(); });
+document.getElementById("tickerInput").addEventListener("keydown",e=>{ if(e.key==="Enter") analyze(); });
+document.getElementById("analyzeBtn").addEventListener("click",()=>analyze());
+document.getElementById("briefBtn").addEventListener("click",loadBrief);
+document.getElementById("quotaBtn").addEventListener("click",()=>{ if(!isPro()) showModal(); });
+document.getElementById("modalBg").addEventListener("click",hideModal);
+document.getElementById("closeModal").addEventListener("click",hideModal);
+document.getElementById("unlockBtn").addEventListener("click",async()=>{
+  const v=document.getElementById("proCode").value.trim().toUpperCase();
+  if(await sha256(v)===PRO_CODE_HASH){ localStorage.setItem("ai_pro",PRO_CODE_HASH); hideModal(); renderQuota(); }
+  else document.getElementById("codeErr").style.display="block";
+});
+document.getElementById("proCode").addEventListener("input",()=>document.getElementById("codeErr").style.display="none");
+</script>
+</body>
+</html>
