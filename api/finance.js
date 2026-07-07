@@ -94,6 +94,21 @@ async function keywordNews(q) {
   return (j?.news || []).slice(0, 6).map((x) => ({ title: x.title, source: x.publisher, url: x.link, datetime: x.providerPublishTime }));
 }
 
+// ── SpaceX 발사 통계 (Launch Library 2, 무키·best-effort) ──
+let spacexCache = null, spacexAt = 0;
+async function spacexStats() {
+  if (spacexCache && Date.now() - spacexAt < 3600000) return spacexCache; // 1시간 캐시
+  try {
+    const [a, b] = await Promise.all([
+      yahooJson("https://ll.thespacedevs.com/2.2.0/launch/?lsp__name=SpaceX&limit=1&mode=list"),
+      yahooJson("https://ll.thespacedevs.com/2.2.0/launch/upcoming/?lsp__name=SpaceX&limit=1&mode=list"),
+    ]);
+    const out = { total: a?.count ?? null, upcoming: b?.count ?? null };
+    if (out.total != null) { spacexCache = out; spacexAt = Date.now(); }
+    return out;
+  } catch { return { total: null, upcoming: null }; }
+}
+
 // ── Yahoo 일봉 차트 (우선), Stooq 폴백 ─────────────────────────
 async function yahooCandles(sym, period) {
   const map = { "1M": ["1mo", "1d"], "3M": ["3mo", "1d"], "1Y": ["1y", "1d"], "5Y": ["5y", "1wk"] };
@@ -186,6 +201,8 @@ export default async function handler(req, res) {
         return res.status(200).json({ spark: (await getCandles(sym, "1M")).map((x) => x.c).slice(-20) });
       case "keyword_news":
         return res.status(200).json({ news: await keywordNews(query || "SpaceX") });
+      case "spacex_stats":
+        return res.status(200).json(await spacexStats());
       case "search": {
         if (!query || query.length < 1) return res.status(200).json({ results: [] });
         // Finnhub 우선(키 있을 때) → Yahoo 폴백
