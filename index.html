@@ -386,12 +386,12 @@ async function loadDashboard(){
   // 지수
   (async()=>{try{const d=cGet("dash_idx")||await finApi("indices");cSet("dash_idx",d);collected.indices=d.indices;
     // 스파크라인 병렬
-    fill("dashIdx",`<div style="display:flex;flex-wrap:wrap">${d.indices.map(it=>quoteCard(it.name,it.symbol,it.price,it.changePercent,null,"$")).join("")}</div>`);
+    fill("dashIdx",`<div style="display:flex;flex-wrap:wrap">${d.indices.map(it=>quoteCard(it.name,it.symbol,it.price,it.changePercent,it.spark,"$")).join("")}</div>`);
     maybeSummary(collected);
   }catch(e){fill("dashIdx",errHtml(e.message))}})();
   // 크립토
   (async()=>{try{const d=cGet("dash_crypto")||await finApi("crypto");cSet("dash_crypto",d);collected.crypto=d.crypto;
-    fill("dashCrypto",`<div style="display:flex;flex-wrap:wrap">${d.crypto.map(it=>quoteCard(it.name,it.symbol,it.price,it.changePercent,null,"$")).join("")}</div>`);maybeSummary(collected);
+    fill("dashCrypto",`<div style="display:flex;flex-wrap:wrap">${d.crypto.map(it=>quoteCard(it.name,it.symbol,it.price,it.changePercent,it.spark,"$")).join("")}</div>`);maybeSummary(collected);
   }catch(e){fill("dashCrypto",errHtml(e.message))}})();
   // 미국 주식 히트맵
   (async()=>{try{const d=cGet("dash_movers")||await finApi("movers");cSet("dash_movers",d);renderHeat("dashMovers",d.movers)}catch(e){fill("dashMovers",errHtml(e.message))}})();
