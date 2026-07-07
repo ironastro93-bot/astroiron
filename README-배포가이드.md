@@ -1,54 +1,88 @@
-# ASTRO IRON — 배포 가이드 (v5 · 금융/AI 분리 아키텍처)
+# ASTRO IRON — 배포 가이드 (v7 · 글로벌 시장 대시보드)
 
-## 새 구조의 핵심
-- **금융 데이터**(시세·차트·재무·뉴스·공시)는 공식 API에서 직접 옵니다 → AI를 쓰지 않음, 항상 정확·빠름
-- **AI**는 요약·리스크·시나리오 "해석"만 담당 → AI가 죽어도 금융 데이터는 정상 작동
-- 두 서버가 분리되어 있어 한쪽 장애가 다른 쪽에 영향 없음
+## 구조
+- **금융 데이터**(시세·차트·재무·뉴스·공시·지수·크립토) → Finnhub / SEC EDGAR
+- **거시 데이터**(국채금리·달러인덱스·원자재) → FRED (미국 연준)
+- **AI**(요약·리스크·시나리오·시장요약) → Anthropic (선택 · 없어도 앱 정상)
+- 세 서버가 분리되어 한쪽 장애가 다른 쪽에 영향 없음
 
 ## 폴더 구성
 ```
 ironastro/
-├── index.html        ← 화면
+├── index.html
 └── api/
-    ├── finance.js    ← 금융 데이터 (Finnhub + SEC EDGAR)  [필수 키 1개]
-    └── ai.js         ← AI 해석 (Anthropic)                [선택 키]
+    ├── finance.js   ← Finnhub + SEC EDGAR   [FINNHUB_API_KEY 필수]
+    ├── macro.js     ← FRED 국채·달러·원자재  [FRED_API_KEY 필수]
+    └── ai.js        ← Anthropic 해석         [ANTHROPIC_API_KEY 선택]
 ```
 
 ---
 
-## 1단계 — Finnhub 무료 키 (필수, 약 3분)
-1. https://finnhub.io → **Get free API key** → 가입 → 대시보드에서 API 키 복사
-2. 무료 티어: 분당 60회. 개인 서비스엔 충분.
+## 1단계 — Finnhub 키 (필수, 3분)
+1. https://finnhub.io → Get free API key → 가입 → 키 복사
+2. 무료 티어: 분당 60회
 
-## 2단계 — Anthropic 키 (선택 · AI 분석용, 약 5분)
-1. https://console.anthropic.com → API Keys → Create Key → 복사
-2. Billing에서 $5 충전 + **월 한도 설정**
-3. 넣지 않아도 앱은 정상 작동합니다(AI 분석 탭만 "사용 불가"로 표시).
+## 2단계 — FRED 키 (필수, 3분)
+1. https://fred.stlouisfed.org → 가입
+2. My Account → API Keys → Request API Key → 키 복사
+3. 완전 무료, 국채금리·달러·원자재 데이터 제공
 
-## 3단계 — Vercel 배포 (약 10분)
-1. https://vercel.com → GitHub로 가입
-2. GitHub에 `ironastro` 저장소 만들고 폴더 업로드 (index.html + api 폴더 전체)
-3. Vercel → Add New > Project → Import
+## 3단계 — Claude(Anthropic) 키 — AI 분석용 (필수는 아니지만, AI 분석을 쓰려면 반드시 필요)
+> AI 분석이 "사용할 수 없습니다"로 뜨는 이유는 이 키가 없어서예요. 키를 넣으면 바로 켜집니다.
+1. https://console.anthropic.com → **API Keys → Create Key** → 키 복사 (sk-ant-... 로 시작)
+2. **Billing → 결제수단 등록 + $5 충전** (충전 안 하면 401/사용불가). **Usage limits에서 월 한도**도 걸어두면 안전.
+3. Vercel 환경변수에 `ANTHROPIC_API_KEY` = 복사한 키 등록 → **Redeploy**
+4. 없어도 시세·차트·뉴스·공시·재무·배당·투자의견·실적은 정상 작동. (AI 요약/분석만 비활성)
+
+### ⚠️ 모델 ID 주의 (이전 버전 버그 수정됨)
+- 이전 코드의 모델명 `claude-sonnet-4-6` 은 **존재하지 않는 이름**이라 키를 넣어도 AI가 실패했어요.
+- 이번 버전은 `api/ai.js` 기본 모델을 **`claude-sonnet-4-20250514`** (실제 존재하는 ID)로 수정했습니다.
+- 모델을 바꾸고 싶으면 Vercel 환경변수 `ANTHROPIC_MODEL` 에 원하는 모델 ID를 넣으면 코드 수정 없이 교체됩니다.
+
+## 4단계 — Vercel 배포 (10분)
+1. https://vercel.com → GitHub 가입
+2. GitHub에 ironastro 저장소 만들고 폴더 업로드 (index.html + api 폴더 전체)
+3. Add New > Project → Import
 4. **Environment Variables**:
    - `FINNHUB_API_KEY` = 1단계 키  (필수)
-   - `ANTHROPIC_API_KEY` = 2단계 키 (선택)
-5. Deploy → `xxx.vercel.app` 생성
+   - `FRED_API_KEY` = 2단계 키     (필수 · 국채·원자재용)
+   - `ANTHROPIC_API_KEY` = 3단계 키 (AI 분석용)
+   - `ANTHROPIC_MODEL` = (선택) 모델 교체용. 미입력 시 claude-sonnet-4-20250514 사용
+5. Deploy
 
-## 4단계 — .com 연결 (약 15분)
-1. 가비아 또는 Namecheap에서 .com 구매
-2. Vercel → Settings > Domains → 도메인 추가
-3. 안내된 DNS 값을 도메인 구매처에 입력 → 완료 (HTTPS 자동)
+## 5단계 — .com 연결 (15분)
+가비아/Namecheap에서 .com 구매 → Vercel Settings > Domains에 추가 → DNS 입력
 
 ---
 
-## 데이터 출처
-- 시세·차트·재무·뉴스·지수: **Finnhub** (finnhub.io)
-- SEC 공시: **SEC EDGAR** (무료, 키 불필요)
-- AI 요약·리스크·시나리오: **Anthropic Claude** (선택)
+## 홈 대시보드 데이터 출처
+- 지수·ETF·크립토: Finnhub
+- 국채금리(2Y/10Y/30Y)·달러인덱스·금·은·유가·천연가스: FRED
+- AI 시장 요약: Anthropic (선택)
+- 각 카드의 미니 차트(스파크라인)는 자체 SVG로 렌더
 
 ## 주의
-- 키는 **Vercel 환경변수에만.** 코드·GitHub에 넣지 마세요.
-- Finnhub 무료 티어는 미국 주식 위주. 일부 지표·해외종목은 값이 없을 수 있어요(앱은 "—"로 표시).
-- 지수는 무료 티어 제약으로 대표 ETF(SPY/QQQ/DIA/IWM) 시세로 표시됩니다.
+- 키는 **Vercel 환경변수에만.**
+- Finnhub 무료 티어는 미국 주식·ETF·크립토 위주. 환율(forex)은 무료 티어에서 제한될 수 있음(그 경우 "—" 표시).
+- FRED 원자재는 일부 시리즈가 영업일 기준 1~2일 지연될 수 있음(공식 데이터 특성).
+- 검색은 Finnhub search로 미국 전체 상장 종목·ETF 자동완성 지원 (DIRECTORY 제한 없음).
 - 유료화 본격화 시 유사투자자문업 신고(금감원) 검토. 면책 문구 삭제 금지.
-- 더 정밀한 실시간(초 단위 호가)·옵션·선물은 Finnhub 유료 또는 Polygon 추가 연동 필요.
+- 차트는 자체 SVG 렌더(타사 차트 캡처·iframe 없음), 뉴스는 제목+원문링크만(저작권 준수).
+
+---
+
+## v8 변경 사항 (이번 업데이트)
+- **로고 클릭 → 홈**: 상단 좌측 ASTRO IRON 로고를 누르면 첫 화면(홈)으로 이동.
+- **차트 살림**: Finnhub 무료 티어가 막은 차트를 **Yahoo Finance 일봉(무료·무키)** 으로 교체, 실패 시 Stooq 폴백. 기간 1개월/3개월/1년/5년.
+- **AI 분석 수정**: 잘못된 모델 ID(`claude-sonnet-4-6`) → 유효 모델로 교체. `ANTHROPIC_API_KEY`만 넣으면 즉시 동작.
+- **미국 주식 검색 확대**: Common Stock·ETF·ADR·REIT·우선주 등 더 많은 미국 종목이 자동완성에 노출.
+- **새 탭 추가**: 종목 상세에 **배당 · 투자의견(애널리스트) · 실적(EPS 서프라이즈)** 탭 추가.
+- **홈 히트맵**: 인기 미국 종목 급등락 히트맵 + 섹터 ETF(11개) 히트맵. 셀 클릭 시 바로 분석.
+- **뉴스·공시 UI 정리**: 뉴스에 상대시간 표시, 공시는 종류 배지 + 한글 라벨(연간/분기/수시 보고서)로 깔끔하게.
+
+## 데이터 출처 요약
+- 시세·프로필·뉴스·재무·배당·투자의견·실적·지수·크립토·히트맵: **Finnhub** (FINNHUB_API_KEY)
+- 차트(일봉): **Yahoo Finance**(주) / **Stooq**(폴백) — 키 불필요
+- 공시: **SEC EDGAR** — 키 불필요
+- 국채·달러·원자재: **FRED** (FRED_API_KEY)
+- AI 요약·분석: **Anthropic Claude** (ANTHROPIC_API_KEY, 선택)
