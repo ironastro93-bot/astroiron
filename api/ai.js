@@ -6,16 +6,41 @@
 //           크레딧 부족/키 오류 등 진짜 사유는 응답 error 로 그대로 전달한다.
 
 const KEY = process.env.ANTHROPIC_API_KEY;
-// 앞에서부터 시도. 하나가 404/400(model) 이면 다음 것으로 자동 폴백.
-const MODELS = [
-  process.env.ANTHROPIC_MODEL,
-  "claude-3-5-sonnet-latest",
-  "claude-3-5-sonnet-20241022",
-  "claude-3-5-haiku-20241022",
-  "claude-3-haiku-20240307",
-].filter(Boolean);
-let goodModel = null; // 성공한 모델 기억(재프로빙 방지)
+// 정적 폴백(모델 목록 조회 실패 시)
+const STATIC_FALLBACK = [
+  "claude-sonnet-4-20250514", "claude-3-7-sonnet-20250219",
+  "claude-3-5-sonnet-latest", "claude-3-5-sonnet-20241022",
+  "claude-3-5-haiku-20241022", "claude-haiku-4-5-20251001",
+];
+let goodModel = null;   // 성공한 모델 기억
+let discovered = null;  // 이 키가 실제 쓸 수 있는 모델 목록 (/v1/models)
 const TIMEOUT = 45000;
+
+// 이 키가 접근 가능한 모델을 Anthropic에서 직접 조회
+async function listModels() {
+  if (discovered) return discovered;
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/models?limit=100", {
+      headers: { "x-api-key": KEY, "anthropic-version": "2023-06-01" },
+    });
+    if (!r.ok) { console.error("[ai] /v1/models", r.status); return []; }
+    const j = await r.json();
+    discovered = (j.data || []).map((m) => m.id);
+    return discovered;
+  } catch (e) { console.error("[ai] /v1/models 예외", String(e.message || e)); return []; }
+}
+
+// 시도 순서: 환경변수 → 성공모델 → 조회된 모델(sonnet>haiku>기타) → 정적 폴백
+async function modelOrder() {
+  const disc = await listModels();
+  const pref = [
+    ...disc.filter((id) => /sonnet/i.test(id)),
+    ...disc.filter((id) => /haiku/i.test(id)),
+    ...disc.filter((id) => !/sonnet|haiku/i.test(id)),
+  ];
+  const order = [process.env.ANTHROPIC_MODEL, goodModel, ...pref, ...STATIC_FALLBACK].filter(Boolean);
+  return [...new Set(order)];
+}
 
 async function anthropic(model, prompt, maxTokens) {
   const ctrl = new AbortController();
@@ -44,7 +69,8 @@ async function anthropic(model, prompt, maxTokens) {
 }
 
 async function callModel(prompt, maxTokens) {
-  const order = goodModel ? [goodModel, ...MODELS.filter((m) => m !== goodModel)] : MODELS;
+  const order = await modelOrder();
+  if (!order.length) throw { code: 502, msg: "이 키로 사용 가능한 모델을 찾지 못했어요. (Anthropic 콘솔에서 모델 접근 권한 확인)" };
   let last = { msg: "AI 오류", status: 502 };
   for (const m of order) {
     const r = await anthropic(m, prompt, maxTokens);
@@ -75,7 +101,7 @@ export default async function handler(req, res) {
   try {
     // 점검용: GET /api/ai?health=1 → 이 배포가 키를 보는지 확인 (키 값은 노출 안 함)
     if (req.method === "GET") {
-      return res.status(200).json({ ok: true, hasKey: !!KEY, keyPreview: KEY ? (KEY.slice(0, 7) + "…" + KEY.slice(-4)) : null, models: MODELS, activeModel: goodModel, env: process.env.VERCEL_ENV || "unknown" });
+      return res.status(200).json({ ok: true, hasKey: !!KEY, keyPreview: KEY ? (KEY.slice(0, 7) + "…" + KEY.slice(-4)) : null, availableModels: await listModels(), activeModel: goodModel, env: process.env.VERCEL_ENV || "unknown" });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "POST만 허용됩니다." });
     if (!KEY) return res.status(503).json({ error: "현재 AI 분석을 사용할 수 없습니다. (운영자: ANTHROPIC_API_KEY 등록 필요) 실시간 금융 데이터는 계속 제공됩니다.", aiUnavailable: true });
