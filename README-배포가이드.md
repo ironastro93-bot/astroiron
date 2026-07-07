@@ -86,3 +86,43 @@ ironastro/
 - 공시: **SEC EDGAR** — 키 불필요
 - 국채·달러·원자재: **FRED** (FRED_API_KEY)
 - AI 요약·분석: **Anthropic Claude** (ANTHROPIC_API_KEY, 선택)
+
+---
+
+## v10 — 502(AI) 및 차트/UX 문제 해결
+
+### 1) Anthropic 모델명 고정 (502의 핵심 원인)
+- `api/ai.js` 기본 모델을 **`claude-3-5-sonnet-latest`** 로 고정했습니다. (원하면 `claude-3-5-sonnet-20241022` 로 바꿔도 됩니다.)
+- 존재하지 않는 모델 ID를 쓰면 Anthropic이 400/404를 주고 서버가 502로 죽습니다. 이제 유효 ID로 고정 + 실패 시 **Vercel 로그에 원인**(`[ai] Anthropic API 오류 ...`)을 남깁니다.
+- 모델 교체는 코드 수정 없이 환경변수 `ANTHROPIC_MODEL` 로 가능.
+
+### 2) ⚠️ 반드시 확인 — ANTHROPIC_API_KEY 를 **Production 에도** 체크
+- 현재 이 키가 **Preview(미리보기)** 에만 걸려 있어서, 실제 도메인(Production)에서는 `undefined` → 401 → **502** 로 튕깁니다.
+- Vercel → Settings → **Environment Variables** → `ANTHROPIC_API_KEY` 의 ⋯ → Edit → **Production 체크박스 켜기** → Save.
+- 그 다음 **Deployments → 최신 배포 → Redeploy**. (환경변수는 재배포해야 반영)
+- Anthropic **Billing에 결제수단 등록 + 크레딧 충전**도 필요(없으면 401).
+
+### 3) 로컬 실행 주의 (Windows Script Host 800A03EA 방지)
+- `api/*.js` 는 **서버(Vercel/Node) 전용** 파일입니다. Windows에서 **더블클릭하지 마세요** → WScript가 실행하려다 `800A03EA 구문 오류`가 납니다. (코드 문제가 아니라 실행 방식 문제)
+- 로컬 점검이 필요하면 터미널에서 `node --check api/ai.js` 처럼 Node로만 검사하세요. 전 파일 문법 검사 완료.
+
+### 4) 프론트엔드 차트 침범(Overflow) 수정
+- 차트 컨테이너에 `overflow:hidden` 적용 → 선이 영역 밖으로 삐져나가지 않고 잘립니다.
+- Y축 도메인에 위아래 **10% 여백**을 줘서 선이 천장/바닥을 뚫지 않게 스케일링.
+- SVG를 `width:100%` + `preserveAspectRatio` 반응형으로, 전역 `svg{max-width:100%}` / `body{overflow-x:hidden}` 로 창 크기 변경·모바일 가로 넘침 방지.
+- 모바일: 차트 영역 `touch-action:pan-y` → 차트를 만져도 **세로 스크롤 정상**.
+
+### 그 외 UX
+- 검색창 **디바운스 260ms** 적용됨(타자 멈춘 뒤에만 요청 → 무료 한도 보호).
+- 데이터/AI 로딩 중 **스켈레톤 UI** 유지.
+- **차트 점 툴팁**: 마우스 올리면 날짜·가격 표시.
+- AI 시장 요약 실패 시 **다시 시도 버튼**(전체 새로고침 불필요). 종목 AI 실패 시 **사유 표시**.
+- **최근 조회·관심종목 localStorage 저장**, **다크모드 상태 기억** 유지.
+
+## v12 — 우주 테마 + SpaceX(비상장) 추가
+- **다크모드 우주 배경**: `index.html`의 `<style>`에서 `[data-theme="dark"] #sky`에 우주 이미지(`space-bg.jpg`) + 어두운 오버레이(rgba 0.6). 라이트모드는 기존 유지. 이미지 없으면 우주풍 그라데이션+별로 자동 대체(멈춤 없음). → 사진을 쓰려면 **`space-bg.jpg`를 index.html과 같은 폴더(저장소 루트)**에 두세요.
+- **글래스모피즘**: 다크모드에서 카드·내비·모달 반투명 + `backdrop-blur`.
+- **SpaceX(비상장)**:
+  - 검색창에 `SpaceX` 입력(또는 자동완성 선택) 시 Finnhub 시세를 호출하지 않고 **전용 뉴스 상세**로 라우팅.
+  - 홈 하단에 **🚀 SpaceX 비상장 카드** — 최신 뉴스 3건 요약, 우주 테마와 어울리는 글래스 카드.
+  - 데이터 소스: 서버 `/api/finance?type=keyword_news&query=SpaceX` — **Finnhub 일반뉴스에서 'SpaceX/Starship/Falcon' 키워드 필터**, 키가 없거나 결과가 없으면 **Yahoo 뉴스로 폴백**(무키). 전 구간 try-catch로 실패해도 앱이 멈추지 않음.

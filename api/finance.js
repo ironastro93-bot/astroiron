@@ -75,6 +75,25 @@ async function yahooSearch(q) {
     .slice(0, 10).map((x) => ({ symbol: x.symbol, name: x.shortname || x.longname || x.symbol }));
 }
 
+// ── 키워드 뉴스 (비상장 기업 등): Finnhub 일반뉴스 필터 → Yahoo 폴백 ──
+async function keywordNews(q) {
+  const kw = (q || "").toLowerCase();
+  const terms = kw.includes("spacex")
+    ? ["spacex", "starship", "starlink", "falcon", "elon musk"]
+    : [kw];
+  if (KEY) {
+    try {
+      const n = await fh(`/news?category=general`);
+      const hit = (n || [])
+        .filter((x) => { const t = ((x.headline || "") + " " + (x.summary || "")).toLowerCase(); return terms.some((k) => t.includes(k)); })
+        .slice(0, 6).map((x) => ({ title: x.headline, source: x.source, url: x.url, datetime: x.datetime }));
+      if (hit.length) return hit;
+    } catch { /* Yahoo 폴백 */ }
+  }
+  const j = await yahooJson(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&newsCount=6&quotesCount=0`);
+  return (j?.news || []).slice(0, 6).map((x) => ({ title: x.title, source: x.publisher, url: x.link, datetime: x.providerPublishTime }));
+}
+
 // ── Yahoo 일봉 차트 (우선), Stooq 폴백 ─────────────────────────
 async function yahooCandles(sym, period) {
   const map = { "1M": ["1mo", "1d"], "3M": ["3mo", "1d"], "1Y": ["1y", "1d"], "5Y": ["5y", "1wk"] };
@@ -165,6 +184,8 @@ export default async function handler(req, res) {
         return res.status(200).json({ candles: await getCandles(sym, resolution) });
       case "sparkline":
         return res.status(200).json({ spark: (await getCandles(sym, "1M")).map((x) => x.c).slice(-20) });
+      case "keyword_news":
+        return res.status(200).json({ news: await keywordNews(query || "SpaceX") });
       case "search": {
         if (!query || query.length < 1) return res.status(200).json({ results: [] });
         // Finnhub 우선(키 있을 때) → Yahoo 폴백

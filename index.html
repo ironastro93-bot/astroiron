@@ -68,6 +68,33 @@
   .modalBg.show{display:flex}
   .modal{background:var(--bg);border-radius:18px;max-width:440px;width:100%;padding:30px 28px;box-shadow:0 20px 60px rgba(15,20,32,.3);max-height:90vh;overflow-y:auto}
   .modal input{width:100%;padding:11px 14px;font-size:14px;border-radius:10px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)}
+  /* ══ 우주 배경 테마 (다크 모드 전용) · 라이트 모드는 기존 유지 ══ */
+  [data-theme="dark"] body{background:#070a12}
+  [data-theme="dark"] #sky{
+    background:
+      linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,.62)),                                   /* 가독성용 어두운 오버레이 */
+      url('space-bg.jpg') center center / cover no-repeat,                                  /* 우주 사진 (있으면 표시) */
+      radial-gradient(ellipse 120% 85% at 50% 20%,#1a2440 0%,#0d1224 55%,#05070f 100%);     /* 사진 없을 때 자동 대체 배경 */
+    background-attachment:scroll;
+  }
+  [data-theme="dark"] #stars{height:100%!important}
+  /* 글래스모피즘 카드 */
+  [data-theme="dark"] .card{
+    background:rgba(26,30,42,.52);
+    -webkit-backdrop-filter:blur(16px) saturate(1.15);
+    backdrop-filter:blur(16px) saturate(1.15);
+    border-color:rgba(255,255,255,.10);
+    box-shadow:0 10px 34px rgba(0,0,0,.40);
+  }
+  [data-theme="dark"] nav{background:rgba(12,15,24,.62);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-bottom-color:rgba(255,255,255,.08)}
+  [data-theme="dark"] .met,[data-theme="dark"] .aibox,[data-theme="dark"] .aiwarn,[data-theme="dark"] .adbox{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.09)}
+  [data-theme="dark"] .modal{background:rgba(20,24,34,.94);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+  [data-theme="dark"] .srow input,[data-theme="dark"] .modal input{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14)}
+  [data-theme="dark"] .tab.on,[data-theme="dark"] .vitem.on{color:#fff}
+  svg{max-width:100%}
+  html,body{overflow-x:hidden}
+  .card{overflow:hidden}
+  @media (max-width:640px){ .met .v{font-size:15px} }
 </style>
 </head>
 <body>
@@ -120,6 +147,7 @@ const SIG={strong_buy:["상승 신호 강함","var(--up)"],buy:["상승 우위",
 const DIR=[["우주 · 방산",[["RKLB","Rocket Lab"],["LMT","Lockheed"],["BA","Boeing"],["RTX","RTX"],["ASTS","AST"]]],["빅테크",[["AAPL","Apple"],["MSFT","Microsoft"],["GOOGL","Alphabet"],["AMZN","Amazon"],["META","Meta"],["NFLX","Netflix"]]],["반도체 · AI",[["NVDA","NVIDIA"],["AMD","AMD"],["TSM","TSMC"],["AVGO","Broadcom"],["MU","Micron"],["PLTR","Palantir"]]],["ETF",[["SPY","S&P500"],["QQQ","나스닥100"],["SCHD","배당"],["VOO","뱅가드"],["ARKK","ARK"],["JEPI","JEPI"]]],["전기차 · 크립토",[["TSLA","Tesla"],["RIVN","Rivian"],["COIN","Coinbase"],["MSTR","Strategy"]]]];
 const TABS=[["overview","개요"],["chart","차트"],["financials","재무"],["dividend","배당"],["recommend","투자의견"],["earnings","실적"],["news","뉴스"],["filings","공시"],["ai","AI 분석"],["discuss","메모"]];
 const PERIODS=[["1M","1개월"],["3M","3개월"],["1Y","1년"],["5Y","5년"]];
+const PRIVATE={SPACEX:{name:"SpaceX",industry:"우주·발사체 (비상장)",note:"비상장 기업이라 실시간 주가·차트는 제공되지 않아요. 최신 뉴스로 소식을 전해드립니다."}};
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const fmt=(n,d=2)=>n==null||isNaN(n)?"—":Number(n).toLocaleString(undefined,{maximumFractionDigits:d});
@@ -162,8 +190,9 @@ window.state=state;
 
 // ═══ 종목 로드 ═══
 async function loadStock(sym){
-  sym=(sym||state.symbol).trim().toUpperCase();
+  sym=(sym||state.symbol).trim().toUpperCase().replace(/\s+/g,"");
   if(!sym||state.loading)return;
+  if(PRIVATE[sym]){return loadPrivate(sym)}
   if(!/^[A-Z0-9.]{1,6}$/.test(sym)){state.view="stock";state.error="티커는 영문·숫자 1~6자만 입력할 수 있어요. 예) TSLA";state.data=null;render();return}
   state.view="stock";state.symbol=sym;state.tab="overview";state.period="3M";state.loading=true;state.error=null;state.data=null;closeAc();render();
   try{
@@ -182,6 +211,35 @@ async function loadStock(sym){
 }
 window.loadStock=loadStock;
 
+// ═══ 비상장 기업 (SpaceX 등) ═══
+async function loadPrivate(sym){
+  const info=PRIVATE[sym];if(!info)return;
+  state.view="stock";state.symbol=sym;state.loading=false;state.error=null;
+  state.data={symbol:sym,private:true,info,news:null};closeAc();
+  try{pushRecent(sym,info.name)}catch{}
+  render();
+  try{const r=await finApi("keyword_news",{query:info.name});state.data.news=r.news||[]}
+  catch{state.data.news=[]}
+  render();
+}
+window.loadPrivate=loadPrivate;
+function spacexNewsHtml(news){
+  if(!news||!news.length)return '<div style="padding:14px 20px;font-size:13px;color:var(--faint)">최근 뉴스를 찾지 못했어요. <button class="btn-g" style="color:var(--steel)" onclick="loadDashboard()">다시 시도</button></div>';
+  return '<div style="padding:4px 20px 12px">'+news.map((n,i)=>`<a class="newslink" href="${esc(n.url)}" target="_blank" rel="noreferrer" style="display:block;padding:11px 0;border-bottom:${i<news.length-1?"1px solid var(--line)":"none"}"><div style="font-size:13.5px;line-height:1.5;font-weight:500">${esc(n.title)}</div><div style="font-size:11px;color:var(--faint);margin-top:4px"><span style="color:var(--steel);font-weight:600">${esc(n.source||"")}</span>${n.datetime?" · "+relTime(n.datetime):""} · 원문 →</div></a>`).join("")+'</div>';
+}
+function renderPrivate(d){
+  const info=d.info;
+  const body=d.news===null?('<div style="padding:6px 20px 14px">'+Array(3).fill('<div class="skel" style="height:34px;margin-bottom:8px"></div>').join("")+'</div>'):spacexNewsHtml(d.news);
+  return `<div class="card" style="margin-bottom:36px">
+    <div style="padding:22px 26px 18px;border-bottom:1px solid var(--line)">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div style="font-size:24px">🚀</div><div><div style="font-size:20px;font-weight:700;font-family:Inter">${esc(info.name)}</div><div style="font-size:12.5px;color:var(--sub)">${esc(info.industry)}</div></div><span class="pill" style="margin-left:auto;background:color-mix(in srgb,var(--steel) 14%,transparent);color:var(--steel)">비상장 · Private</span></div>
+      <p style="font-size:12.5px;color:var(--faint);margin-top:12px;line-height:1.6">${esc(info.note)}</p>
+    </div>
+    <div style="font-size:13px;font-weight:700;padding:14px 20px 2px">최신 뉴스</div>${body}
+    <div style="padding:0 26px 20px"><p style="font-size:11px;color:var(--faint);line-height:1.6">제목·출처·원문 링크만 제공(저작권 준수). 비상장 기업은 시세·차트·재무·공시가 제공되지 않습니다.</p></div>
+  </div>`;
+}
+
 async function changePeriod(p){
   state.period=p;const d=state.data;if(!d)return;d.candles=null;render();
   try{const r=await finApi("candle",{symbol:d.symbol,resolution:p});d.candles=r.candles}catch{d.candles=[]}
@@ -197,7 +255,7 @@ async function runAiAnalysis(){
   const tasks=[aiApi("summary",ctx),aiApi("risk",ctx)];
   if(isPro())tasks.push(aiApi("scenario",ctx));
   const [summary,risk,scenario]=await Promise.all(tasks);
-  if(summary.aiUnavailable&&risk.aiUnavailable){d.aiState="unavailable";render();return}
+  if(summary.aiUnavailable&&risk.aiUnavailable){d.aiState="unavailable";d.aiError=summary.error||risk.error||"";render();return}
   if(!isPro())addUsage();
   d.ai={summary,risk,scenario:scenario||{aiUnavailable:true}};d.aiState="done";render();
 }
@@ -208,11 +266,13 @@ function gauge(score,color){const p=(Math.max(-100,Math.min(100,score||0))+100)/
   return `<div style="margin:16px 0 4px"><div style="position:relative;height:8px;border-radius:4px;border:1px solid var(--line);background:linear-gradient(90deg,rgba(59,111,224,.2),var(--soft) 45%,var(--soft) 55%,rgba(229,72,77,.2))"><div style="position:absolute;top:0;bottom:0;width:1px;left:50%;background:var(--line-d)"></div><div style="position:absolute;left:calc(${p}% - 7px);top:-4px;width:14px;height:14px;border-radius:50%;background:var(--bg);border:4px solid ${color};box-shadow:0 1px 4px rgba(0,0,0,.18)"></div></div><div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11.5px;color:var(--faint)"><span>하락 신호</span><span>중립</span><span>상승 신호</span></div></div>`}
 function lineChart(data,pos){
   if(!data||data.length<2)return '<p style="font-size:13px;color:var(--faint)">차트 데이터가 없어요.</p>';
-  const W=560,H=190,pl=8,pr=46,pt=12,pb=22;const vs=data.map(d=>d.c);const mn=Math.min(...vs),mx=Math.max(...vs),rg=mx-mn||1;
+  const W=560,H=190,pl=8,pr=48,pt=16,pb=22;const vs=data.map(d=>d.c);
+  const hi=Math.max(...vs),lo=Math.min(...vs);const pad=(hi-lo||1)*0.10;const mn=lo-pad,mx=hi+pad,rg=mx-mn||1; // 위아래 여백 → 선이 천장/바닥 안 뚫음
   const col=pos?"var(--up)":"var(--down)";const x=i=>pl+(i/(data.length-1))*(W-pl-pr);const y=v=>pt+(1-(v-mn)/rg)*(H-pt-pb);
   const pts=data.map((d,i)=>x(i).toFixed(1)+","+y(d.c).toFixed(1)).join(" ");const area=pl+","+(H-pb)+" "+pts+" "+x(data.length-1)+","+(H-pb);
   const lbls=data.map((d,i)=>(i%Math.ceil(data.length/5)===0||i===data.length-1)?`<text x="${x(i)}" y="${H-6}" font-size="9.5" fill="var(--faint)" text-anchor="middle" font-family="Inter">${esc(d.d)}</text>`:"").join("");
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="종가 추이"><polyline points="${area}" fill="${col}" opacity="0.08"/><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/><circle cx="${x(data.length-1)}" cy="${y(vs[vs.length-1])}" r="4" fill="${col}"/><text x="${x(data.length-1)+6}" y="${y(mx)+4}" font-size="10" fill="var(--faint)" font-family="Inter">${mx.toFixed(1)}</text><text x="${x(data.length-1)+6}" y="${y(mn)+4}" font-size="10" fill="var(--faint)" font-family="Inter">${mn.toFixed(1)}</text>${lbls}</svg>`;
+  const dots=data.map((d,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(d.c).toFixed(1)}" r="7" fill="transparent" style="cursor:crosshair"><title>${esc(d.d)} · $${fmt(d.c)}</title></circle>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;max-width:100%;overflow:hidden" preserveAspectRatio="xMidYMid meet" role="img" aria-label="종가 추이"><polyline points="${area}" fill="${col}" opacity="0.08"/><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/><circle cx="${x(data.length-1)}" cy="${y(vs[vs.length-1])}" r="4" fill="${col}"/><text x="${x(data.length-1)+6}" y="${y(hi)+4}" font-size="10" fill="var(--faint)" font-family="Inter">${hi.toFixed(1)}</text><text x="${x(data.length-1)+6}" y="${y(lo)+4}" font-size="10" fill="var(--faint)" font-family="Inter">${lo.toFixed(1)}</text>${lbls}${dots}</svg>`;
 }
 function inWatch(s){return getList("watchlist").some(w=>w.ticker===s)}
 window.toggleWatch=(sym,name)=>{const w=getList("watchlist");const ex=w.find(x=>x.ticker===sym);setList("watchlist",ex?w.filter(x=>x.ticker!==sym):[...w,{ticker:sym,name}]);render()};
@@ -229,7 +289,10 @@ function bindSearch(){
   });
 }
 async function doAutocomplete(q){
-  try{const r=await finApi("search",{query:q});acItems=r.results||[];acSel=-1;paintAc()}catch{closeAc()}
+  const ql=q.toLowerCase();
+  const extra=("spacex".startsWith(ql)||ql.includes("spac")||ql.includes("스페이스"))?[{symbol:"SPACEX",name:"SpaceX · 비상장"}]:[];
+  try{const r=await finApi("search",{query:q});acItems=[...extra,...(r.results||[]).filter(x=>x.symbol!=="SPACEX")];acSel=-1;paintAc()}
+  catch{acItems=extra;acSel=-1;paintAc()}
 }
 function paintAc(){
   const wrap=document.getElementById("searchWrap");if(!wrap)return;
@@ -257,7 +320,7 @@ function renderStockResult(){
   }
   else if(state.tab==="chart"){
     t=`<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">${PERIODS.map(p=>`<button class="chip ${state.period===p[0]?"on":""}" onclick="changePeriod('${p[0]}')">${p[1]}</button>`).join("")}</div>`;
-    t+=d.candles===null?'<div class="skel" style="height:190px"></div>':`<div style="background:var(--soft);border-radius:12px;padding:14px 16px 8px">${lineChart(d.candles,q.changePercent>=0)}</div><p style="font-size:11.5px;color:var(--faint);margin-top:12px">Stooq 일봉 종가 기준(무료). 기간에 따라 표시 범위가 달라질 수 있어요.</p>`;
+    t+=d.candles===null?'<div class="skel" style="height:190px"></div>':`<div style="background:var(--soft);border-radius:12px;padding:14px 16px 8px;overflow:hidden;touch-action:pan-y">${lineChart(d.candles,q.changePercent>=0)}</div><p style="font-size:11.5px;color:var(--faint);margin-top:12px">Yahoo/Stooq 일봉 종가 기준(무료). 점에 마우스를 올리면 날짜·가격이 표시돼요.</p>`;
   }
   else if(state.tab==="financials"){
     if(d.financials===null)t='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">'+Array(8).fill('<div class="skel" style="height:64px"></div>').join("")+'</div>';
@@ -311,7 +374,7 @@ function renderStockResult(){
 function renderAiTab(d){
   if(d.aiState==="idle")return `<div class="aibox"><p style="font-size:14px;line-height:1.6;margin-bottom:8px">위 실시간 데이터를 바탕으로 AI가 요약·리스크${isPro()?"·투자 시나리오":""}를 정리해 드려요.</p>${isPro()?'<span class="pill" style="background:color-mix(in srgb,var(--steel) 12%,transparent);color:var(--steel);margin-bottom:12px">PRO 심층 분석</span>':`<p style="font-size:12px;color:var(--faint);margin-bottom:12px">무료 ${Math.max(0,FREE-getUsage())}회 남음 · 간결 분석</p>`}<div><button class="btn-sm" onclick="runAiAnalysis()">AI 분석 실행</button></div></div>`;
   if(d.aiState==="loading")return '<div class="aibox"><div class="skel" style="height:20px;width:55%;margin-bottom:12px"></div><div class="skel" style="height:70px"></div></div>';
-  if(d.aiState==="unavailable")return `<div class="aiwarn">⚠ 현재 AI 분석을 사용할 수 없습니다. 실시간 금융 데이터(시세·차트·뉴스·공시·재무)는 위 탭에서 계속 이용하실 수 있어요.<br/><button class="btn-g" style="margin-top:10px" onclick="runAiAnalysis()">다시 시도</button></div>`;
+  if(d.aiState==="unavailable")return `<div class="aiwarn">⚠ 현재 AI 분석을 사용할 수 없습니다. 실시간 금융 데이터(시세·차트·뉴스·공시·재무)는 위 탭에서 계속 이용하실 수 있어요.${d.aiError?`<div style="font-size:12px;color:var(--faint);margin-top:8px">사유: ${esc(d.aiError)} · ANTHROPIC_API_KEY 등록 후 <b>재배포(Redeploy)</b>와 결제수단 등록이 필요할 수 있어요.</div>`:""}<br/><button class="btn-g" style="margin-top:10px" onclick="runAiAnalysis()">다시 시도</button></div>`;
   const ai=d.ai,s=ai.summary,r=ai.risk,sc=ai.scenario;let t="";
   if(s&&!s.aiUnavailable){const m=SIG[s.signal]||SIG.hold;
     t+=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span class="pill" style="background:color-mix(in srgb,${m[1]} 12%,transparent);color:${m[1]}">${m[0]}</span><span style="font-size:13px;color:var(--faint);font-family:Inter">score ${s.score>0?"+":""}${s.score}</span>${isPro()?'<span class="pill" style="background:color-mix(in srgb,var(--steel) 12%,transparent);color:var(--steel)">PRO</span>':""}</div>${gauge(s.score,m[1])}`;
@@ -372,6 +435,7 @@ function renderHome(){
   ${dashSection("암호화폐","dashCrypto","BTC·ETH·SOL (Finnhub)")}
   ${dashSection("미국 국채 금리","dashTreasury","2Y·10Y·30Y (FRED)")}
   ${dashSection("달러 · 원자재","dashMacro","달러인덱스·금·은·유가·가스 (FRED)")}
+  <div class="card" style="margin-bottom:16px"><div style="padding:14px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px"><div><h2 style="font-size:14.5px">🚀 SpaceX <span class="pill" style="font-size:10px;background:color-mix(in srgb,var(--steel) 14%,transparent);color:var(--steel)">비상장</span></h2><div style="font-size:11px;color:var(--faint);margin-top:2px">최신 뉴스 · 클릭 시 상세</div></div><button class="btn-g" style="white-space:nowrap" onclick="loadPrivate('SPACEX')">상세 →</button></div><div id="dashSpacex"><div style="padding:16px 20px">${Array(3).fill('<div class="skel" style="height:32px;margin-bottom:8px"></div>').join("")}</div></div></div>
   ${watch.length?`<div class="card" style="margin-bottom:16px"><div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)"><h2 style="font-size:14.5px">관심종목 (${watch.length})</h2><button class="btn-g" onclick="switchView('watchlist')">전체 →</button></div><div style="padding:4px 12px 8px">${watch.slice(0,5).map(w=>`<div class="tk" style="border:none;width:100%;justify-content:space-between;background:none;padding:11px 8px" onclick="loadStock('${w.ticker}')"><span><b>${w.ticker}</b> <span>${esc(w.name)}</span></span><span style="color:var(--faint)">→</span></div>`).join("")}</div></div>`:""}
   ${recent.length?`<div style="margin-bottom:20px"><h2 style="margin-bottom:12px;font-size:14.5px">최근 조회</h2><div style="display:flex;flex-wrap:wrap;gap:8px">${recent.map(r=>`<button class="tk" onclick="loadStock('${r.ticker}')"><b>${r.ticker}</b><span>${esc(r.name)}</span></button>`).join("")}</div></div>`:""}`;
   bindSearch();
@@ -397,6 +461,8 @@ async function loadDashboard(){
   (async()=>{try{const d=cGet("dash_movers")||await finApi("movers");cSet("dash_movers",d);renderHeat("dashMovers",d.movers)}catch(e){fill("dashMovers",errHtml(e.message))}})();
   // 섹터 ETF
   (async()=>{try{const d=cGet("dash_sectors")||await finApi("sectors");cSet("dash_sectors",d);renderHeat("dashSectors",d.sectors)}catch(e){fill("dashSectors",errHtml(e.message))}})();
+  // SpaceX (비상장) 뉴스
+  (async()=>{try{const d=cGet("dash_spacex")||await finApi("keyword_news",{query:"SpaceX"});cSet("dash_spacex",d);const el=document.getElementById("dashSpacex");if(el)el.innerHTML=spacexNewsHtml((d.news||[]).slice(0,3))}catch(e){const el=document.getElementById("dashSpacex");if(el)el.innerHTML=errHtml("SpaceX 뉴스를 불러오지 못했어요.")}})();
   // 국채 (FRED)
   (async()=>{try{const d=cGet("dash_tr")||await macroApi("treasury");cSet("dash_tr",d);collected.treasury=d.items;
     fill("dashTreasury",`<div style="display:flex;flex-wrap:wrap">${d.items.map(it=>quoteCard(it.name,"",it.latest,it.changePercent,it.spark,"%")).join("")}</div>`);maybeSummary(collected);
@@ -411,6 +477,8 @@ async function loadDashboard(){
 
 // 데이터가 충분히 모이면 AI 시장 요약 1회 실행
 let summaryDone=false;
+function mktFailHtml(){return '<span style="color:var(--faint)">현재 AI 시장 요약을 사용할 수 없어요. 위 실시간 데이터는 정상 제공됩니다.</span> <button class="btn-g" style="color:var(--steel);margin-left:6px" onclick="retryMktSummary()">다시 시도</button>'}
+window.retryMktSummary=async()=>{const el=document.getElementById("mktSummary");if(!el||!window._mktCtx)return;el.innerHTML='<span style="color:var(--faint)">다시 불러오는 중…</span>';const r=await aiApi("market_summary",window._mktCtx);if(r.aiUnavailable||!r.summary){el.innerHTML=mktFailHtml();return}el.innerHTML=esc(r.summary)+'<div style="font-size:11px;color:var(--faint);margin-top:8px">AI 요약 · 투자 권유가 아닌 참고용</div>'};
 async function maybeSummary(c){
   if(summaryDone)return;
   if(!c.indices||!c.crypto)return; // 최소 지수+크립토는 있어야
@@ -422,8 +490,9 @@ async function maybeSummary(c){
     treasury:(c.treasury||[]).map(x=>({name:x.name,value:x.latest})),
     dollar:(c.dollar||[]).map(x=>({name:x.name,changePercent:x.changePercent})),
   };
+  window._mktCtx=ctx;
   const r=await aiApi("market_summary",ctx);
-  if(r.aiUnavailable||!r.summary){el.innerHTML='<span style="color:var(--faint)">현재 AI 시장 요약을 사용할 수 없어요. 위 실시간 데이터는 정상 제공됩니다.</span>';return}
+  if(r.aiUnavailable||!r.summary){el.innerHTML=mktFailHtml();return}
   el.innerHTML=esc(r.summary)+'<div style="font-size:11px;color:var(--faint);margin-top:8px">AI 요약 · 투자 권유가 아닌 참고용</div>';
 }
 
@@ -442,7 +511,8 @@ function renderStock(){
   let h=`<div style="margin-bottom:24px"><div class="srow" id="searchWrap"><input id="tin" placeholder="티커·회사명 검색 · 예) TSLA, Apple" value="${esc(state.symbol)}" autocomplete="off"/><button class="btn" onclick="loadStock()">분석</button></div></div>`;
   if(state.loading)h+=`<div class="card" style="margin-bottom:32px"><div style="padding:22px 26px"><div class="skel" style="height:24px;width:40%;margin-bottom:10px"></div><div class="skel" style="height:40px;width:60%"></div></div></div>`;
   if(state.error&&!state.loading)h+=`<div class="err" style="margin-bottom:32px" role="alert"><b style="color:var(--up)">불러오지 못했어요.</b> ${esc(state.error)}</div>`;
-  if(state.data&&!state.loading)h+=renderStockResult();
+  if(state.data&&state.data.private)h+=renderPrivate(state.data);
+  else if(state.data&&!state.loading)h+=renderStockResult();
   document.getElementById("app").innerHTML=h;bindSearch();
 }
 
