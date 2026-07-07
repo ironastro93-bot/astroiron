@@ -36,8 +36,8 @@ async function yahooJson(url) {
   finally { t.done(); }
 }
 
-// 여러 종목을 한 번에 (배치) → [{symbol,price,changePercent,spark}]
-async function yahooSpark(symbols) {
+// Yahoo spark는 한 번에 10개 제한 → 10개씩 나눠 호출
+async function sparkOne(symbols) {
   const j = await yahooJson(`https://query1.finance.yahoo.com/v8/finance/spark?symbols=${encodeURIComponent(symbols.join(","))}&range=1d&interval=5m`);
   const out = {};
   if (!j) return out;
@@ -51,6 +51,14 @@ async function yahooSpark(symbols) {
     const changePercent = price != null && prev ? ((price - prev) / prev) * 100 : null;
     out[s] = { price, changePercent, spark: closes.slice(-20) };
   }
+  return out;
+}
+async function yahooSpark(symbols) {
+  const out = {};
+  const chunks = [];
+  for (let i = 0; i < symbols.length; i += 10) chunks.push(symbols.slice(i, i + 10));
+  const results = await Promise.all(chunks.map((c) => sparkOne(c)));
+  for (const r of results) Object.assign(out, r);
   return out;
 }
 
@@ -74,6 +82,26 @@ async function yahooSearch(q) {
     .filter((x) => (seen.has(x.symbol) ? false : (seen.add(x.symbol), true)))
     .slice(0, 10).map((x) => ({ symbol: x.symbol, name: x.shortname || x.longname || x.symbol }));
 }
+
+// ── AI 뉴스 센터: 분류·감성·중복제거 헬퍼 ──
+function newsCategory(t) {
+  const s = (t || "").toLowerCase();
+  if (/earnings|eps|revenue|guidance|quarter|results|profit forecast/.test(s)) return "Earnings";
+  if (/\bai\b|artificial intelligence|chatgpt|openai|llm|nvidia|generative/.test(s)) return "AI";
+  if (/bitcoin|crypto|ethereum|blockchain|\bcoin\b|token/.test(s)) return "Crypto";
+  if (/\bfed\b|inflation|\bcpi\b|\bppi\b|\bgdp\b|jobs|unemployment|rate cut|rate hike|treasury|tariff|economy/.test(s)) return "Economy";
+  if (/chip|semiconductor|software|cloud|apple|microsoft|google|meta|tech\b/.test(s)) return "Technology";
+  return "Market";
+}
+const NEWS_POS = ["surge","surges","jump","jumps","beat","beats","soar","rally","record","gains","upgrade","growth","strong","profit","wins","rise","rises","boost","tops","outperform"];
+const NEWS_NEG = ["fall","falls","drop","drops","plunge","miss","misses","cut","cuts","downgrade","loss","weak","lawsuit","probe","decline","slump","warn","warns","layoff","recall","slides","tumble"];
+function newsSentiment(t) {
+  const s = (t || "").toLowerCase(); let p = 0, n = 0;
+  NEWS_POS.forEach((w) => { if (s.includes(w)) p++; });
+  NEWS_NEG.forEach((w) => { if (s.includes(w)) n++; });
+  return p > n ? "positive" : n > p ? "negative" : "neutral";
+}
+function isClickbait(t) { return !t || t.length < 24 || /you won'?t believe|shocking|this one|click here|top \d+ stocks to buy now/i.test(t); }
 
 // ── 키워드 뉴스 (비상장 기업 등): Finnhub 일반뉴스 필터 → Yahoo 폴백 ──
 async function keywordNews(q) {
@@ -111,25 +139,32 @@ async function spacexStats() {
 
 // ── Yahoo 일봉 차트 (우선), Stooq 폴백 ─────────────────────────
 async function yahooCandles(sym, period) {
-  const map = { "1D": ["1d", "5m"], "1M": ["1mo", "1d"], "3M": ["3mo", "1d"], "1Y": ["1y", "1d"], "5Y": ["5y", "1wk"] };
-  const [range, interval] = map[period] || map["3M"];
-  const intraday = interval.endsWith("m");
+  const map = {
+    "1m": ["1d", "1m"], "5m": ["5d", "5m"], "15m": ["1mo", "15m"], "1h": ["3mo", "60m"],
+    "1d": ["1y", "1d"], "1w": ["5y", "1wk"], "1mo": ["10y", "1mo"],
+    // legacy(스파크라인/구버전 호환)
+    "1D": ["1d", "5m"], "1M": ["1mo", "1d"], "3M": ["3mo", "1d"], "1Y": ["1y", "1d"], "5Y": ["5y", "1wk"],
+  };
+  const [range, interval] = map[period] || map["1d"];
+  const mins = interval.endsWith("m");
   const j = await yahooJson(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=${range}&interval=${interval}`);
   const res = j?.chart?.result?.[0];
   const ts = res?.timestamp || [];
   const q = res?.indicators?.quote?.[0] || {};
-  const cl = q.close || [], vol = q.volume || [];
-  let rows = ts.map((t, i) => ({ t, c: cl[i], v: vol[i] })).filter((x) => x.c != null && !isNaN(x.c));
+  const op = q.open || [], hi = q.high || [], lo = q.low || [], cl = q.close || [], vol = q.volume || [];
+  let rows = ts.map((t, i) => ({ t, o: op[i], h: hi[i], l: lo[i], c: cl[i], v: vol[i] })).filter((x) => x.c != null && !isNaN(x.c));
   if (!rows.length) return [];
-  const cap = intraday ? 64 : 56;
-  const step = Math.max(1, Math.floor(rows.length / cap));
-  rows = rows.filter((_, i) => i % step === 0 || i === rows.length - 1);
+  if (rows.length > 500) rows = rows.slice(rows.length - 500); // 지표 정확도 위해 다운샘플 대신 최근 500개
+  const intradayLabel = ["1m", "5m", "15m"].includes(interval);
   return rows.map((x) => {
     const dt = new Date(x.t * 1000);
-    const d = intraday
-      ? (String(dt.getHours()).padStart(2, "0") + ":" + String(dt.getMinutes()).padStart(2, "0"))
-      : ((dt.getMonth() + 1) + "/" + dt.getDate());
-    return { d, c: x.c, v: x.v || 0 };
+    const p2 = (n) => String(n).padStart(2, "0");
+    let d;
+    if (intradayLabel) d = p2(dt.getHours()) + ":" + p2(dt.getMinutes());
+    else if (interval === "60m") d = (dt.getMonth() + 1) + "/" + dt.getDate() + " " + p2(dt.getHours()) + "시";
+    else if (interval === "1mo") d = String(dt.getFullYear()).slice(2) + "/" + p2(dt.getMonth() + 1);
+    else d = (dt.getMonth() + 1) + "/" + dt.getDate();
+    return { d, o: x.o, h: x.h, l: x.l, c: x.c, v: x.v || 0 };
   });
 }
 function ymd(dt) { return dt.toISOString().slice(0, 10).replace(/-/g, ""); }
@@ -188,6 +223,25 @@ const MOVERS = [["AAPL", "Apple"], ["MSFT", "Microsoft"], ["NVDA", "NVIDIA"], ["
 const SECTORS = [["XLK", "기술"], ["XLF", "금융"], ["XLE", "에너지"], ["XLV", "헬스케어"], ["XLY", "임의소비재"], ["XLI", "산업재"], ["XLP", "필수소비재"], ["XLU", "유틸리티"], ["XLB", "소재"], ["XLRE", "리츠"], ["XLC", "통신"]];
 const CRYPTO = [["BTC-USD", "Bitcoin", "BTC"], ["ETH-USD", "Ethereum", "ETH"], ["SOL-USD", "Solana", "SOL"]];
 
+const UNIVERSE = [
+  ["AAPL","Apple"],["MSFT","Microsoft"],["NVDA","NVIDIA"],["AMZN","Amazon"],["GOOGL","Alphabet"],["META","Meta"],["TSLA","Tesla"],["AVGO","Broadcom"],
+  ["AMD","AMD"],["NFLX","Netflix"],["ADBE","Adobe"],["CRM","Salesforce"],["ORCL","Oracle"],["INTC","Intel"],["QCOM","Qualcomm"],["MU","Micron"],
+  ["PLTR","Palantir"],["SMCI","Super Micro"],["ARM","Arm"],["TSM","TSMC"],["ASML","ASML"],["MRVL","Marvell"],["NOW","ServiceNow"],["SNOW","Snowflake"],
+  ["JPM","JPMorgan"],["BAC","Bank of America"],["V","Visa"],["MA","Mastercard"],["GS","Goldman Sachs"],["MS","Morgan Stanley"],["BRK-B","Berkshire"],["COIN","Coinbase"],
+  ["XOM","Exxon"],["CVX","Chevron"],["LLY","Eli Lilly"],["UNH","UnitedHealth"],["JNJ","Johnson & Johnson"],["PFE","Pfizer"],["MRK","Merck"],["ABBV","AbbVie"],
+  ["WMT","Walmart"],["COST","Costco"],["HD","Home Depot"],["MCD","McDonald's"],["NKE","Nike"],["SBUX","Starbucks"],["PG","P&G"],["KO","Coca-Cola"],
+  ["DIS","Disney"],["UBER","Uber"],["ABNB","Airbnb"],["SHOP","Shopify"],["PYPL","PayPal"],["SQ","Block"],["BA","Boeing"],["CAT","Caterpillar"],
+  ["GE","GE Aerospace"],["RTX","RTX"],["LMT","Lockheed"],["RKLB","Rocket Lab"],["MSTR","Strategy"],["RIVN","Rivian"],["F","Ford"],["GM","GM"],
+];
+async function sparkChunked(symbols) {
+  const out = {};
+  for (let i = 0; i < symbols.length; i += 40) {
+    const part = await yahooSpark(symbols.slice(i, i + 40));
+    Object.assign(out, part);
+  }
+  return out;
+}
+
 async function heatList(list) { // [sym,name] → Yahoo spark 배치
   const sparks = await yahooSpark(list.map((x) => x[0]));
   return list.map(([s, name]) => ({ symbol: s, name, price: sparks[s]?.price ?? null, changePercent: sparks[s]?.changePercent ?? null, spark: sparks[s]?.spark || [] }));
@@ -210,6 +264,27 @@ export default async function handler(req, res) {
         return res.status(200).json({ spark: (await getCandles(sym, "1M")).map((x) => x.c).slice(-20) });
       case "keyword_news":
         return res.status(200).json({ news: await keywordNews(query || "SpaceX") });
+      case "market_news": {
+        let items = [];
+        if (KEY) {
+          try {
+            const n = await fh(`/news?category=general`);
+            items = (n || []).map((x) => ({ title: x.headline, source: x.source, url: x.url, datetime: x.datetime, related: String(x.related || "").split(",").filter(Boolean).slice(0, 4), image: x.image || "" }));
+          } catch { /* Yahoo 폴백 */ }
+        }
+        if (!items.length) {
+          const j = await yahooJson(`https://query1.finance.yahoo.com/v1/finance/search?q=stock%20market&newsCount=25&quotesCount=0`);
+          items = (j?.news || []).map((x) => ({ title: x.title, source: x.publisher, url: x.link, datetime: x.providerPublishTime, related: (x.relatedTickers || []).slice(0, 4), image: "" }));
+        }
+        const seen = new Set(); const out = [];
+        for (const it of items) {
+          const key = (it.title || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 42);
+          if (!key || seen.has(key) || isClickbait(it.title)) continue;
+          seen.add(key);
+          out.push({ ...it, category: newsCategory(it.title), sentiment: newsSentiment(it.title) });
+        }
+        return res.status(200).json({ news: out.slice(0, 40), source: KEY ? "Finnhub" : "Yahoo Finance" });
+      }
       case "spacex_stats":
         return res.status(200).json(await spacexStats());
       case "search": {
@@ -243,6 +318,13 @@ export default async function handler(req, res) {
       }
       case "indices": return res.status(200).json({ indices: await heatList(IDX) });
       case "movers": { const rows = await heatList(MOVERS); rows.sort((a, b) => (b.changePercent ?? -999) - (a.changePercent ?? -999)); return res.status(200).json({ movers: rows }); }
+      case "ranking": {
+        const sp = await yahooSpark(UNIVERSE.map((x) => x[0]));
+        const rows = UNIVERSE.map(([sym, name]) => ({ symbol: sym, name, price: sp[sym]?.price ?? null, changePercent: sp[sym]?.changePercent ?? null }))
+          .filter((r) => r.changePercent != null);
+        rows.sort((a, b) => b.changePercent - a.changePercent);
+        return res.status(200).json({ ranking: rows, source: "Yahoo Finance", count: rows.length });
+      }
       case "sectors": { const rows = await heatList(SECTORS); rows.sort((a, b) => (b.changePercent ?? -999) - (a.changePercent ?? -999)); return res.status(200).json({ sectors: rows }); }
       case "crypto": {
         const sparks = await yahooSpark(CRYPTO.map((x) => x[0]));
