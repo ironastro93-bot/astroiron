@@ -111,17 +111,26 @@ async function spacexStats() {
 
 // ── Yahoo 일봉 차트 (우선), Stooq 폴백 ─────────────────────────
 async function yahooCandles(sym, period) {
-  const map = { "1M": ["1mo", "1d"], "3M": ["3mo", "1d"], "1Y": ["1y", "1d"], "5Y": ["5y", "1wk"] };
+  const map = { "1D": ["1d", "5m"], "1M": ["1mo", "1d"], "3M": ["3mo", "1d"], "1Y": ["1y", "1d"], "5Y": ["5y", "1wk"] };
   const [range, interval] = map[period] || map["3M"];
+  const intraday = interval.endsWith("m");
   const j = await yahooJson(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=${range}&interval=${interval}`);
   const res = j?.chart?.result?.[0];
   const ts = res?.timestamp || [];
-  const cl = res?.indicators?.quote?.[0]?.close || [];
-  let rows = ts.map((t, i) => ({ t, c: cl[i] })).filter((x) => x.c != null && !isNaN(x.c));
+  const q = res?.indicators?.quote?.[0] || {};
+  const cl = q.close || [], vol = q.volume || [];
+  let rows = ts.map((t, i) => ({ t, c: cl[i], v: vol[i] })).filter((x) => x.c != null && !isNaN(x.c));
   if (!rows.length) return [];
-  const step = Math.max(1, Math.floor(rows.length / 56));
+  const cap = intraday ? 64 : 56;
+  const step = Math.max(1, Math.floor(rows.length / cap));
   rows = rows.filter((_, i) => i % step === 0 || i === rows.length - 1);
-  return rows.map((x) => { const dt = new Date(x.t * 1000); return { d: (dt.getMonth() + 1) + "/" + dt.getDate(), c: x.c }; });
+  return rows.map((x) => {
+    const dt = new Date(x.t * 1000);
+    const d = intraday
+      ? (String(dt.getHours()).padStart(2, "0") + ":" + String(dt.getMinutes()).padStart(2, "0"))
+      : ((dt.getMonth() + 1) + "/" + dt.getDate());
+    return { d, c: x.c, v: x.v || 0 };
+  });
 }
 function ymd(dt) { return dt.toISOString().slice(0, 10).replace(/-/g, ""); }
 async function stooqCandles(sym, period) {

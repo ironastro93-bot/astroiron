@@ -172,7 +172,7 @@ const SIG={strong_buy:["상승 신호 강함","var(--up)"],buy:["상승 우위",
 const REC={strong_buy:["적극 매수","#22C55E"],buy:["매수","#3B82F6"],hold:["중립","#EAB308"],sell:["매도","#F97316"],strong_sell:["적극 매도","#EF4444"]};
 const DIR=[["우주 · 방산",[["RKLB","Rocket Lab"],["LMT","Lockheed"],["BA","Boeing"],["RTX","RTX"],["ASTS","AST"]]],["빅테크",[["AAPL","Apple"],["MSFT","Microsoft"],["GOOGL","Alphabet"],["AMZN","Amazon"],["META","Meta"],["NFLX","Netflix"]]],["반도체 · AI",[["NVDA","NVIDIA"],["AMD","AMD"],["TSM","TSMC"],["AVGO","Broadcom"],["MU","Micron"],["PLTR","Palantir"]]],["ETF",[["SPY","S&P500"],["QQQ","나스닥100"],["SCHD","배당"],["VOO","뱅가드"],["ARKK","ARK"],["JEPI","JEPI"]]],["전기차 · 크립토",[["TSLA","Tesla"],["RIVN","Rivian"],["COIN","Coinbase"],["MSTR","Strategy"]]]];
 const TABS=[["overview","개요"],["chart","차트"],["financials","재무"],["dividend","배당"],["recommend","투자의견"],["earnings","실적"],["news","뉴스"],["filings","공시"],["ai","AI 분석"],["discuss","메모"]];
-const PERIODS=[["1M","1개월"],["3M","3개월"],["1Y","1년"],["5Y","5년"]];
+const PERIODS=[["1D","1일"],["1M","1개월"],["3M","3개월"],["1Y","1년"],["5Y","5년"]];
 const PRIVATE={SPACEX:{name:"SpaceX",industry:"우주·발사체 (비상장)",note:"비상장 기업이라 실시간 주가·차트는 제공되지 않아요. 최신 뉴스로 소식을 전해드립니다."}};
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
@@ -294,13 +294,16 @@ function gauge(score,color){const p=(Math.max(-100,Math.min(100,score||0))+100)/
   return `<div style="margin:16px 0 4px"><div style="position:relative;height:8px;border-radius:4px;border:1px solid var(--line);background:linear-gradient(90deg,rgba(59,111,224,.2),var(--soft) 45%,var(--soft) 55%,rgba(229,72,77,.2))"><div style="position:absolute;top:0;bottom:0;width:1px;left:50%;background:var(--line-d)"></div><div style="position:absolute;left:calc(${p}% - 7px);top:-4px;width:14px;height:14px;border-radius:50%;background:var(--bg);border:4px solid ${color};box-shadow:0 1px 4px rgba(0,0,0,.18)"></div></div><div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11.5px;color:var(--faint)"><span>하락 신호</span><span>중립</span><span>상승 신호</span></div></div>`}
 function lineChart(data,pos){
   if(!data||data.length<2)return '<p style="font-size:13px;color:var(--faint)">차트 데이터가 없어요.</p>';
-  const W=560,H=190,pl=8,pr=48,pt=16,pb=22;const vs=data.map(d=>d.c);
-  const hi=Math.max(...vs),lo=Math.min(...vs);const pad=(hi-lo||1)*0.10;const mn=lo-pad,mx=hi+pad,rg=mx-mn||1; // 위아래 여백 → 선이 천장/바닥 안 뚫음
-  const col=pos?"var(--up)":"var(--down)";const x=i=>pl+(i/(data.length-1))*(W-pl-pr);const y=v=>pt+(1-(v-mn)/rg)*(H-pt-pb);
-  const pts=data.map((d,i)=>x(i).toFixed(1)+","+y(d.c).toFixed(1)).join(" ");const area=pl+","+(H-pb)+" "+pts+" "+x(data.length-1)+","+(H-pb);
+  const W=560,H=212,pl=8,pr=48,pt=16,pBot=122,vTop=136,vBot=182;const vs=data.map(d=>d.c);
+  const hi=Math.max(...vs),lo=Math.min(...vs);const pad=(hi-lo||1)*0.10;const mn=lo-pad,mx=hi+pad,rg=mx-mn||1; // 위아래 여백
+  const vols=data.map(d=>d.v||0);const mxv=Math.max(...vols,1);const hasVol=vols.some(v=>v>0);
+  const col=pos?"var(--up)":"var(--down)";const x=i=>pl+(i/(data.length-1))*(W-pl-pr);const y=v=>pt+(1-(v-mn)/rg)*(pBot-pt);
+  const pts=data.map((d,i)=>x(i).toFixed(1)+","+y(d.c).toFixed(1)).join(" ");const area=pl+","+pBot+" "+pts+" "+x(data.length-1)+","+pBot;
+  const bw=Math.max(1,(W-pl-pr)/data.length*0.6);
+  const bars=hasVol?data.map((d,i)=>{const h=(d.v||0)/mxv*(vBot-vTop);return h>0.4?`<rect x="${(x(i)-bw/2).toFixed(1)}" y="${(vBot-h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" fill="var(--faint)" opacity="0.32"/>`:"";}).join(""):"";
   const lbls=data.map((d,i)=>(i%Math.ceil(data.length/5)===0||i===data.length-1)?`<text x="${x(i)}" y="${H-6}" font-size="9.5" fill="var(--faint)" text-anchor="middle" font-family="Inter">${esc(d.d)}</text>`:"").join("");
-  const dots=data.map((d,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(d.c).toFixed(1)}" r="7" fill="transparent" style="cursor:crosshair"><title>${esc(d.d)} · $${fmt(d.c)}</title></circle>`).join("");
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;max-width:100%;overflow:hidden" preserveAspectRatio="xMidYMid meet" role="img" aria-label="종가 추이"><polyline points="${area}" fill="${col}" opacity="0.08"/><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/><circle cx="${x(data.length-1)}" cy="${y(vs[vs.length-1])}" r="4" fill="${col}"/><text x="${x(data.length-1)+6}" y="${y(hi)+4}" font-size="10" fill="var(--faint)" font-family="Inter">${hi.toFixed(1)}</text><text x="${x(data.length-1)+6}" y="${y(lo)+4}" font-size="10" fill="var(--faint)" font-family="Inter">${lo.toFixed(1)}</text>${lbls}${dots}</svg>`;
+  const dots=data.map((d,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(d.c).toFixed(1)}" r="7" fill="transparent" style="cursor:crosshair"><title>${esc(d.d)} · $${fmt(d.c)}${d.v?" · 거래량 "+fmt(d.v,0):""}</title></circle>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;max-width:100%;overflow:hidden" preserveAspectRatio="xMidYMid meet" role="img" aria-label="가격·거래량 추이"><polyline points="${area}" fill="${col}" opacity="0.08"/><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/><circle cx="${x(data.length-1)}" cy="${y(vs[vs.length-1])}" r="4" fill="${col}"/><text x="${x(data.length-1)+6}" y="${y(hi)+4}" font-size="10" fill="var(--faint)" font-family="Inter">${hi.toFixed(1)}</text><text x="${x(data.length-1)+6}" y="${y(lo)+4}" font-size="10" fill="var(--faint)" font-family="Inter">${lo.toFixed(1)}</text>${hasVol?`<text x="2" y="${vTop-3}" font-size="8.5" fill="var(--faint)" font-family="Inter">거래량</text>`:""}${bars}${lbls}${dots}</svg>`;
 }
 function inWatch(s){return getList("watchlist").some(w=>w.ticker===s)}
 window.toggleWatch=(sym,name)=>{const w=getList("watchlist");const ex=w.find(x=>x.ticker===sym);setList("watchlist",ex?w.filter(x=>x.ticker!==sym):[...w,{ticker:sym,name}]);render()};
@@ -345,6 +348,7 @@ function renderStockResult(){
       ${d.profile?.finnhubIndustry?`<div style="margin-top:14px;font-size:13.5px;color:var(--sub)">업종: ${esc(d.profile.finnhubIndustry)}${d.profile.marketCapitalization?` · 시총 $${fmt(d.profile.marketCapitalization/1000,1)}B`:""}${d.profile.country?` · ${esc(d.profile.country)}`:""}</div>`:""}
       <p style="margin-top:16px;font-size:12px;color:var(--faint);line-height:1.6">모든 수치는 Finnhub 실시간 데이터입니다. 깊은 해석은 [AI 분석] 탭에서.</p>
       ${!isPro()?'<div class="adbox" style="margin-top:16px">광고 영역 · Premium에서 제거됩니다</div>':""}`;
+    t+=alertSetter(d.symbol,name);
   }
   else if(state.tab==="chart"){
     t=`<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">${PERIODS.map(p=>`<button class="chip ${state.period===p[0]?"on":""}" onclick="changePeriod('${p[0]}')">${p[1]}</button>`).join("")}</div>`;
@@ -392,7 +396,7 @@ function renderStockResult(){
     <div style="padding:18px 26px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--line);position:sticky;top:var(--navh,90px);z-index:6;background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px 16px 0 0">
       <div><div style="font-size:13px;font-weight:600;color:var(--faint);font-family:Inter">${esc(d.symbol)}</div><div style="font-size:20px;font-weight:700;margin-top:2px;font-family:Inter">${esc(name)}</div></div>
       <div style="text-align:right"><div style="font-size:27px;font-weight:700;font-family:Inter">$${fmt(q.price)}</div><div style="font-size:15px;color:${cc};font-weight:700;font-family:Inter">${q.changePercent>=0?"▲":"▼"} ${fmt(Math.abs(q.changePercent))}%</div>
-      <button onclick="toggleWatch('${d.symbol}','${esc(name)}')" style="margin-top:8px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px;border:1px solid ${wl?"var(--steel)":"var(--line)"};background:${wl?"var(--soft)":"var(--bg)"};color:${wl?"var(--steel)":"var(--sub)"}">${wl?"★ 관심종목":"☆ 관심 추가"}</button></div>
+      <button onclick="toggleWatch('${d.symbol}','${esc(name)}')" style="margin-top:8px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px;border:1px solid ${wl?"var(--steel)":"var(--line)"};background:${wl?"var(--soft)":"var(--bg)"};color:${wl?"var(--steel)":"var(--sub)"}">${wl?"★ 관심종목":"☆ 관심 추가"}</button> <button onclick="shareStock('${d.symbol}')" style="margin-top:8px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--sub)">🔗 공유</button></div>
     </div>
     <div style="display:flex;gap:2px;padding:0 14px;border-bottom:1px solid var(--line);overflow-x:auto">${TABS.map(x=>`<button class="tab ${state.tab===x[0]?"on":""}" onclick="state.tab='${x[0]}';render()">${x[1]}</button>`).join("")}</div>
     <div style="padding:22px 26px">${t}</div>
@@ -634,11 +638,49 @@ window.calcDiv=()=>{const inv=parseFloat(document.getElementById("d_inv").value)
 function setNavH(){try{const n=document.querySelector("nav");if(n)document.documentElement.style.setProperty("--navh",n.offsetHeight+"px")}catch{}}
 window.addEventListener("resize",setNavH);
 
+// ═══ 가격 알림 · 공유 · 딥링크 ═══
+function toast(msg){let el=document.getElementById("toast");if(!el){el=document.createElement("div");el.id="toast";el.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--charcoal);color:var(--bg);padding:12px 18px;border-radius:12px;font-size:13.5px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.35);max-width:90%;text-align:center";document.body.appendChild(el)}el.textContent=msg;el.style.opacity="1";clearTimeout(window._toastT);window._toastT=setTimeout(()=>{el.style.transition="opacity .5s";el.style.opacity="0"},5000)}
+window.reqNotif=()=>{if(window.Notification)Notification.requestPermission().then(()=>render())};
+function alertSetter(sym,name){
+  const mine=getList("alerts").filter(a=>a.ticker===sym&&!a.done);
+  return `<div class="aibox" style="margin-top:16px"><div style="font-size:13px;font-weight:700;margin-bottom:10px">🔔 가격 알림</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="alDir" style="padding:9px 10px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"><option value="ge">이상(≥)</option><option value="le">이하(≤)</option></select><input id="alPrice" placeholder="목표가($)" inputmode="decimal" style="width:120px;padding:9px 12px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><button class="btn-sm" onclick="addAlert('${sym}','${esc(name)}')">추가</button></div>
+    ${mine.length?`<div style="margin-top:10px">${mine.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0;border-top:1px solid var(--line)"><span>${a.dir==="ge"?"≥":"≤"} $${fmt(a.price)}</span><button onclick="delAlert(${a.id})" style="font-size:12px;color:var(--faint);background:none;border:none">삭제</button></div>`).join("")}</div>`:'<div style="font-size:11.5px;color:var(--faint);margin-top:8px">브라우저 알림을 허용하면 목표가 도달 시 알려드려요. (사이트가 열려 있을 때 감지 · 이 기기 기준)</div>'}
+  </div>`;
+}
+window.addAlert=(sym,name)=>{const el=document.getElementById("alPrice");const price=parseFloat(el&&el.value);const dir=(document.getElementById("alDir")||{}).value||"ge";if(!price||price<=0){toast("목표가를 입력해 주세요.");return}const list=getList("alerts");list.push({id:Date.now(),ticker:sym,name,price,dir,done:false});setList("alerts",list);try{if(window.Notification&&Notification.permission==="default")Notification.requestPermission()}catch{}startAlertPoll();toast("알림 추가됨: "+sym+" "+(dir==="ge"?"≥":"≤")+" $"+fmt(price));render()};
+window.delAlert=(id)=>{setList("alerts",getList("alerts").filter(a=>a.id!==id));render()};
+function fireAlert(a,price){const msg=a.ticker+" $"+fmt(price)+" — 목표 "+(a.dir==="ge"?"≥":"≤")+" $"+fmt(a.price)+" 도달";try{if(window.Notification&&Notification.permission==="granted"){new Notification("ASTRO IRON 가격 알림",{body:msg});return}}catch{}toast("🔔 "+msg)}
+async function checkAlerts(){
+  const list=getList("alerts").filter(a=>!a.done);if(!list.length){stopAlertPoll();return}
+  const syms=[...new Set(list.map(a=>a.ticker))];const prices={};
+  for(const sym of syms){try{const q=await finApi("quote",{symbol:sym});if(q.price!=null)prices[sym]=q.price}catch{}}
+  let changed=false;const all=getList("alerts");
+  all.forEach(a=>{if(a.done)return;const p=prices[a.ticker];if(p==null)return;const hit=a.dir==="ge"?p>=a.price:p<=a.price;if(hit){a.done=true;a.hitPrice=p;changed=true;fireAlert(a,p)}});
+  if(changed){setList("alerts",all);if(state.view==="alerts"||state.view==="home")render()}
+}
+function startAlertPoll(){if(window._alertPoll)return;checkAlerts();window._alertPoll=setInterval(checkAlerts,60000)}
+function stopAlertPoll(){if(window._alertPoll){clearInterval(window._alertPoll);window._alertPoll=null}}
+window.shareStock=(sym)=>{const url=location.origin+"/#stock/"+sym;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(()=>toast("링크 복사됨 · "+url)).catch(()=>toast(url))}else toast(url)};
+function renderAlerts(){
+  const list=getList("alerts");const active=list.filter(a=>!a.done);const done=list.filter(a=>a.done);
+  const needPerm=window.Notification&&Notification.permission!=="granted";const denied=window.Notification&&Notification.permission==="denied";
+  document.getElementById("app").innerHTML=`<h1>가격 알림</h1><p class="lede">목표가에 도달하면 알림으로 알려드려요. (이 기기에 저장 · 사이트가 열려 있을 때 감지, 1분 간격)</p>
+  ${needPerm?`<div class="aiwarn" style="margin-bottom:16px">브라우저 알림이 꺼져 있어요.${denied?" 브라우저 주소창의 자물쇠 → 알림 허용으로 바꿔주세요.":' <button class="btn-g" onclick="reqNotif()">알림 허용</button>'} 알림을 못 받아도 사이트 안에서는 배너로 표시됩니다.</div>`:""}
+  ${active.length===0?'<div style="border:1px dashed var(--line-d);border-radius:14px;padding:40px 20px;text-align:center;color:var(--faint);font-size:14px">설정된 알림이 없어요.<br/>종목을 검색해 <b>개요 탭</b>에서 목표가를 추가하세요.</div>':`<div class="card">${active.map((a,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:${i<active.length-1?"1px solid var(--line)":"none"}"><div onclick="loadStock('${a.ticker}')" style="cursor:pointer"><b style="font-family:Inter">${a.ticker}</b> <span style="color:var(--faint);font-size:13px">${esc(a.name||"")}</span><div style="font-size:12.5px;color:var(--sub);margin-top:2px">${a.dir==="ge"?"≥":"≤"} $${fmt(a.price)}</div></div><button onclick="delAlert(${a.id})" style="font-size:12px;color:var(--faint);background:none;border:none">삭제</button></div>`).join("")}</div>`}
+  ${done.length?`<h2 style="margin:22px 0 10px;font-size:14.5px">도달한 알림</h2><div class="card">${done.map((a,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:${i<done.length-1?"1px solid var(--line)":"none"};opacity:.75"><div><b style="font-family:Inter">${a.ticker}</b> <span style="font-size:12.5px;color:var(--faint)">${a.dir==="ge"?"≥":"≤"} $${fmt(a.price)} 도달 ✓</span></div><button onclick="delAlert(${a.id})" style="font-size:12px;color:var(--faint);background:none;border:none">삭제</button></div>`).join("")}</div>`:""}`;
+}
+// 딥링크(해시 라우팅)
+let _hashGuard=false;
+function syncHash(){let h="";if(state.view==="stock"&&state.symbol)h="stock/"+state.symbol;else if(state.view&&state.view!=="home")h=state.view;const nh=h?("#"+h):(location.pathname);if(h){if(location.hash!=="#"+h){_hashGuard=true;location.hash=h;setTimeout(()=>_hashGuard=false,60)}}else if(location.hash){_hashGuard=true;history.replaceState(null,"",location.pathname+location.search);setTimeout(()=>_hashGuard=false,60)}}
+function routeFromHash(){const h=decodeURIComponent((location.hash||"").replace(/^#/,"")).trim();if(!h){switchView("home");return}if(h.toLowerCase().startsWith("stock/")){const sym=h.slice(6).toUpperCase();if(sym){loadStock(sym);return}}const vs=["home","market","watchlist","portfolio","calc","alerts"];if(vs.includes(h)){switchView(h);return}loadStock(h.toUpperCase())}
+window.routeFromHash=routeFromHash;
+
 // ═══ 라우터 ═══
 function render(){
   if(state.view!=="home")stopHomePoll();
-  const views=[["home","홈"],["stock","종목 분석"],["market","시장"],["watchlist","관심종목"],["portfolio","포트폴리오"],["calc","계산기"]];
-  document.getElementById("viewnav").innerHTML=views.map(v=>{const c=v[0]==="watchlist"&&getList("watchlist").length?` (${getList("watchlist").length})`:"";return `<button class="vitem ${state.view===v[0]?"on":""}" onclick="switchView('${v[0]}')">${v[1]}${c}</button>`}).join("");
+  const views=[["home","홈"],["stock","종목 분석"],["market","시장"],["watchlist","관심종목"],["portfolio","포트폴리오"],["alerts","알림"],["calc","계산기"]];
+  document.getElementById("viewnav").innerHTML=views.map(v=>{let c="";if(v[0]==="watchlist"&&getList("watchlist").length)c=` (${getList("watchlist").length})`;if(v[0]==="alerts"){const n=getList("alerts").filter(a=>!a.done).length;if(n)c=` (${n})`}return `<button class="vitem ${state.view===v[0]?"on":""}" onclick="switchView('${v[0]}')">${v[1]}${c}</button>`}).join("");
   const q=document.getElementById("quotaBtn");if(isPro()){q.textContent="PRO";q.className="pro"}else{q.textContent="오늘 "+Math.max(0,FREE-getUsage())+"회 · Premium";q.className=""}
   if(state.view==="home")renderHome();
   else if(state.view==="stock")renderStock();
@@ -646,7 +688,8 @@ function render(){
   else if(state.view==="watchlist")renderWatchlist();
   else if(state.view==="portfolio")renderPortfolio();
   else if(state.view==="calc")renderCalc();
-  setNavH();
+  else if(state.view==="alerts")renderAlerts();
+  setNavH();syncHash();
 }
 window.render=render;
 window.switchView=(v)=>{state.view=v;state.error=null;closeAc();render()};
@@ -671,8 +714,9 @@ document.getElementById("closeModal").addEventListener("click",hidePro);
 document.getElementById("unlockBtn").addEventListener("click",async()=>{const v=document.getElementById("proCode").value.trim().toUpperCase();if(await sha256(v)===PRO_HASH){localStorage.setItem("pro",PRO_HASH);hidePro();render()}else document.getElementById("codeErr").style.display="block"});
 document.getElementById("proCode").addEventListener("input",()=>document.getElementById("codeErr").style.display="none");
 document.addEventListener("click",e=>{if(!e.target.closest("#searchWrap"))closeAc()});
-
-render();
+window.addEventListener("hashchange",()=>{if(_hashGuard)return;routeFromHash()});
+if(location.hash&&location.hash.length>1){routeFromHash()}else{render()}
+if(getList("alerts").filter(a=>!a.done).length)startAlertPoll();
 </script>
 </body>
 </html>
