@@ -126,3 +126,11 @@ ironastro/
   - 검색창에 `SpaceX` 입력(또는 자동완성 선택) 시 Finnhub 시세를 호출하지 않고 **전용 뉴스 상세**로 라우팅.
   - 홈 하단에 **🚀 SpaceX 비상장 카드** — 최신 뉴스 3건 요약, 우주 테마와 어울리는 글래스 카드.
   - 데이터 소스: 서버 `/api/finance?type=keyword_news&query=SpaceX` — **Finnhub 일반뉴스에서 'SpaceX/Starship/Falcon' 키워드 필터**, 키가 없거나 결과가 없으면 **Yahoo 뉴스로 폴백**(무키). 전 구간 try-catch로 실패해도 앱이 멈추지 않음.
+
+## v14 — /api/ai 502 근본 해결
+- **모델 자동 폴백**: 지정 모델이 틀려도(404/400 model) `claude-3-5-sonnet-latest → claude-3-5-sonnet-20241022 → haiku → claude-3-haiku` 순으로 자동 재시도. 성공한 모델은 기억.
+- **502 제거**: AI 실패를 이제 HTTP 502가 아니라 **200 + `{aiUnavailable:true, error:"실제 사유"}`** 로 반환 → Vercel 로그의 빨간 502가 사라지고, 화면 AI 탭에 **진짜 사유**가 표시됩니다.
+  - 사유가 "credit balance is too low" 면 → Anthropic Billing 크레딧 충전.
+  - "invalid x-api-key" / 401 이면 → 키 오류(재발급/재등록) + **ANTHROPIC_API_KEY를 Production 스코프에도 체크 후 Redeploy**.
+- **최종 안전망**: 핸들러 전체를 try-catch로 감싸 어떤 예외에도 함수가 죽지 않음(502 원천 차단).
+- 참고: `/api/finance`·`/api/macro`는 로그상 200 정상. 문제는 `/api/ai` 하나였고, 위 변경으로 502가 나지 않습니다.
