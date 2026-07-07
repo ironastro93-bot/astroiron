@@ -100,6 +100,7 @@
   [data-theme="dark"] #quotaBtn.pro{color:#4EA8FF;border-color:#4EA8FF}
   svg{max-width:100%}
   html,body{overflow-x:hidden}
+  .clamp3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .card{overflow:hidden}
   @media (max-width:640px){ .met .v{font-size:15px} }
   /* 무한 슬라이더 (PC 자동회전 / 모바일 스와이프) */
@@ -129,7 +130,7 @@
   <div class="navin">
     <div onclick="goHome()" style="display:flex;align-items:center;gap:10px;cursor:pointer" title="홈으로"><div class="logo">AI</div><span class="brand">ASTRO IRON</span></div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-      <button class="icon-btn" id="themeBtn" title="다크 모드" aria-label="다크 모드 전환">◐</button>
+      <button class="icon-btn" id="bellBtn" title="가격 알림" aria-label="가격 알림" onclick="switchView('alerts')">🔔</button><button class="icon-btn" id="themeBtn" title="다크 모드" aria-label="다크 모드 전환">◐</button>
       <button id="quotaBtn"></button>
     </div>
   </div>
@@ -495,10 +496,16 @@ function dashSection(title,id,note){return `<div class="card" style="margin-bott
 
 function renderHome(){
   const recent=getList("recent");const watch=getList("watchlist");
-  document.getElementById("app").innerHTML=`<div style="margin-bottom:22px"><h1>글로벌 시장, 한눈에</h1><p class="lede">지수·금리·달러·원자재·크립토를 실시간으로. AI가 오늘 시장을 요약해 드려요.</p>
+  document.getElementById("app").innerHTML=`<div style="margin-bottom:22px"><h1>Market Pulse <span style="font-size:15px;font-weight:600;color:var(--sub);letter-spacing:0">시장의 흐름</span></h1><p class="lede">지수·금리·달러·원자재·크립토를 실시간으로. AI가 오늘 시장을 요약해 드려요.</p>
     <div class="srow" id="searchWrap"><input id="tin" placeholder="티커·회사명 검색 · 예) TSLA, Apple, RKLB" value="${esc(state.symbol)}" autocomplete="off"/><button class="btn" onclick="loadStock()">분석</button></div></div>
-  <div class="card" style="margin-bottom:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--steel) 8%,var(--card)),var(--card))"><div style="padding:16px 20px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:13px;font-weight:700;color:var(--steel)">AI 시장 요약</span><span class="pill" style="font-size:10px;background:color-mix(in srgb,var(--steel) 12%,transparent);color:var(--steel)">3줄</span></div><div id="mktSummary" style="font-size:14px;line-height:1.7;color:var(--ink)"><span style="color:var(--faint)">시장 데이터를 불러온 뒤 요약해 드려요…</span></div></div></div>
-  ${dashSection("주요 지수 · ETF","dashIdx","SPY·QQQ·DIA·IWM·VTI·SCHD (Finnhub)")}
+  <div class="card" style="margin-bottom:16px;border:none;background:linear-gradient(135deg,#2F6BFF,#4F46E5);color:#fff;box-shadow:0 10px 30px rgba(47,107,255,.28)"><div style="padding:18px 20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div style="font-size:11px;letter-spacing:.12em;opacity:.85;text-transform:uppercase">오늘의 시장 분위기</div><div id="mktSentiment" style="font-size:18px;font-weight:800;margin-top:4px">AI 시장 점수 계산 중…</div></div><div id="mktScore" style="min-width:56px;height:56px;padding:0 6px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;font-family:'Inter',sans-serif">–</div></div>
+    <div id="mktSummary" class="clamp3" style="font-size:13px;line-height:1.6;margin-top:12px;opacity:.95">시장 데이터를 불러온 뒤 요약해 드려요…</div>
+    <div style="font-size:10.5px;opacity:.7;margin-top:8px">AI 점수는 추종 종목 등락 기반 참고용 · 투자 권유 아님</div>
+  </div></div>
+  ${dashSection("주요 지수 · ETF · 실시간","dashIdx","SPY·QQQ·DIA·IWM·VTI·SCHD · 마우스 올리면 정지")}
+  <div class="card" style="margin-bottom:16px"><div style="padding:14px 20px;border-bottom:1px solid var(--line)"><h2 style="font-size:14.5px">실시간 인기 종목 <span style="font-size:11px;color:var(--steel);font-weight:700">등락 상위</span></h2></div><div id="dashRank"><div style="padding:16px 20px">${Array(4).fill('<div class="skel" style="height:30px;margin-bottom:8px"></div>').join("")}</div></div></div>
+  <div class="card" id="dashAdCard" style="margin-bottom:16px;border-left:4px solid #22C55E"><div id="dashAd"><div style="padding:14px 18px"><div class="skel" style="height:40px"></div></div></div></div>
   ${dashSection("미국 주식 히트맵 · 급등락","dashMovers","인기 종목 등락률 순 · 클릭하면 분석 (Finnhub)")}
   ${dashSection("섹터 ETF 히트맵","dashSectors","11개 섹터 SPDR ETF 등락률 순 (Finnhub)")}
   ${dashSection("암호화폐","dashCrypto","BTC·ETH·SOL (Finnhub)")}
@@ -521,14 +528,14 @@ async function loadDashboard(){
   (async()=>{try{const d=cGet("dash_idx")||await finApi("indices");cSet("dash_idx",d);collected.indices=d.indices;
     // 스파크라인 병렬
     fill("dashIdx",indicesMarquee(d.indices));(d.indices||[]).forEach(it=>{if(it.price!=null)(window._lastQ=window._lastQ||{})[it.symbol||it.name]=it.price});
-    maybeSummary(collected);
+    maybeSummary(collected);renderMarketScore(collected);
   }catch(e){fill("dashIdx",errHtml(e.message))}})();
   // 크립토
   (async()=>{try{const d=cGet("dash_crypto")||await finApi("crypto");cSet("dash_crypto",d);collected.crypto=d.crypto;
     fill("dashCrypto",cryptoRow(d.crypto));(d.crypto||[]).forEach(it=>{if(it.price!=null)(window._lastQ=window._lastQ||{})[it.symbol||it.name]=it.price});maybeSummary(collected);
   }catch(e){fill("dashCrypto",errHtml(e.message))}})();
   // 미국 주식 히트맵
-  (async()=>{try{const d=cGet("dash_movers")||await finApi("movers");cSet("dash_movers",d);renderHeat("dashMovers",d.movers)}catch(e){fill("dashMovers",errHtml(e.message))}})();
+  (async()=>{try{const d=cGet("dash_movers")||await finApi("movers");cSet("dash_movers",d);collected.movers=d.movers;renderHeat("dashMovers",d.movers);renderRank(d.movers);renderAd(d.movers);renderMarketScore(collected)}catch(e){fill("dashMovers",errHtml(e.message));renderRank([]);}})();
   // 섹터 ETF
   (async()=>{try{const d=cGet("dash_sectors")||await finApi("sectors");cSet("dash_sectors",d);renderHeat("dashSectors",d.sectors)}catch(e){fill("dashSectors",errHtml(e.message))}})();
   // SpaceX (비상장) 뉴스
@@ -545,6 +552,26 @@ async function loadDashboard(){
   }catch(e){fill("dashMacro",errHtml(e.noKey?"달러·원자재는 FRED_API_KEY 등록 후 표시됩니다.":e.message))}})();
 }
 
+// AI 시장 점수(추종 종목 등락 breadth) + 인기 종목 + 네이티브 광고
+function renderMarketScore(c){
+  const all=[];[...(c.movers||[]),...(c.indices||[])].forEach(x=>{if(x&&x.changePercent!=null)all.push(x)});
+  if(!all.length)return;
+  const ups=all.filter(x=>x.changePercent>=0).length;const score=Math.round(ups/all.length*100);
+  const sen=score>=70?["강세 우세","#22C55E"]:score>=56?["매수 우위","#3B82F6"]:score>=45?["중립 · 관망","#EAB308"]:score>=30?["매도 우위","#F97316"]:["약세 우세","#EF4444"];
+  const se=document.getElementById("mktSentiment");if(se)se.textContent="AI 시장 예측: "+sen[0];
+  const sc=document.getElementById("mktScore");if(sc){sc.textContent=score;sc.style.background=sen[1]}
+}
+function renderRank(movers){
+  const el=document.getElementById("dashRank");if(!el)return;
+  const top=(movers||[]).slice(0,5);
+  if(!top.length){el.innerHTML='<div style="padding:14px 20px;font-size:12.5px;color:var(--faint)">데이터를 불러오지 못했어요.</div>';return}
+  el.innerHTML=top.map((x,i)=>`<div onclick="loadStock('${x.symbol}')" style="display:flex;align-items:center;gap:12px;padding:11px 20px;cursor:pointer;border-top:${i?"1px solid var(--line)":"none"}"><span style="width:14px;font-weight:800;color:var(--faint);font-family:Inter">${i+1}</span><div style="width:30px;height:30px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:Inter">${esc(x.symbol.slice(0,4))}</div><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700;font-family:Inter">${esc(x.symbol)}</div><div style="font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.name)}</div></div><div style="text-align:right"><div style="font-size:13.5px;font-weight:700;font-family:Inter">${x.price!=null?"$"+fmt(x.price,2):"—"}</div><div style="font-size:11px;font-weight:700;font-family:Inter;color:${x.changePercent>=0?"var(--up)":"var(--down)"}">${x.changePercent!=null?(x.changePercent>=0?"+":"")+fmt(x.changePercent,2)+"%":"—"}</div></div></div>`).join("");
+}
+function renderAd(movers){
+  const el=document.getElementById("dashAd");if(!el)return;
+  const top=(movers||[])[0];if(!top){el.innerHTML="";const c=document.getElementById("dashAdCard");if(c)c.style.display="none";return}
+  el.innerHTML=`<div style="padding:14px 18px;display:flex;align-items:center;gap:12px"><div style="flex:1;min-width:0"><div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--faint);text-transform:uppercase">Sponsored</div><div style="font-size:14px;font-weight:700;margin-top:2px">오늘의 상승 유망주 · ${esc(top.symbol)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:2px">등락 상위 종목을 바로 확인해 보세요</div></div><button class="btn-sm" onclick="loadStock('${top.symbol}')">보기</button></div>`;
+}
 // 데이터가 충분히 모이면 AI 시장 요약 1회 실행
 let summaryDone=false;
 function mktFailHtml(){return '<span style="color:var(--faint)">현재 AI 시장 요약을 사용할 수 없어요. 위 실시간 데이터는 정상 제공됩니다.</span> <button class="btn-g" style="color:var(--steel);margin-left:6px" onclick="retryMktSummary()">다시 시도</button>'}
