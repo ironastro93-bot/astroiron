@@ -75,7 +75,7 @@
 
 <nav>
   <div class="navin">
-    <div onclick="goHome()" style="display:flex;align-items:center;gap:10px;cursor:pointer" title="홈으로"><div class="logo">AI</div><span class="brand">ASTRO IRON</span></div>
+    <div class="logo">AI</div><span class="brand">ASTRO IRON</span>
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
       <button class="icon-btn" id="themeBtn" title="다크 모드" aria-label="다크 모드 전환">◐</button>
       <button id="quotaBtn"></button>
@@ -118,8 +118,8 @@ const FREE=5, CACHE_MIN=15;
 const IMP={positive:["긍정","var(--up)"],neutral:["중립","var(--hold)"],negative:["부정","var(--down)"]};
 const SIG={strong_buy:["상승 신호 강함","var(--up)"],buy:["상승 우위","var(--up)"],hold:["중립 · 관망","var(--hold)"],sell:["하락 우위","var(--down)"],strong_sell:["하락 신호 강함","var(--down)"]};
 const DIR=[["우주 · 방산",[["RKLB","Rocket Lab"],["LMT","Lockheed"],["BA","Boeing"],["RTX","RTX"],["ASTS","AST"]]],["빅테크",[["AAPL","Apple"],["MSFT","Microsoft"],["GOOGL","Alphabet"],["AMZN","Amazon"],["META","Meta"],["NFLX","Netflix"]]],["반도체 · AI",[["NVDA","NVIDIA"],["AMD","AMD"],["TSM","TSMC"],["AVGO","Broadcom"],["MU","Micron"],["PLTR","Palantir"]]],["ETF",[["SPY","S&P500"],["QQQ","나스닥100"],["SCHD","배당"],["VOO","뱅가드"],["ARKK","ARK"],["JEPI","JEPI"]]],["전기차 · 크립토",[["TSLA","Tesla"],["RIVN","Rivian"],["COIN","Coinbase"],["MSTR","Strategy"]]]];
-const TABS=[["overview","개요"],["chart","차트"],["financials","재무"],["dividend","배당"],["recommend","투자의견"],["earnings","실적"],["news","뉴스"],["filings","공시"],["ai","AI 분석"],["discuss","메모"]];
-const PERIODS=[["1M","1개월"],["3M","3개월"],["1Y","1년"],["5Y","5년"]];
+const TABS=[["overview","개요"],["chart","차트"],["financials","재무"],["news","뉴스"],["filings","공시"],["ai","AI 분석"],["discuss","메모"]];
+const PERIODS=[["60","1일"],["D","3개월"],["W","2년"],["M","5년"]];
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const fmt=(n,d=2)=>n==null||isNaN(n)?"—":Number(n).toLocaleString(undefined,{maximumFractionDigits:d});
@@ -157,7 +157,7 @@ async function aiApi(task,context,question){
   }catch{return{aiUnavailable:true}}
 }
 
-let state={view:"home",symbol:"",tab:"overview",data:null,loading:false,error:null,period:"3M"};
+let state={view:"home",symbol:"",tab:"overview",data:null,loading:false,error:null,period:"D"};
 window.state=state;
 
 // ═══ 종목 로드 ═══
@@ -165,19 +165,17 @@ async function loadStock(sym){
   sym=(sym||state.symbol).trim().toUpperCase();
   if(!sym||state.loading)return;
   if(!/^[A-Z0-9.]{1,6}$/.test(sym)){state.view="stock";state.error="티커는 영문·숫자 1~6자만 입력할 수 있어요. 예) TSLA";state.data=null;render();return}
-  state.view="stock";state.symbol=sym;state.tab="overview";state.period="3M";state.loading=true;state.error=null;state.data=null;closeAc();render();
+  state.view="stock";state.symbol=sym;state.tab="overview";state.period="D";state.loading=true;state.error=null;state.data=null;closeAc();render();
   try{
     const [quote,profile]=await Promise.all([finApi("quote",{symbol:sym}),finApi("profile",{symbol:sym}).catch(()=>({}))]);
     if(quote.price==null){throw new Error("시세를 찾지 못했어요. 티커를 확인해 주세요.")}
     pushRecent(sym,profile?.name||sym);
-    state.data={symbol:sym,quote,profile,candles:null,news:null,financials:null,filings:null,recommend:null,earnings:null,ai:null,aiState:"idle"};
+    state.data={symbol:sym,quote,profile,candles:null,news:null,financials:null,filings:null,ai:null,aiState:"idle"};
     state.loading=false;render();
     finApi("candle",{symbol:sym,resolution:state.period}).then(r=>{state.data.candles=r.candles;if(state.tab==="chart")render()}).catch(()=>{state.data.candles=[]});
     finApi("financials",{symbol:sym}).then(r=>{state.data.financials=r.metrics;if(state.tab==="financials")render()}).catch(()=>{});
     finApi("news",{symbol:sym}).then(r=>{state.data.news=r.news;if(state.tab==="news")render()}).catch(()=>{state.data.news=[]});
     finApi("filings",{symbol:sym}).then(r=>{state.data.filings=r.filings;if(state.tab==="filings")render()}).catch(()=>{state.data.filings=[]});
-    finApi("recommend",{symbol:sym}).then(r=>{state.data.recommend=r.recommend;if(state.tab==="recommend")render()}).catch(()=>{state.data.recommend=[]});
-    finApi("earnings",{symbol:sym}).then(r=>{state.data.earnings=r.earnings;if(state.tab==="earnings")render()}).catch(()=>{state.data.earnings=[]});
   }catch(e){state.loading=false;state.error=e.message;render()}
 }
 window.loadStock=loadStock;
@@ -257,7 +255,7 @@ function renderStockResult(){
   }
   else if(state.tab==="chart"){
     t=`<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">${PERIODS.map(p=>`<button class="chip ${state.period===p[0]?"on":""}" onclick="changePeriod('${p[0]}')">${p[1]}</button>`).join("")}</div>`;
-    t+=d.candles===null?'<div class="skel" style="height:190px"></div>':`<div style="background:var(--soft);border-radius:12px;padding:14px 16px 8px">${lineChart(d.candles,q.changePercent>=0)}</div><p style="font-size:11.5px;color:var(--faint);margin-top:12px">Stooq 일봉 종가 기준(무료). 기간에 따라 표시 범위가 달라질 수 있어요.</p>`;
+    t+=d.candles===null?'<div class="skel" style="height:190px"></div>':`<div style="background:var(--soft);border-radius:12px;padding:14px 16px 8px">${lineChart(d.candles,q.changePercent>=0)}</div><p style="font-size:11.5px;color:var(--faint);margin-top:12px">Finnhub 종가 기준. 무료 티어는 기간별 제공 범위가 제한될 수 있어요.</p>`;
   }
   else if(state.tab==="financials"){
     if(d.financials===null)t='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">'+Array(8).fill('<div class="skel" style="height:64px"></div>').join("")+'</div>';
@@ -265,34 +263,14 @@ function renderStockResult(){
       t=`<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">${F.map(f=>`<div class="met"><div class="k">${f[0]}</div><div class="v">${f[1]}</div></div>`).join("")}</div><p style="font-size:11.5px;color:var(--faint);margin-top:12px">Finnhub 기본 지표. 종목에 따라 일부 값은 제공되지 않을 수 있어요.</p>`;}
   }
   else if(state.tab==="news"){
-    if(d.news===null)t=Array(4).fill('<div class="skel" style="height:56px;margin-bottom:10px"></div>').join("");
-    else if(!d.news.length)t='<p style="font-size:14px;color:var(--sub)">최근 7일 뉴스를 찾지 못했어요.</p>';
-    else t=d.news.map((n,i)=>`<a class="newslink" href="${esc(n.url)}" target="_blank" rel="noreferrer" style="display:block;padding:13px 0;border-bottom:${i<d.news.length-1?"1px solid var(--line)":"none"}"><div style="font-size:14px;line-height:1.5;font-weight:500">${esc(n.title)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:5px;display:flex;gap:8px;align-items:center"><span style="font-weight:600;color:var(--steel)">${esc(n.source)}</span><span>·</span><span>${relTime(n.datetime)}</span><span style="margin-left:auto">원문 →</span></div></a>`).join("")+'<p style="font-size:11.5px;color:var(--faint);margin-top:14px">제목·출처·원문 링크만 제공 (저작권 준수). 요약은 [AI 분석] 탭에서.</p>';
+    if(d.news===null)t=Array(4).fill('<div class="skel" style="height:44px;margin-bottom:10px"></div>').join("");
+    else if(!d.news.length)t='<p style="font-size:14px;color:var(--sub)">최근 뉴스를 찾지 못했어요.</p>';
+    else t=d.news.map((n,i)=>`<a class="newslink" href="${esc(n.url)}" target="_blank" rel="noreferrer"><div style="padding:12px 0;border-bottom:${i<d.news.length-1?"1px solid var(--line)":"none"}"><div style="font-size:14px;line-height:1.5">${esc(n.title)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:4px">${esc(n.source)} · 원문 보기 →</div></div></a>`).join("")+'<p style="font-size:11.5px;color:var(--faint);margin-top:12px">제목·출처·원문 링크만 제공 (저작권 준수). AI 요약은 [AI 분석] 탭.</p>';
   }
   else if(state.tab==="filings"){
-    if(d.filings===null)t=Array(3).fill('<div class="skel" style="height:48px;margin-bottom:10px"></div>').join("");
+    if(d.filings===null)t=Array(3).fill('<div class="skel" style="height:40px;margin-bottom:10px"></div>').join("");
     else if(!d.filings.length)t='<p style="font-size:14px;color:var(--sub)">최근 SEC 공시를 찾지 못했어요. (ETF·해외기업은 없을 수 있어요)</p>';
-    else t=d.filings.map((f,i)=>`<a class="newslink" href="${esc(f.url)}" target="_blank" rel="noreferrer" style="display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:${i<d.filings.length-1?"1px solid var(--line)":"none"}"><span style="flex-shrink:0;font-size:11px;font-weight:700;color:var(--steel);font-family:Inter;background:color-mix(in srgb,var(--steel) 12%,transparent);padding:4px 9px;border-radius:7px">${esc(f.type)}</span><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:500">${esc(f.label||f.desc)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:2px">${esc(f.desc)}</div></div><span style="flex-shrink:0;font-size:11.5px;color:var(--faint);font-family:Inter">${esc(f.date)} →</span></a>`).join("")+'<p style="font-size:11.5px;color:var(--faint);margin-top:14px">SEC EDGAR 공식 공시 원문 링크.</p>';
-  }
-  else if(state.tab==="dividend"){
-    if(d.financials===null)t='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">'+Array(4).fill('<div class="skel" style="height:64px"></div>').join("")+'</div>';
-    else{const m=d.financials;const hasDiv=m.dividendYield!=null&&m.dividendYield>0;
-      const D=[["배당수익률",m.dividendYield!=null?fmt(m.dividendYield,2)+"%":"—"],["주당 배당금",m.dividendPerShare!=null?"$"+fmt(m.dividendPerShare,2):"—"],["배당성향",m.payoutRatio!=null?fmt(m.payoutRatio,1)+"%":"—"],["5년 배당성장률",m.dividendGrowth!=null?fmt(m.dividendGrowth,1)+"%":"—"]];
-      t=`<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">${D.map(f=>`<div class="met"><div class="k">${f[0]}</div><div class="v">${f[1]}</div></div>`).join("")}</div>`;
-      t+= hasDiv?'<p style="font-size:12.5px;color:var(--sub);margin-top:14px;line-height:1.6">배당을 지급하는 종목이에요. 수치는 Finnhub 연환산 기준이며, 실제 배당락일·지급일은 [공시] 탭의 회사 공시를 확인하세요.</p>':'<p style="font-size:13.5px;color:var(--faint);margin-top:14px">현재 배당 데이터가 없어요. (무배당 종목이거나 ETF일 수 있어요)</p>';
-    }
-  }
-  else if(state.tab==="recommend"){
-    if(d.recommend===null)t=Array(3).fill('<div class="skel" style="height:46px;margin-bottom:10px"></div>').join("");
-    else if(!d.recommend.length)t='<p style="font-size:14px;color:var(--sub)">애널리스트 투자의견 데이터가 없어요. (소형주·ETF는 없을 수 있어요)</p>';
-    else t=d.recommend.map(r=>{const tot=(r.strongBuy||0)+(r.buy||0)+(r.hold||0)+(r.sell||0)+(r.strongSell||0)||1;const seg=[["적극매수",r.strongBuy,"var(--up)"],["매수",r.buy,"color-mix(in srgb,var(--up) 55%,var(--soft))"],["중립",r.hold,"var(--hold)"],["매도",r.sell,"color-mix(in srgb,var(--down) 55%,var(--soft))"],["적극매도",r.strongSell,"var(--down)"]];
-        return `<div style="margin-bottom:16px"><div style="font-size:12px;color:var(--faint);margin-bottom:6px;font-family:Inter">${esc(r.period)}</div><div style="display:flex;height:22px;border-radius:6px;overflow:hidden;border:1px solid var(--line)">${seg.map(x=>x[1]?`<div style="width:${x[1]/tot*100}%;background:${x[2]}"></div>`:"").join("")}</div><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;font-size:11.5px;color:var(--sub)">${seg.map(x=>`<span><b style="font-family:Inter">${x[1]||0}</b> ${x[0]}</span>`).join("")}</div></div>`;
-      }).join("")+'<p style="font-size:11.5px;color:var(--faint);margin-top:6px">Finnhub 애널리스트 투자의견 집계. 참고용이며 투자 권유가 아닙니다.</p>';
-  }
-  else if(state.tab==="earnings"){
-    if(d.earnings===null)t=Array(3).fill('<div class="skel" style="height:44px;margin-bottom:10px"></div>').join("");
-    else if(!d.earnings.length)t='<p style="font-size:14px;color:var(--sub)">실적 서프라이즈 데이터가 없어요.</p>';
-    else t='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--faint);font-size:11.5px"><th style="text-align:left;padding:8px 6px">분기</th><th style="text-align:right;padding:8px 6px">예상 EPS</th><th style="text-align:right;padding:8px 6px">실제 EPS</th><th style="text-align:right;padding:8px 6px">서프라이즈</th></tr></thead><tbody>'+d.earnings.map(e=>{const up=(e.surprisePercent??0)>=0;const col=up?"var(--up)":"var(--down)";return `<tr style="border-top:1px solid var(--line);font-family:Inter"><td style="text-align:left;padding:10px 6px">${esc(e.year)} Q${esc(e.quarter)}</td><td style="text-align:right;padding:10px 6px">${e.estimate!=null?fmt(e.estimate,2):"—"}</td><td style="text-align:right;padding:10px 6px;font-weight:700">${e.actual!=null?fmt(e.actual,2):"—"}</td><td style="text-align:right;padding:10px 6px;color:${col};font-weight:700">${e.surprisePercent!=null?(up?"+":"")+fmt(e.surprisePercent,1)+"%":"—"}</td></tr>`;}).join("")+'</tbody></table></div><p style="font-size:11.5px;color:var(--faint);margin-top:12px">Finnhub 최근 분기 EPS 실제 vs 예상. 양수 서프라이즈는 예상 상회를 뜻해요.</p>';
+    else t=d.filings.map((f,i)=>`<a class="newslink" href="${esc(f.url)}" target="_blank" rel="noreferrer"><div style="padding:12px 0;border-bottom:${i<d.filings.length-1?"1px solid var(--line)":"none"}"><div style="display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:700;color:var(--steel);font-family:Inter">${esc(f.type)}</span><span style="font-size:12px;color:var(--faint)">${esc(f.date)} →</span></div><div style="font-size:13.5px;margin-top:3px">${esc(f.desc)}</div></div></a>`).join("")+'<p style="font-size:11.5px;color:var(--faint);margin-top:12px">SEC EDGAR 공식 공시 (원문 링크 제공).</p>';
   }
   else if(state.tab==="ai")t=renderAiTab(d);
   else if(state.tab==="discuss")t=renderDiscuss(d.symbol);
@@ -337,10 +315,6 @@ window.addDisc=(t)=>{const el=document.getElementById("discInput");const v=el.va
 window.delDisc=(t,id)=>{const k="discuss_"+t;setList(k,getList(k).filter(p=>p.id!==id));render()};
 
 // ═══ 뷰: 글로벌 시장 대시보드 ═══
-function relTime(sec){if(!sec)return "";const diff=Date.now()/1000-sec;if(diff<3600)return Math.max(1,Math.floor(diff/60))+"분 전";if(diff<86400)return Math.floor(diff/3600)+"시간 전";return Math.floor(diff/86400)+"일 전"}
-function heatColor(p){if(p==null)return "var(--soft)";const a=Math.min(1,Math.abs(p)/4);const pct=Math.round(a*68+8);return p>=0?`color-mix(in srgb,var(--up) ${pct}%,var(--card))`:`color-mix(in srgb,var(--down) ${pct}%,var(--card))`}
-function heatCell(it){const p=it.changePercent,has=p!=null;return `<button onclick="loadStock('${it.symbol}')" style="flex:1 1 98px;min-width:94px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:${heatColor(p)};text-align:left;cursor:pointer;color:var(--ink)"><div style="font-size:12.5px;font-weight:700;font-family:Inter">${esc(it.symbol)}</div><div style="font-size:10.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.name)}</div><div style="font-size:12.5px;font-weight:700;font-family:Inter;margin-top:3px">${has?(p>=0?"+":"")+fmt(p,2)+"%":"—"}</div></button>`}
-function renderHeat(id,items){const el=document.getElementById(id);if(el)el.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px">${(items||[]).map(heatCell).join("")}</div>`}
 function sparkline(vals,pos){
   if(!vals||vals.length<2)return "";
   const W=88,H=28,mn=Math.min(...vals),mx=Math.max(...vals),rg=mx-mn||1;
@@ -367,8 +341,6 @@ function renderHome(){
     <div class="srow" id="searchWrap"><input id="tin" placeholder="티커·회사명 검색 · 예) TSLA, Apple, RKLB" value="${esc(state.symbol)}" autocomplete="off"/><button class="btn" onclick="loadStock()">분석</button></div></div>
   <div class="card" style="margin-bottom:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--steel) 8%,var(--card)),var(--card))"><div style="padding:16px 20px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:13px;font-weight:700;color:var(--steel)">AI 시장 요약</span><span class="pill" style="font-size:10px;background:color-mix(in srgb,var(--steel) 12%,transparent);color:var(--steel)">3줄</span></div><div id="mktSummary" style="font-size:14px;line-height:1.7;color:var(--ink)"><span style="color:var(--faint)">시장 데이터를 불러온 뒤 요약해 드려요…</span></div></div></div>
   ${dashSection("주요 지수 · ETF","dashIdx","SPY·QQQ·DIA·IWM·VTI·SCHD (Finnhub)")}
-  ${dashSection("미국 주식 히트맵 · 급등락","dashMovers","인기 종목 등락률 순 · 클릭하면 분석 (Finnhub)")}
-  ${dashSection("섹터 ETF 히트맵","dashSectors","11개 섹터 SPDR ETF 등락률 순 (Finnhub)")}
   ${dashSection("암호화폐","dashCrypto","BTC·ETH·SOL (Finnhub)")}
   ${dashSection("미국 국채 금리","dashTreasury","2Y·10Y·30Y (FRED)")}
   ${dashSection("달러 · 원자재","dashMacro","달러인덱스·금·은·유가·가스 (FRED)")}
@@ -386,17 +358,13 @@ async function loadDashboard(){
   // 지수
   (async()=>{try{const d=cGet("dash_idx")||await finApi("indices");cSet("dash_idx",d);collected.indices=d.indices;
     // 스파크라인 병렬
-    fill("dashIdx",`<div style="display:flex;flex-wrap:wrap">${d.indices.map(it=>quoteCard(it.name,it.symbol,it.price,it.changePercent,it.spark,"$")).join("")}</div>`);
+    fill("dashIdx",`<div style="display:flex;flex-wrap:wrap">${d.indices.map(it=>quoteCard(it.name,it.symbol,it.price,it.changePercent,null,"$")).join("")}</div>`);
     maybeSummary(collected);
   }catch(e){fill("dashIdx",errHtml(e.message))}})();
   // 크립토
   (async()=>{try{const d=cGet("dash_crypto")||await finApi("crypto");cSet("dash_crypto",d);collected.crypto=d.crypto;
-    fill("dashCrypto",`<div style="display:flex;flex-wrap:wrap">${d.crypto.map(it=>quoteCard(it.name,it.symbol,it.price,it.changePercent,it.spark,"$")).join("")}</div>`);maybeSummary(collected);
+    fill("dashCrypto",`<div style="display:flex;flex-wrap:wrap">${d.crypto.map(it=>quoteCard(it.name,it.symbol,it.price,it.changePercent,null,"$")).join("")}</div>`);maybeSummary(collected);
   }catch(e){fill("dashCrypto",errHtml(e.message))}})();
-  // 미국 주식 히트맵
-  (async()=>{try{const d=cGet("dash_movers")||await finApi("movers");cSet("dash_movers",d);renderHeat("dashMovers",d.movers)}catch(e){fill("dashMovers",errHtml(e.message))}})();
-  // 섹터 ETF
-  (async()=>{try{const d=cGet("dash_sectors")||await finApi("sectors");cSet("dash_sectors",d);renderHeat("dashSectors",d.sectors)}catch(e){fill("dashSectors",errHtml(e.message))}})();
   // 국채 (FRED)
   (async()=>{try{const d=cGet("dash_tr")||await macroApi("treasury");cSet("dash_tr",d);collected.treasury=d.items;
     fill("dashTreasury",`<div style="display:flex;flex-wrap:wrap">${d.items.map(it=>quoteCard(it.name,"",it.latest,it.changePercent,it.spark,"%")).join("")}</div>`);maybeSummary(collected);
@@ -508,7 +476,6 @@ function render(){
 }
 window.render=render;
 window.switchView=(v)=>{state.view=v;state.error=null;closeAc();render()};
-window.goHome=()=>{state.symbol="";state.error=null;state.data=null;state.tab="overview";closeAc();switchView("home")};
 
 // ═══ 다크모드 ═══
 function applyTheme(t){document.documentElement.setAttribute("data-theme",t);localStorage.setItem("theme",t);paintStars()}

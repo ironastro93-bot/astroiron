@@ -3,8 +3,6 @@
 // [선택] Vercel 환경변수: ANTHROPIC_API_KEY (없으면 AI 기능만 비활성)
 
 const KEY = process.env.ANTHROPIC_API_KEY;
-// 모델은 환경변수로 교체 가능. 기본값은 공개 API에서 유효한 모델 ID.
-const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514";
 const TIMEOUT = 45000;
 
 async function callModel(prompt, maxTokens) {
@@ -14,11 +12,10 @@ async function callModel(prompt, maxTokens) {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST", signal: ctrl.signal,
       headers: { "Content-Type": "application/json", "x-api-key": KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages: [{ role: "user", content: prompt }] }),
+      body: JSON.stringify({ model: "claude-3-5-sonnet-latest", max_tokens: maxTokens, messages: [{ role: "user", content: prompt }] }),
     });
     if (r.status === 429) throw { code: 429, msg: "AI 사용량이 많아요." };
-    if (r.status === 401) throw { code: 500, msg: "AI 키 오류(ANTHROPIC_API_KEY 확인)" };
-    if (r.status === 404) throw { code: 502, msg: "AI 모델 ID 오류(ANTHROPIC_MODEL 확인)" };
+    if (r.status === 401) throw { code: 500, msg: "AI 키 오류" };
     if (!r.ok) throw { code: 502, msg: `AI 오류 (${r.status})` };
     const d = await r.json();
     return (d.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
