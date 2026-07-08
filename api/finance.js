@@ -233,6 +233,37 @@ const UNIVERSE = [
   ["DIS","Disney"],["UBER","Uber"],["ABNB","Airbnb"],["SHOP","Shopify"],["PYPL","PayPal"],["SQ","Block"],["BA","Boeing"],["CAT","Caterpillar"],
   ["GE","GE Aerospace"],["RTX","RTX"],["LMT","Lockheed"],["RKLB","Rocket Lab"],["MSTR","Strategy"],["RIVN","Rivian"],["F","Ford"],["GM","GM"],
 ];
+const POPULAR = [
+  ["NVDA","NVIDIA"],["TSLA","Tesla"],["AAPL","Apple"],["AMD","AMD"],["PLTR","Palantir"],["AMZN","Amazon"],
+  ["MSFT","Microsoft"],["META","Meta"],["GOOGL","Alphabet"],["INTC","Intel"],["SMCI","Super Micro"],["COIN","Coinbase"],
+  ["MU","Micron"],["AVGO","Broadcom"],["SOFI","SoFi"],["F","Ford"],["BAC","Bank of America"],["NFLX","Netflix"],
+  ["UBER","Uber"],["RIVN","Rivian"],["SNAP","Snap"],["PFE","Pfizer"],["T","AT&T"],["DIS","Disney"],
+  ["XOM","Exxon"],["WMT","Walmart"],["BABA","Alibaba"],["LCID","Lucid"],
+];
+async function yahooMeta(sym) {
+  const j = await yahooJson(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=1d&interval=1d`);
+  const m = j?.chart?.result?.[0]?.meta;
+  if (!m || m.regularMarketPrice == null) return null;
+  const prev = m.chartPreviousClose ?? m.previousClose ?? null;
+  return { price: m.regularMarketPrice, changePercent: prev ? ((m.regularMarketPrice - prev) / prev) * 100 : null, volume: m.regularMarketVolume ?? null };
+}
+let popCache = null, popAt = 0;
+async function popularRanking() {
+  if (popCache && Date.now() - popAt < 30000) return popCache; // 30초 캐시(폴링 부하 방지)
+  const out = [];
+  for (let i = 0; i < POPULAR.length; i += 8) {
+    const chunk = POPULAR.slice(i, i + 8);
+    const res = await Promise.all(chunk.map(async ([s, name]) => {
+      const m = await yahooMeta(s);
+      return m ? { symbol: s, name, price: m.price, changePercent: m.changePercent, volume: m.volume } : { symbol: s, name, price: null, changePercent: null, volume: null };
+    }));
+    out.push(...res);
+  }
+  const rows = out.filter((x) => x.volume != null).sort((a, b) => b.volume - a.volume);
+  if (rows.length) { popCache = rows; popAt = Date.now(); }
+  return rows;
+}
+
 async function sparkChunked(symbols) {
   const out = {};
   for (let i = 0; i < symbols.length; i += 40) {
@@ -319,11 +350,8 @@ export default async function handler(req, res) {
       case "indices": return res.status(200).json({ indices: await heatList(IDX) });
       case "movers": { const rows = await heatList(MOVERS); rows.sort((a, b) => (b.changePercent ?? -999) - (a.changePercent ?? -999)); return res.status(200).json({ movers: rows }); }
       case "ranking": {
-        const sp = await yahooSpark(UNIVERSE.map((x) => x[0]));
-        const rows = UNIVERSE.map(([sym, name]) => ({ symbol: sym, name, price: sp[sym]?.price ?? null, changePercent: sp[sym]?.changePercent ?? null }))
-          .filter((r) => r.changePercent != null);
-        rows.sort((a, b) => b.changePercent - a.changePercent);
-        return res.status(200).json({ ranking: rows, source: "Yahoo Finance", count: rows.length });
+        const rows = await popularRanking(); // 당일 거래량 순
+        return res.status(200).json({ ranking: rows, source: "Yahoo Finance", sortBy: "volume", count: rows.length });
       }
       case "sectors": { const rows = await heatList(SECTORS); rows.sort((a, b) => (b.changePercent ?? -999) - (a.changePercent ?? -999)); return res.status(200).json({ sectors: rows }); }
       case "crypto": {

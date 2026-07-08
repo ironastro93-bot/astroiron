@@ -72,12 +72,22 @@
   [data-theme="dark"] body{background:#070a12}
   [data-theme="dark"] #sky{
     background:
-      linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,.62)),                                   /* 가독성용 어두운 오버레이 */
-      url('space-bg.jpg') center center / cover no-repeat,                                  /* 우주 사진 (있으면 표시) */
-      radial-gradient(ellipse 120% 85% at 50% 20%,#1a2440 0%,#0d1224 55%,#05070f 100%);     /* 사진 없을 때 자동 대체 배경 */
+      linear-gradient(rgba(6,9,22,.42),rgba(6,9,22,.52)),                                   /* 가독성용 어두운 오버레이 */
+      url('space-bg.jpg') center center / cover no-repeat,                                   /* 실제 사진 있으면 우선 표시 */
+      radial-gradient(ellipse 55% 45% at 42% 66%, rgba(150,120,185,.34), transparent 62%),   /* 은하수 보라 성운 */
+      radial-gradient(ellipse 46% 38% at 60% 60%, rgba(200,140,175,.24), transparent 62%),   /* 로즈빛 구름 */
+      radial-gradient(ellipse 80% 62% at 28% 38%, rgba(90,120,195,.24), transparent 66%),    /* 상단 블루 */
+      radial-gradient(ellipse 130% 95% at 66% 104%, rgba(28,130,125,.32), transparent 60%),  /* 하단 청록 */
+      linear-gradient(160deg,#0a0f2e 0%,#0c1738 46%,#0e2733 100%);                            /* 베이스(네이비→청록) */
     background-attachment:scroll;
   }
   [data-theme="dark"] #stars{height:100%!important}
+  @keyframes floatP{0%{transform:translateY(0) translateX(0) rotate(0deg);opacity:.8}33%{transform:translateY(-20px) translateX(10px) rotate(5deg);opacity:1}66%{transform:translateY(-10px) translateX(-15px) rotate(-5deg);opacity:.9}100%{transform:translateY(0) translateX(0) rotate(0deg);opacity:.8}}
+  @keyframes subtleShift{0%{background-position:50% 50%}50%{background-position:51% 49%}100%{background-position:50% 50%}}
+  #particles{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  [data-theme="dark"] #sky{animation:subtleShift 60s ease-in-out infinite}
+  .pt{position:absolute;border-radius:50%;opacity:0;animation:floatP var(--d,20s) ease-in-out infinite;animation-delay:var(--dl,0s)}
+  @media (prefers-reduced-motion: reduce){[data-theme="dark"] #sky{animation:none}.pt{animation:none;opacity:.5}}
   /* 글래스모피즘 카드 */
   [data-theme="dark"] .card{
     background:rgba(26,30,42,.52);
@@ -104,6 +114,15 @@
   .live{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:800;letter-spacing:.08em;color:#16a34a;background:rgba(34,197,94,.12);padding:2px 7px;border-radius:999px}
   .live-dot{width:6px;height:6px;border-radius:50%;background:#22C55E;animation:livep 1.4s infinite}
   @keyframes livep{0%,100%{opacity:1}50%{opacity:.25}}
+  .rankrow{display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;border-top:1px solid var(--line);transition:background .16s ease}
+  .rankrow:first-child{border-top:none}
+  .rankrow:hover{background:color-mix(in srgb,var(--ink) 4%,transparent)}
+  [data-theme="dark"] .rankrow:hover{background:rgba(255,255,255,.045)}
+  .rankrow .rk{width:20px;text-align:center;font-family:'Inter',sans-serif;font-weight:800;font-size:15px}
+  .rankrow .tk{font-size:14px;font-weight:700;font-family:'Inter',sans-serif;letter-spacing:.01em}
+  .rankrow .nm{font-size:11.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rankrow .vol{font-size:15.5px;font-weight:800;font-family:'Inter',sans-serif;letter-spacing:-.01em}
+  .rankrow .chg{font-size:11px;margin-top:1px;font-family:'Inter',sans-serif}
   .card{overflow:hidden}
   @media (max-width:640px){ .met .v{font-size:15px} }
   /* 무한 슬라이더 (PC 자동회전 / 모바일 스와이프) */
@@ -127,7 +146,7 @@
 </style>
 </head>
 <body>
-<div id="sky"><div class="neb"></div><svg id="stars" style="position:absolute;top:0;left:0;width:100%;height:400px" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div>
+<div id="sky"><div class="neb"></div><svg id="stars" style="position:absolute;top:0;left:0;width:100%;height:400px" viewBox="0 0 100 100" preserveAspectRatio="none"></svg><div id="particles"></div></div>
 
 <nav>
   <div class="navin">
@@ -510,14 +529,23 @@ function updateQuoteCells(items){
 // 30초 실시간 폴링 (홈에서만)
 async function pollHome(){
   if(state.view!=="home"||document.hidden)return;
+  updatePulse("refreshing");
   try{
-    const [idx,cry]=await Promise.all([finApi("indices").catch(()=>null),finApi("crypto").catch(()=>null)]);
+    const [idx,cry]=await Promise.all([finApi("indices"),finApi("crypto")]);
     if(idx&&idx.indices){cSet("dash_idx",idx);updateQuoteCells(idx.indices)}
     if(cry&&cry.crypto){cSet("dash_crypto",cry);updateQuoteCells(cry.crypto)}
-    try{const rk=await finApi("ranking");if(rk&&rk.ranking){cSet("dash_rank",rk);renderRank(rk.ranking)}}catch{}
-  }catch{}
+    let rk=null;window._pollN=(window._pollN||0)+1;
+    if(window._pollN%4===0){try{rk=await finApi("ranking");if(rk&&rk.ranking){cSet("dash_rank",rk);renderRank(rk.ranking)}}catch{}}
+    if(idx&&idx.indices)renderMarketScore({indices:idx.indices,movers:(rk&&rk.ranking)||(window._collected&&window._collected.movers)||[]});
+    updatePulse("live");window._pulseFail=0;
+  }catch(e){
+    updatePulse("error");
+    // 재연결 백오프: 다음 정규 주기 전에 8초 뒤 한 번 더 시도
+    window._pulseFail=(window._pulseFail||0)+1;
+    if(window._pulseFail<=3)setTimeout(()=>{if(state.view==="home"&&!document.hidden)pollHome()},8000);
+  }
 }
-function startHomePoll(){stopHomePoll();window._homePoll=setInterval(pollHome,30000)}
+function startHomePoll(){stopHomePoll();window._homePoll=setInterval(pollHome,15000)}
 function stopHomePoll(){if(window._homePoll){clearInterval(window._homePoll);window._homePoll=null}}
 function relTime(sec){if(!sec)return "";const diff=Date.now()/1000-sec;if(diff<3600)return Math.max(1,Math.floor(diff/60))+"분 전";if(diff<86400)return Math.floor(diff/3600)+"시간 전";return Math.floor(diff/86400)+"일 전"}
 function heatColor(p){if(p==null)return "var(--soft)";const a=Math.min(1,Math.abs(p)/4);const pct=Math.round(a*68+8);return p>=0?`color-mix(in srgb,var(--up) ${pct}%,var(--card))`:`color-mix(in srgb,var(--down) ${pct}%,var(--card))`}
@@ -547,15 +575,16 @@ function renderHome(){
   const recent=getList("recent");const watch=getList("watchlist");
   document.getElementById("app").innerHTML=`<div style="margin-bottom:22px"><h1>Market Pulse <span style="font-size:15px;font-weight:600;color:var(--sub);letter-spacing:0">시장의 흐름</span></h1><p class="lede">지수·금리·달러·원자재·크립토를 실시간으로. AI가 오늘 시장을 요약해 드려요.</p>
     <div class="srow" id="searchWrap"><input id="tin" placeholder="티커·회사명 검색 · 예) TSLA, Apple, RKLB" value="${esc(state.symbol)}" autocomplete="off"/><button class="btn" onclick="loadStock()">분석</button></div></div>
+  <div id="pulseStatus" onclick="pollHome()" title="지금 새로고침" style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--faint);margin:-6px 0 14px;cursor:pointer"><span class="live-dot" style="background:var(--faint)"></span> 실시간 연결 준비 중…</div>
   <div class="card" style="margin-bottom:16px;border:none;background:linear-gradient(135deg,#2F6BFF,#4F46E5);color:#fff;box-shadow:0 10px 30px rgba(47,107,255,.28)"><div style="padding:18px 20px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div style="font-size:11px;letter-spacing:.12em;opacity:.85;text-transform:uppercase">오늘의 시장 분위기</div><div id="mktSentiment" style="font-size:18px;font-weight:800;margin-top:4px">AI 시장 점수 계산 중…</div></div><div id="mktScore" style="min-width:56px;height:56px;padding:0 6px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;font-family:'Inter',sans-serif">–</div></div>
     <div id="mktSummary" class="clamp3" style="font-size:13px;line-height:1.6;margin-top:12px;opacity:.95">시장 데이터를 불러온 뒤 요약해 드려요…</div>
     <div style="font-size:10.5px;opacity:.7;margin-top:8px">AI 점수는 추종 종목 등락 기반 참고용 · 투자 권유 아님</div>
   </div></div>
   ${dashSection("주요 지수 · ETF · 실시간","dashIdx","SPY·QQQ·DIA·IWM·VTI·SCHD · 마우스 올리면 정지")}
-  <div class="card" style="margin-bottom:16px"><div style="padding:14px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="display:flex;align-items:center;gap:8px"><h2 style="font-size:14.5px">실시간 인기 종목</h2><span class="live"><span class="live-dot"></span>LIVE</span></div><span style="font-size:11px;color:var(--steel);font-weight:700">등락 상위</span></div>
-  <div style="padding:7px 20px 0;font-size:9px;color:var(--faint)">Data Source: Yahoo Finance · 시세는 최대 15분 지연될 수 있습니다</div>
-  <div id="dashRank"><div style="padding:14px 20px">${Array(5).fill('<div class="skel" style="height:30px;margin-bottom:8px"></div>').join("")}</div></div></div>
+  <div class="card" style="margin-bottom:16px"><div style="padding:18px 20px 8px;display:flex;align-items:center;gap:8px"><h2 style="font-size:15px">실시간 인기 종목</h2><span class="live"><span class="live-dot"></span>LIVE</span></div>
+  <div id="dashRank"><div style="padding:6px 20px 14px">${Array(5).fill('<div class="skel" style="height:34px;margin-bottom:12px"></div>').join("")}</div></div>
+  <div style="padding:4px 20px 15px;font-size:9.5px;color:var(--faint)">거래량 순 · Yahoo Finance · 최대 15분 지연</div></div>
   ${dashSection("미국 주식 히트맵 · 급등락","dashMovers","인기 종목 등락률 순 · 클릭하면 분석 (Finnhub)")}
   ${dashSection("섹터 ETF 히트맵","dashSectors","11개 섹터 SPDR ETF 등락률 순 (Finnhub)")}
   ${dashSection("암호화폐","dashCrypto","BTC·ETH·SOL (Finnhub)")}
@@ -571,14 +600,14 @@ function renderHome(){
 
 // 대시보드 전체 로드 (병렬, 각각 독립적으로 실패 처리)
 async function loadDashboard(){
-  const collected={};
+  const collected={};window._collected=collected;updatePulse("refreshing");
   const fill=(id,html)=>{const el=document.getElementById(id);if(el)el.innerHTML=html};
   const errHtml=(msg)=>`<div style="padding:14px 20px;font-size:12.5px;color:var(--faint)">${esc(msg)}</div>`;
   // 지수
   (async()=>{try{const d=cGet("dash_idx")||await finApi("indices");cSet("dash_idx",d);collected.indices=d.indices;
     // 스파크라인 병렬
     fill("dashIdx",indicesMarquee(d.indices));(d.indices||[]).forEach(it=>{if(it.price!=null)(window._lastQ=window._lastQ||{})[it.symbol||it.name]=it.price});
-    maybeSummary(collected);renderMarketScore(collected);
+    maybeSummary(collected);renderMarketScore(collected);updatePulse("live");
   }catch(e){fill("dashIdx",errHtml(e.message))}})();
   // 크립토
   (async()=>{try{const d=cGet("dash_crypto")||await finApi("crypto");cSet("dash_crypto",d);collected.crypto=d.crypto;
@@ -604,6 +633,14 @@ async function loadDashboard(){
   }catch(e){fill("dashMacro",errHtml(e.noKey?"달러·원자재는 FRED_API_KEY 등록 후 표시됩니다.":e.message))}})();
 }
 
+// 실시간 상태 표시
+function updatePulse(st){
+  const el=document.getElementById("pulseStatus");if(!el)return;
+  const now=new Date(),z=n=>String(n).padStart(2,"0");const t=z(now.getHours())+":"+z(now.getMinutes())+":"+z(now.getSeconds());
+  if(st==="live"){window._pulseAt=t;el.innerHTML=`<span class="live-dot" style="background:#22C55E"></span> 실시간 · ${t} 업데이트 · 15초마다 자동 갱신`;el.style.color="var(--sub)"}
+  else if(st==="refreshing"){el.innerHTML=`<span class="live-dot" style="background:#EAB308"></span> 업데이트 중…${window._pulseAt?" · 최근 "+window._pulseAt:""}`;el.style.color="var(--faint)"}
+  else{el.innerHTML=`<span class="live-dot" style="background:#EF4444;animation:none"></span> 재연결 중… 곧 다시 시도합니다${window._pulseAt?" · 최근 "+window._pulseAt:""}`;el.style.color="var(--sub)"}
+}
 // AI 시장 점수(추종 종목 등락 breadth) + 인기 종목 + 네이티브 광고
 function renderMarketScore(c){
   const all=[];[...(c.movers||[]),...(c.indices||[])].forEach(x=>{if(x&&x.changePercent!=null)all.push(x)});
@@ -613,8 +650,11 @@ function renderMarketScore(c){
   const se=document.getElementById("mktSentiment");if(se)se.textContent="AI 시장 예측: "+sen[0];
   const sc=document.getElementById("mktScore");if(sc){sc.textContent=score;sc.style.background=sen[1]}
 }
-function rankRow(x,i){return `<div onclick="loadStock('${x.symbol}')" style="display:flex;align-items:center;gap:12px;padding:11px 20px;cursor:pointer;border-top:${i?"1px solid var(--line)":"none"}"><span style="width:16px;font-weight:800;color:var(--faint);font-family:Inter">${i+1}</span><div style="width:30px;height:30px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:Inter">${esc(x.symbol.slice(0,4))}</div><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700;font-family:Inter">${esc(x.symbol)}</div><div style="font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.name)}</div></div><div style="text-align:right"><div style="font-size:13.5px;font-weight:700;font-family:Inter">${x.price!=null?"$"+fmt(x.price,2):"—"}</div><div style="font-size:11px;font-weight:700;font-family:Inter;color:${x.changePercent>=0?"var(--up)":"var(--down)"}">${x.changePercent!=null?(x.changePercent>=0?"+":"")+fmt(x.changePercent,2)+"%":"—"}</div></div></div>`}
-function rankAd(){const t=(window._rankAll||[])[0];return `<div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-top:1px solid var(--line);border-left:3px solid #22C55E;background:color-mix(in srgb,#22C55E 6%,transparent)"><div style="flex:1;min-width:0"><div style="font-size:9.5px;font-weight:800;letter-spacing:.1em;color:var(--faint);text-transform:uppercase">Sponsored</div><div style="font-size:13.5px;font-weight:700;margin-top:1px">오늘의 상승 유망주${t?" · "+esc(t.symbol):""}</div></div><button class="btn-g" style="color:#16a34a;border-color:#22C55E;white-space:nowrap" onclick="${t?`loadStock('${t.symbol}')`:""}">확인하기</button></div>`}
+function volFmt(v){if(v==null)return "—";if(v>=1e8)return (v/1e8).toFixed(2)+"억 주";if(v>=1e4)return Math.round(v/1e4).toLocaleString()+"만 주";return Math.round(v).toLocaleString()+" 주"}
+function rankRow(x,i){const rank=i+1,up=x.changePercent>=0;const rc=rank===1?"#F5C451":rank<=3?"var(--steel)":"var(--faint)";const arrow=x.changePercent==null?"—":(up?"▲":"▼");
+  return `<div class="rankrow" onclick="loadStock('${x.symbol}')"><span class="rk" style="color:${rc}">${rank}</span><div style="flex:1;min-width:0"><div class="tk">${esc(x.symbol)}</div><div class="nm">${esc(x.name)}</div></div><div style="text-align:right"><div class="vol">${volFmt(x.volume)}</div><div class="chg">${x.changePercent!=null?`<span style="color:${up?"var(--up)":"var(--down)"}">${arrow} ${fmt(Math.abs(x.changePercent),1)}%</span>`:'<span style="color:var(--faint)">—</span>'}</div></div></div>`;
+}
+function rankAd(){const t=(window._rankAll||[])[0];return `<div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-top:1px solid var(--line);border-left:3px solid #22C55E;background:color-mix(in srgb,#22C55E 6%,transparent)"><div style="flex:1;min-width:0"><div style="font-size:9.5px;font-weight:800;letter-spacing:.1em;color:var(--faint);text-transform:uppercase">Sponsored</div><div style="font-size:13.5px;font-weight:700;margin-top:1px">지금 가장 활발한 종목${t?" · "+esc(t.symbol):""}</div></div><button class="btn-g" style="color:#16a34a;border-color:#22C55E;white-space:nowrap" onclick="${t?`loadStock('${t.symbol}')`:""}">확인하기</button></div>`}
 function renderRank(list){
   const el=document.getElementById("dashRank");if(!el)return;
   if(list)window._rankAll=list;const all=window._rankAll||[];
@@ -719,6 +759,8 @@ window.calcDiv=()=>{const inv=parseFloat(document.getElementById("d_inv").value)
 // 내비 실측 → sticky 헤더 위치 보정
 function setNavH(){try{const n=document.querySelector("nav");if(n)document.documentElement.style.setProperty("--navh",n.offsetHeight+"px")}catch{}}
 window.addEventListener("resize",setNavH);
+let _ptResizeT;window.addEventListener("resize",()=>{clearTimeout(_ptResizeT);_ptResizeT=setTimeout(paintParticles,300)});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&state.view==="home")pollHome()});
 
 // ═══ AI 뉴스 센터 ═══
 function newsSentBadge(sen){const m=({positive:["긍정","#22C55E"],negative:["부정","#EF4444"],neutral:["중립","#EAB308"]})[sen]||["중립","#EAB308"];return `<span class="pill" style="font-size:10px;background:color-mix(in srgb,${m[1]} 16%,transparent);color:${m[1]}">${m[0]}</span>`}
@@ -819,13 +861,25 @@ window.switchView=(v)=>{state.view=v;state.error=null;closeAc();render()};
 window.goHome=()=>{state.symbol="";state.error=null;state.data=null;state.tab="overview";closeAc();switchView("home")};
 
 // ═══ 다크모드 ═══
-function applyTheme(t){document.documentElement.setAttribute("data-theme",t);localStorage.setItem("theme",t);paintStars()}
+function applyTheme(t){document.documentElement.setAttribute("data-theme",t);localStorage.setItem("theme",t);paintStars();paintParticles()}
 document.getElementById("themeBtn").addEventListener("click",()=>{const cur=document.documentElement.getAttribute("data-theme");applyTheme(cur==="dark"?"light":"dark")});
 (function(){const saved=localStorage.getItem("theme");if(saved)document.documentElement.setAttribute("data-theme",saved);else if(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)document.documentElement.setAttribute("data-theme","dark")})();
 
 // 별밭
 function paintStars(){const dark=document.documentElement.getAttribute("data-theme")==="dark";const col=dark?"#8FA5D0":"#2B3A55";let s="";for(let i=0;i<80;i++){const x=Math.random()*100,y=Math.random()*100,r=(Math.random()*1.3+.4)*.12,o=(Math.random()*.5+.15)*(1-y/110)*(dark?1.5:1);s+=`<circle cx="${x}" cy="${y}" r="${r}" fill="${col}" opacity="${Math.max(0,o)}"/>`}document.getElementById("stars").innerHTML=s}
-paintStars();
+const PARTICLE_COUNT=40; // 밀도 조절: 이 값만 바꾸면 됨
+function paintParticles(){
+  const box=document.getElementById("particles");if(!box)return;
+  const dark=document.documentElement.getAttribute("data-theme")==="dark";
+  if(!dark){box.innerHTML="";return}
+  const reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let n=window.innerWidth<640?Math.round(PARTICLE_COUNT*0.6):PARTICLE_COUNT;
+  if(reduce)n=Math.min(n,14); // 접근성: 모션 감축 시 DOM·부하도 축소
+  let h="";
+  for(let i=0;i<n;i++){const size=(Math.random()*3+1).toFixed(1);const r=Math.floor(Math.random()*100+155),g=Math.floor(Math.random()*155+100);const col=`rgba(${r},${g},255,${(Math.random()*0.5+0.3).toFixed(2)})`;h+=`<div class="pt" style="width:${size}px;height:${size}px;background:${col};top:${(Math.random()*100).toFixed(1)}%;left:${(Math.random()*100).toFixed(1)}%;--d:${(Math.random()*20+10).toFixed(1)}s;--dl:${(Math.random()*10).toFixed(1)}s"></div>`}
+  box.innerHTML=h;
+}
+paintStars();paintParticles();
 
 // 모달
 function showPro(){document.getElementById("proModal").classList.add("show")}
