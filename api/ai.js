@@ -147,6 +147,11 @@ ONLY raw JSON, 한국어: {"concentration":"섹터 편중 1문장","diversificat
 데이터: ${ctxStr}
 ONLY raw JSON, 한국어: {"summary":"3문장 시장 요약"}`;
       maxTokens = 400;
+    } else if (task === "translate_news") {
+      prompt = `다음 영어 뉴스 제목들을 자연스러운 한국어로 번역하세요. 회사명·티커·고유명사는 그대로 두고 의미를 정확히 옮기세요.
+제목 목록(JSON): ${ctxStr}
+반드시 입력과 동일한 개수·순서로, ONLY raw JSON: {"items":["한국어번역1","한국어번역2"]}`;
+      maxTokens = 1300;
     } else if (task === "chat") {
       prompt = `당신은 투자 정보 도우미입니다. 참고 데이터로 질문에 답하세요.
 규칙: 개인 맞춤 매매 지시 금지, 판단 재료(근거·위험) 제시, 모르면 모른다고.

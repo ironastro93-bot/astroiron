@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>ASTRO IRON — 미국 주식 플랫폼</title>
 <meta name="description" content="실시간 금융 데이터 기반 미국 주식 투자 플랫폼. AI는 요약·해석을 돕습니다."/>
+<meta name="google-site-verification" content="lCWqpOjz6_F0sxCKq2o-3bTlG0W8ZuyWttPq984o7-Y"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet"/>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9617531470345660" crossorigin="anonymous"></script>
 <style>
@@ -262,6 +263,8 @@ const addUsage=()=>{const n=getUsage()+1;localStorage.setItem(tUsageKey(),n);ret
 const isPro=()=>localStorage.getItem("pro")===PRO_HASH;
 function cGet(k){try{const o=JSON.parse(localStorage.getItem("c_"+k)||"null");if(!o)return null;if(Date.now()-o.t>CACHE_MIN*6e4)return null;return o.d}catch{return null}}
 function cSet(k,d){try{localStorage.setItem("c_"+k,JSON.stringify({t:Date.now(),d}))}catch{}}
+function aiCache(k,ttlMin){try{const o=JSON.parse(localStorage.getItem("aic_"+k)||"null");if(!o)return null;if(Date.now()-o.t>ttlMin*6e4)return null;return o.d}catch{return null}}
+function aiCacheSet(k,d){try{localStorage.setItem("aic_"+k,JSON.stringify({t:Date.now(),d}))}catch{}}
 // 최근 조회/검색
 function pushRecent(sym,name){const r=getList("recent").filter(x=>x.ticker!==sym);r.unshift({ticker:sym,name});setList("recent",r.slice(0,8))}
 
@@ -356,6 +359,9 @@ window.toggleInd=(k)=>{state.ind[k]=!state.ind[k];render()};
 async function runAiAnalysis(){
   const d=state.data;if(!d)return;
   if(!isPro()&&getUsage()>=FREE){showPro();return}
+  const ck="stk_"+d.symbol+(isPro()?"_p":"");
+  const cachedAi=aiCache(ck,360); // 6시간 캐시
+  if(cachedAi){d.ai=cachedAi;d.aiState="done";render();return}
   d.aiState="loading";render();
   const ctx={ticker:d.symbol,name:d.profile?.name,price:d.quote.price,changePercent:d.quote.changePercent,high52:d.financials?.high52,low52:d.financials?.low52,per:d.financials?.per,roe:d.financials?.roe,beta:d.financials?.beta,industry:d.profile?.finnhubIndustry};
   const tasks=[aiApi("summary",ctx),aiApi("risk",ctx)];
@@ -363,7 +369,7 @@ async function runAiAnalysis(){
   const [summary,risk,scenario]=await Promise.all(tasks);
   if(summary.aiUnavailable&&risk.aiUnavailable){d.aiState="unavailable";d.aiError=summary.error||risk.error||"";render();return}
   if(!isPro())addUsage();
-  d.ai={summary,risk,scenario:scenario||{aiUnavailable:true}};d.aiState="done";render();
+  d.ai={summary,risk,scenario:scenario||{aiUnavailable:true}};aiCacheSet(ck,d.ai);d.aiState="done";render();
 }
 window.runAiAnalysis=runAiAnalysis;
 
@@ -467,7 +473,7 @@ function renderStockResult(){
       <div class="met"><div class="k">시가 / 전일종가</div><div class="v" style="font-size:15px">$${fmt(q.open)} / $${fmt(q.prevClose)}</div></div></div>
       ${d.profile?.finnhubIndustry?`<div style="margin-top:14px;font-size:13.5px;color:var(--sub)">업종: ${esc(d.profile.finnhubIndustry)}${d.profile.marketCapitalization?` · 시총 $${fmt(d.profile.marketCapitalization/1000,1)}B`:""}${d.profile.country?` · ${esc(d.profile.country)}`:""}</div>`:""}
       <p style="margin-top:16px;font-size:12px;color:var(--faint);line-height:1.6">모든 수치는 Finnhub 실시간 데이터입니다. 깊은 해석은 [AI 분석] 탭에서.</p>
-      ${!isPro()?'<div style="margin-top:16px">'+adUnit()+'</div>':""}`;
+      `;
     t+=alertSetter(d.symbol,name);
   }
   else if(state.tab==="chart"){
@@ -522,6 +528,7 @@ function renderStockResult(){
     </div>
     <div style="display:flex;gap:2px;padding:0 14px;border-bottom:1px solid var(--line);overflow-x:auto">${TABS.map(x=>`<button class="tab ${state.tab===x[0]?"on":""}" onclick="state.tab='${x[0]}';render()">${x[1]}</button>`).join("")}</div>
     <div style="padding:22px 26px">${t}</div>
+    ${!isPro()?`<div style="padding:0 26px 20px">${adUnit()}</div>`:""}
   </div>`;
 }
 
@@ -742,10 +749,12 @@ async function maybeSummary(c){
     dollar:(c.dollar||[]).map(x=>({name:x.name,changePercent:x.changePercent})),
   };
   window._mktCtx=ctx;
-  const r=await aiApi("market_summary",ctx);
-  if(r.aiUnavailable||!r.summary){el.innerHTML=mktFailHtml();return}
-  el.innerHTML=esc(r.summary)+'<div style="font-size:11px;color:var(--faint);margin-top:8px">AI 요약 · 투자 권유가 아닌 참고용</div>';
+  const cached=aiCache("mkt",180); // 3시간 캐시 → 재방문 시 재호출 안 함
+  if(cached){el.innerHTML=esc(cached)+'<div style="font-size:11px;color:var(--faint);margin-top:8px">AI 요약 · 참고용 (캐시)</div>';return}
+  // 토큰 절약: 자동 호출하지 않고 사용자가 누를 때만 실행
+  el.innerHTML='<button class="btn-sm" onclick="loadMktSummary()">✨ 오늘 시장 AI 요약 보기</button><div style="font-size:10.5px;color:var(--faint);margin-top:6px">필요할 때만 실행돼요 (토큰 절약)</div>';
 }
+window.loadMktSummary=async()=>{const el=document.getElementById("mktSummary");if(!el||!window._mktCtx)return;el.innerHTML='<span style="color:var(--faint)">요약 중…</span>';const r=await aiApi("market_summary",window._mktCtx);if(r.aiUnavailable||!r.summary){el.innerHTML=mktFailHtml();return}aiCacheSet("mkt",r.summary);el.innerHTML=esc(r.summary)+'<div style="font-size:11px;color:var(--faint);margin-top:8px">AI 요약 · 투자 권유가 아닌 참고용</div>'};
 
 async function macroApi(group){
   let res;
@@ -832,7 +841,7 @@ function newsAiArea(it,idx){
 function newsCard(it,idx,big){
   const rel=(it.related||[]).map(t=>`<button onclick="event.stopPropagation();loadStock('${esc(t)}')" style="font-size:10.5px;font-weight:700;font-family:Inter;color:var(--steel);background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 7px;cursor:pointer">${esc(t)}</button>`).join(" ");
   const meta=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--faint);margin-top:7px"><span class="pill" style="font-size:10px;background:color-mix(in srgb,var(--steel) 12%,transparent);color:var(--steel)">${esc(it.category)}</span>${newsSentBadge(it.sentiment)}<span style="font-weight:600;color:var(--sub)">${esc(it.source||"")}</span><span>·</span><span>${relTime(it.datetime)}</span></div>`;
-  return `<div class="card" style="margin-bottom:12px${big?";border-left:4px solid var(--steel)":""}"><div style="padding:${big?"18px 20px":"14px 18px"}">${big?'<div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--steel);margin-bottom:6px">TOP NEWS</div>':""}<a href="${esc(it.url)}" target="_blank" rel="noreferrer" class="newslink"><div style="font-size:${big?"17px":"14.5px"};font-weight:700;line-height:1.4" class="${big?"":"clamp3"}">${esc(it.title)}</div></a>${meta}${rel?`<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${rel}</div>`:""}<div id="nai_${idx}" style="margin-top:10px">${newsAiArea(it,idx)}</div><div style="margin-top:8px"><a href="${esc(it.url)}" target="_blank" rel="noreferrer" style="font-size:11px;color:var(--faint)">원문 보기 →</a></div></div></div>`;
+  return `<div class="card" style="margin-bottom:12px${big?";border-left:4px solid var(--steel)":""}"><div style="padding:${big?"18px 20px":"14px 18px"}">${big?'<div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--steel);margin-bottom:6px">TOP NEWS</div>':""}<a href="${esc(it.url)}" target="_blank" rel="noreferrer" class="newslink">${(state.newsKo&&it._ko)?`<div style="font-size:${big?"16.5px":"14.5px"};font-weight:700;line-height:1.4">${esc(it._ko)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:3px;line-height:1.4" class="clamp3">${esc(it.title)}</div>`:`<div style="font-size:${big?"17px":"14.5px"};font-weight:700;line-height:1.4" class="${big?"":"clamp3"}">${esc(it.title)}</div>`}</a>${meta}${rel?`<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${rel}</div>`:""}<div id="nai_${idx}" style="margin-top:10px">${newsAiArea(it,idx)}</div><div style="margin-top:8px"><a href="${esc(it.url)}" target="_blank" rel="noreferrer" style="font-size:11px;color:var(--faint)">원문 보기 →</a></div></div></div>`;
 }
 function renderNews(){
   const cats=["전체","Market","Earnings","Economy","Technology","AI","Crypto"];
@@ -846,14 +855,26 @@ function renderNews(){
     if(cat==="전체"&&list.length){parts.push(newsCard(list[0],idxOf(list[0]),true));list.slice(1).forEach(it=>parts.push(newsCard(it,idxOf(it),false)))}
     else list.forEach(it=>parts.push(newsCard(it,idxOf(it),false)));
     if(filtered.length>show)parts.push(`<button onclick="newsMore()" style="width:100%;padding:12px;background:none;border:1px solid var(--line);border-radius:12px;color:var(--steel);font-weight:700;cursor:pointer">더보기 (+${Math.min(12,filtered.length-show)})</button>`);
+    if(!isPro())parts.push(coupangBanner());
     body=parts.join("");
   }
   document.getElementById("app").innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><h1 style="margin:0">AI 뉴스 센터</h1><span class="live"><span class="live-dot"></span>LIVE</span></div>
   <p class="lede">라이선스 API 기반 · 제목·출처·시간·원문 링크만 표시하고, 요약·분석은 AI가 생성합니다.</p>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;overflow-x:auto">${cats.map(c=>`<button class="chip ${cat===c?"on":""}" onclick="setNewsCat('${c}')">${c}</button>`).join("")}</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:16px"><div style="display:flex;gap:6px;flex-wrap:wrap;overflow-x:auto">${cats.map(c=>`<button class="chip ${cat===c?"on":""}" onclick="setNewsCat('${c}')">${c}</button>`).join("")}</div><button class="chip ${state.newsKo?"on":""}" style="white-space:nowrap" onclick="toggleNewsKo()">🇰🇷 한국어</button></div>
   ${body}`;
 }
 window.setNewsCat=(c)=>{state.newsCat=c;state.newsShow=12;renderNews()};
+window.toggleNewsKo=async()=>{
+  state.newsKo=!state.newsKo;renderNews();
+  if(!state.newsKo)return;
+  const all=window._news||[];const cat=state.newsCat||"전체";const show=state.newsShow||12;
+  const list=(cat==="전체"?all:all.filter(x=>x.category===cat)).slice(0,show).filter(x=>!x._ko);
+  if(!list.length)return;
+  const el=document.getElementById("newsKoNote");if(el)el.textContent="번역 중…";
+  const r=await aiApi("translate_news",{titles:list.map(x=>x.title)});
+  if(r&&r.items){list.forEach((x,i)=>{if(r.items[i])x._ko=r.items[i]})}
+  renderNews();
+};
 window.newsMore=()=>{state.newsShow=(state.newsShow||12)+12;renderNews()};
 window.aiNews=async(idx)=>{const it=(window._news||[])[idx];if(!it)return;it._ai="loading";const el=document.getElementById("nai_"+idx);if(el)el.innerHTML='<div class="skel" style="height:30px"></div>';const r=await aiApi("news_summary",{news:[it.title]});it._ai=(r.aiUnavailable||!r.summary)?{err:true}:{summary:r.summary};const el2=document.getElementById("nai_"+idx);if(el2)el2.innerHTML=newsAiArea(it,idx)};
 async function loadNews(fresh){try{const d=(!fresh&&cGet("news_center"))||await finApi("market_news");cSet("news_center",d);const prev=(window._news||[]).map(x=>x.url);const fresh2=(d.news||[]);const merged=fresh2.map(nw=>{const old=(window._news||[]).find(o=>o.url===nw.url);return old&&old._ai?{...nw,_ai:old._ai}:nw});window._news=merged}catch{window._news=window._news||[]}if(state.view==="news")renderNews()}
