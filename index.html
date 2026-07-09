@@ -199,8 +199,14 @@ const ADSENSE_SLOT="";   // 예) "1234567890"
 const GA4_ID="G-9GQYWQ2GEQ";
 const AFFILIATE={
   broker:{badge:"증권사 혜택",title:(t)=>`${t} 지금 거래하려면?`,desc:"해외주식 수수료·환전 우대 계좌 개설",link:""},
-  book:{badge:"도서 추천",title:()=>"재무제표 분석이 어렵다면?",desc:"초보자용 재무제표 마스터북 (쿠팡)",link:"https://link.coupang.com/a/ffeRG2iWse"}
+  book:{badge:"도서 추천",title:()=>"재무제표 분석이 어렵다면?",desc:"초보자용 재무제표 마스터북 (쿠팡)",link:"https://link.coupang.com/a/ffh8O80Mx2"}
 };
+// 쿠팡 파트너스 배너 (동적 iframe 120x240)
+const COUPANG={iframe:"https://coupa.ng/cnXaen",w:120,h:240,link:"https://link.coupang.com/a/ffh8O80Mx2"};
+function coupangBanner(){
+  if(!COUPANG.iframe)return "";
+  return `<div style="margin:16px 0 6px;text-align:center"><iframe src="${COUPANG.iframe}" width="${COUPANG.w}" height="${COUPANG.h}" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" browsingtopics style="border:0;max-width:100%" loading="lazy"></iframe><div style="font-size:10px;color:var(--faint);margin-top:6px;line-height:1.45">이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</div></div>`;
+}
 // GA4
 function initGA(){if(!GA4_ID||window._gaInit)return;window._gaInit=true;var sc=document.createElement("script");sc.async=true;sc.src="https://www.googletagmanager.com/gtag/js?id="+GA4_ID;document.head.appendChild(sc);window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments)};gtag("js",new Date());gtag("config",GA4_ID)}
 function trackEvent(action,params){try{if(GA4_ID&&window.gtag)gtag("event",action,params||{})}catch(e){}}
@@ -228,8 +234,9 @@ function adUnit(){
 // 문맥 기반 제휴 배너 (AI 텍스트 키워드 스캔)
 function contextualAffiliate(ticker,aiText){
   const fin=/재무|리스크|부채|밸류|valuation|현금흐름/i.test(aiText||"");
-  const a=fin?AFFILIATE.book:AFFILIATE.broker;
-  if(!a.link)return ""; // 링크 미설정 시 숨김
+  let a=fin?AFFILIATE.book:AFFILIATE.broker;
+  if(!a.link)a=(a===AFFILIATE.book?AFFILIATE.broker:AFFILIATE.book); // 링크 있는 쪽으로 폴백
+  if(!a.link)return ""; // 둘 다 없으면 숨김
   const title=typeof a.title==="function"?a.title(ticker):a.title;
   const coupang=/coupa/i.test(a.link);
   const notice=coupang?"이 링크는 쿠팡 파트너스 활동의 일환으로, 이에 따라 일정액의 수수료를 제공받을 수 있습니다.":"제휴 링크로, 구매 시 서비스가 일정 수수료를 받을 수 있습니다.";
@@ -462,6 +469,7 @@ function renderStockResult(){
       <p style="margin-top:16px;font-size:12px;color:var(--faint);line-height:1.6">모든 수치는 Finnhub 실시간 데이터입니다. 깊은 해석은 [AI 분석] 탭에서.</p>
       ${!isPro()?'<div style="margin-top:16px">'+adUnit()+'</div>':""}`;
     t+=alertSetter(d.symbol,name);
+    t+=coupangBanner();
   }
   else if(state.tab==="chart"){
     const INDS=[["vol","거래량"],["ma","MA"],["ema","EMA"],["boll","볼린저"],["vwap","VWAP"],["rsi","RSI"],["macd","MACD"]];
