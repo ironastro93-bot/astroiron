@@ -6,6 +6,7 @@
 <title>ASTRO IRON — 미국 주식 플랫폼</title>
 <meta name="description" content="실시간 금융 데이터 기반 미국 주식 투자 플랫폼. AI는 요약·해석을 돕습니다."/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet"/>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9617531470345660" crossorigin="anonymous"></script>
 <style>
   :root{--bg:#fff;--soft:#F7F8FA;--line:#E8EAEE;--line-d:#D8DBE2;--ink:#1D2025;--charcoal:#26292F;--charcoal-d:#1B1E23;--sub:#6B7280;--faint:#9CA3AF;--steel:#2B3A55;--up:#E5484D;--down:#3B6FE0;--hold:#8A919E;--card:rgba(255,255,255,.94)}
   [data-theme="dark"]{--bg:#14161A;--soft:#1E2127;--line:#2A2E36;--line-d:#3A3F49;--ink:#F3F4F6;--charcoal:#F3F4F6;--charcoal-d:#F3F4F6;--sub:#AEB4BE;--faint:#79808C;--steel:#4EA8FF;--down:#4E9BFF;--card:rgba(30,33,39,.94)}
@@ -47,6 +48,9 @@
   .err{border:1px solid rgba(229,72,77,.35);background:rgba(229,72,77,.06);border-radius:14px;padding:16px 20px;font-size:13.5px;line-height:1.6}
   .aibox{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--soft)}
   .aiwarn{border:1px dashed var(--line-d);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--sub);background:var(--soft)}
+  .pw{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .pw-blur{filter:blur(6px);opacity:.7;pointer-events:none;user-select:none;padding:16px 18px}
+  .pw-over{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;background:color-mix(in srgb,var(--card) 35%,transparent);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
   .tk{padding:8px 14px;font-size:13px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--ink);display:inline-flex;align-items:center;gap:8px;transition:.15s}
   .tk:hover{border-color:var(--steel);background:var(--soft)}
   .tk b{font-family:'Inter',sans-serif;font-size:12.5px}.tk span{color:var(--faint)}
@@ -164,7 +168,7 @@
   <footer>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div class="logo" style="width:20px;height:20px;font-size:9px;background:#3A3E46;border-radius:6px;color:#fff">AI</div><span style="font-weight:700;font-family:'Inter',sans-serif;font-size:13px">ASTRO IRON</span></div>
     <p style="margin-bottom:8px">실시간 금융 데이터는 공식 API(Finnhub·SEC EDGAR)에서 제공되며, AI는 요약·해석을 돕는 보조 기능입니다. 본 정보는 「자본시장법」상 투자자문·투자권유가 아니며 참고용입니다. 시세는 지연·오차가 있을 수 있고 수익을 보장하지 않습니다. 투자 판단과 책임은 이용자 본인에게 있습니다.</p>
-    <p style="opacity:.7">관심종목·포트폴리오·메모·최근검색은 이 기기에만 저장됩니다 · 문의: ironastro93@gmail.com</p>
+    <p style="opacity:.7">관심종목·포트폴리오·메모·최근검색은 이 기기에만 저장됩니다 · 문의: ironastro93@gmail.com · <a href="/privacy.html" target="_blank" style="color:var(--bg);opacity:.95;text-decoration:underline">개인정보처리방침</a></p>
   </footer>
 </div>
 
@@ -189,6 +193,46 @@
 
 <script>
 const PRO_HASH="c7257f5ae3597dbf5dbfa1fb5c9876ed4cdf6d59f78306eba955dccb1fd0a255";
+// ══ 수익화·분석 설정 (본인 ID/링크 입력 시에만 활성, 비워두면 무시) ══
+const ADSENSE_CLIENT="ca-pub-9617531470345660";
+const ADSENSE_SLOT="";   // 예) "1234567890"
+const GA4_ID="G-9GQYWQ2GEQ";
+const AFFILIATE={
+  broker:{badge:"증권사 혜택",title:(t)=>`${t} 지금 거래하려면?`,desc:"해외주식 수수료·환전 우대 계좌 개설",link:""},
+  book:{badge:"도서 추천",title:()=>"재무제표 분석이 어렵다면?",desc:"초보자용 재무제표 마스터북",link:""}
+};
+// GA4
+function initGA(){if(!GA4_ID||window._gaInit)return;window._gaInit=true;var sc=document.createElement("script");sc.async=true;sc.src="https://www.googletagmanager.com/gtag/js?id="+GA4_ID;document.head.appendChild(sc);window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments)};gtag("js",new Date());gtag("config",GA4_ID)}
+function trackEvent(action,params){try{if(GA4_ID&&window.gtag)gtag("event",action,params||{})}catch(e){}}
+window.trackEvent=trackEvent;
+// 쿠키 동의 (동의 전 GA4 미로드)
+function mountConsent(){
+  const c=localStorage.getItem("cookieConsent");
+  if(c==="granted"){initGA();return}
+  if(c==="denied")return;
+  const bar=document.createElement("div");bar.id="cookieBar";
+  bar.style.cssText="position:fixed;left:12px;right:12px;bottom:12px;max-width:640px;margin:0 auto;z-index:200;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:0 10px 34px rgba(0,0,0,.28);font-size:12.5px;color:var(--sub);display:flex;gap:12px;align-items:center;flex-wrap:wrap;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)";
+  bar.innerHTML='<div style="flex:1;min-width:200px;line-height:1.55">이 사이트는 트래픽 분석·광고를 위해 쿠키를 사용합니다. 자세한 내용은 <a href="/privacy.html" target="_blank" style="color:var(--steel)">개인정보처리방침</a>을 확인하세요.</div><div style="display:flex;gap:8px"><button class="btn-g" onclick="setConsent(\'denied\')">거부</button><button class="btn-sm" onclick="setConsent(\'granted\')">동의</button></div>';
+  document.body.appendChild(bar);
+}
+window.setConsent=(v)=>{try{localStorage.setItem("cookieConsent",v)}catch(e){}const b=document.getElementById("cookieBar");if(b)b.remove();if(v==="granted")initGA()};
+window.aiDwellStart=()=>{clearTimeout(window._aiDwell);window._aiDwell=setTimeout(()=>trackEvent("read_ai_summary_fully",{section:"stock_ai",duration_sec:10}),10000)};
+window.aiDwellStop=()=>{clearTimeout(window._aiDwell)};
+// AdSense
+function initAds(){if(!ADSENSE_CLIENT||window._adsInit)return;window._adsInit=true;var sc=document.createElement("script");sc.async=true;sc.crossOrigin="anonymous";sc.src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client="+ADSENSE_CLIENT;document.head.appendChild(sc)}
+function adUnit(){
+  if(!ADSENSE_CLIENT||!ADSENSE_SLOT)return '<div class="adbox">광고 영역 · Premium에서 제거됩니다</div>';
+  setTimeout(()=>{try{(window.adsbygoogle=window.adsbygoogle||[]).push({})}catch(e){}},50);
+  return `<div class="adbox" style="padding:8px"><span style="font-size:10px;color:var(--faint);letter-spacing:.12em;display:block;margin-bottom:4px">SPONSORED</span><ins class="adsbygoogle" style="display:block" data-ad-client="${ADSENSE_CLIENT}" data-ad-slot="${ADSENSE_SLOT}" data-ad-format="auto" data-full-width-responsive="true"></ins></div>`;
+}
+// 문맥 기반 제휴 배너 (AI 텍스트 키워드 스캔)
+function contextualAffiliate(ticker,aiText){
+  const fin=/재무|리스크|부채|밸류|valuation|현금흐름/i.test(aiText||"");
+  const a=fin?AFFILIATE.book:AFFILIATE.broker;
+  if(!a.link)return ""; // 링크 미설정 시 숨김
+  const title=typeof a.title==="function"?a.title(ticker):a.title;
+  return `<div style="margin:14px 0 6px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;background:color-mix(in srgb,var(--steel) 6%,var(--card))"><div style="min-width:0"><span class="pill" style="font-size:10px;background:color-mix(in srgb,var(--steel) 14%,transparent);color:var(--steel)">${esc(a.badge)} · 광고</span><div style="font-size:13.5px;font-weight:700;margin-top:6px">${esc(title)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:2px">${esc(a.desc)}</div></div><a href="${esc(a.link)}" target="_blank" rel="noopener noreferrer sponsored" class="btn-sm" style="text-decoration:none;white-space:nowrap">바로가기 →</a></div>`;
+}
 const FREE=5, CACHE_MIN=15;
 const IMP={positive:["긍정","var(--up)"],neutral:["중립","var(--hold)"],negative:["부정","var(--down)"]};
 const SIG={strong_buy:["상승 신호 강함","var(--up)"],buy:["상승 우위","var(--up)"],hold:["중립 · 관망","var(--hold)"],sell:["하락 우위","var(--down)"],strong_sell:["하락 신호 강함","var(--down)"]};
@@ -243,6 +287,7 @@ async function loadStock(sym){
   if(!sym||state.loading)return;
   if(PRIVATE[sym]){return loadPrivate(sym)}
   if(!/^[A-Z0-9.]{1,6}$/.test(sym)){state.view="stock";state.error="티커는 영문·숫자 1~6자만 입력할 수 있어요. 예) TSLA";state.data=null;render();return}
+  trackEvent("search_ticker",{ticker:sym});
   state.view="stock";state.symbol=sym;state.tab="overview";state.period="1d";state.loading=true;state.error=null;state.data=null;closeAc();render();
   try{
     const [quote,profile]=await Promise.all([finApi("quote",{symbol:sym}),finApi("profile",{symbol:sym}).catch(()=>({}))]);
@@ -413,7 +458,7 @@ function renderStockResult(){
       <div class="met"><div class="k">시가 / 전일종가</div><div class="v" style="font-size:15px">$${fmt(q.open)} / $${fmt(q.prevClose)}</div></div></div>
       ${d.profile?.finnhubIndustry?`<div style="margin-top:14px;font-size:13.5px;color:var(--sub)">업종: ${esc(d.profile.finnhubIndustry)}${d.profile.marketCapitalization?` · 시총 $${fmt(d.profile.marketCapitalization/1000,1)}B`:""}${d.profile.country?` · ${esc(d.profile.country)}`:""}</div>`:""}
       <p style="margin-top:16px;font-size:12px;color:var(--faint);line-height:1.6">모든 수치는 Finnhub 실시간 데이터입니다. 깊은 해석은 [AI 분석] 탭에서.</p>
-      ${!isPro()?'<div class="adbox" style="margin-top:16px">광고 영역 · Premium에서 제거됩니다</div>':""}`;
+      ${!isPro()?'<div style="margin-top:16px">'+adUnit()+'</div>':""}`;
     t+=alertSetter(d.symbol,name);
   }
   else if(state.tab==="chart"){
@@ -471,6 +516,9 @@ function renderStockResult(){
   </div>`;
 }
 
+function paywallBox(title,teaser){
+  return `<div class="pw"><div class="pw-blur">${teaser}</div><div class="pw-over"><div style="max-width:320px"><div style="font-size:22px;margin-bottom:2px">🔒</div><div style="font-size:14px;font-weight:700;margin-bottom:4px">${esc(title)}</div><div style="font-size:12px;color:var(--sub);margin-bottom:12px;line-height:1.5">Premium에서 잠금 해제됩니다 · 참고용 정보</div><button class="btn-sm" onclick="showPro()">잠금 해제 →</button></div></div></div>`;
+}
 function renderAiTab(d){
   if(d.aiState==="idle")return `<div class="aibox"><p style="font-size:14px;line-height:1.6;margin-bottom:8px">위 실시간 데이터를 바탕으로 AI가 요약·리스크${isPro()?"·투자 시나리오":""}를 정리해 드려요.</p>${isPro()?'<span class="pill" style="background:color-mix(in srgb,var(--steel) 12%,transparent);color:var(--steel);margin-bottom:12px">PRO 심층 분석</span>':`<p style="font-size:12px;color:var(--faint);margin-bottom:12px">무료 ${Math.max(0,FREE-getUsage())}회 남음 · 간결 분석</p>`}<div><button class="btn-sm" onclick="runAiAnalysis()">AI 분석 실행</button></div></div>`;
   if(d.aiState==="loading")return '<div class="aibox"><div class="skel" style="height:20px;width:55%;margin-bottom:12px"></div><div class="skel" style="height:70px"></div></div>';
@@ -487,9 +535,10 @@ function renderAiTab(d){
   }
   if(r&&!r.aiUnavailable)t+=`<div class="aibox" style="margin-bottom:14px"><div style="font-size:13px;font-weight:700;margin-bottom:10px">리스크 분석</div><div style="font-size:13.5px;line-height:1.7"><b>단기 변동성:</b> ${esc(r.shortTermVolatility)}<br/><b>성장 가능성:</b> ${esc(r.growthPotential)}<br/><b>장기 전망:</b> ${esc(r.longTermOutlook)}<br/><b>현재 위험:</b> ${(r.currentRisks||[]).map(esc).join(", ")}</div></div>`;
   if(sc&&!sc.aiUnavailable)t+=`<div class="aibox"><div style="font-size:13px;font-weight:700;margin-bottom:10px">투자 시나리오 <span class="pill" style="background:color-mix(in srgb,var(--steel) 12%,transparent);color:var(--steel);font-size:10.5px">PRO</span></div><div style="font-size:13.5px;line-height:1.7"><b style="color:var(--up)">강세:</b> ${esc(sc.bull)}<br/><b style="color:var(--hold)">중립:</b> ${esc(sc.neutral)}<br/><b style="color:var(--down)">약세:</b> ${esc(sc.bear)}</div></div>`;
-  else if(!isPro())t+=`<div class="aiwarn" style="cursor:pointer" onclick="showPro()">🔒 투자 시나리오(강세·중립·약세) 분석은 Premium 기능이에요. 눌러서 알아보기 →</div>`;
+  else if(!isPro())t+=paywallBox("투자 시나리오 (강세·중립·약세)",'<div style="font-size:13px;font-weight:700;margin-bottom:10px">투자 시나리오 <span class="pill" style="background:color-mix(in srgb,var(--steel) 12%,transparent);color:var(--steel);font-size:10.5px">PRO</span></div><div style="font-size:13.5px;line-height:1.8"><b style="color:var(--up)">강세:</b> ●●●●● ●●●● ●●●<br/><b style="color:var(--hold)">중립:</b> ●●● ●●●●● ●●<br/><b style="color:var(--down)">약세:</b> ●●●● ●● ●●●●●</div>');
+  t+=contextualAffiliate(d.symbol, JSON.stringify(d.ai||{}));
   t+='<p style="font-size:11.5px;color:var(--faint);margin-top:14px;line-height:1.6">AI 해석은 위 실시간 데이터를 근거로 하며, 투자 권유가 아닌 참고용입니다.</p>';
-  return t;
+  return '<div onmouseenter="aiDwellStart()" onmouseleave="aiDwellStop()">'+t+'</div>';
 }
 
 function renderDiscuss(ticker){
@@ -730,7 +779,7 @@ function renderPortfolio(){
   ${p.length===0?'<div style="border:1px dashed var(--line-d);border-radius:14px;padding:44px 20px;text-align:center;color:var(--faint);font-size:14px">보유 종목을 추가해보세요.</div>':`
   <div class="grid" style="grid-template-columns:${hasQ?"repeat(auto-fit,minmax(150px,1fr))":"1fr"};margin-bottom:16px"><div style="background:var(--soft);border-radius:12px;padding:16px 20px"><div style="font-size:12.5px;color:var(--faint)">투자 원금</div><div style="font-size:22px;font-weight:700;font-family:Inter">$${fmt(cost,0)}</div></div>${hasQ?`<div style="background:var(--soft);border-radius:12px;padding:16px 20px"><div style="font-size:12.5px;color:var(--faint)">평가금액</div><div style="font-size:22px;font-weight:700;font-family:Inter">$${fmt(now,0)}</div></div><div style="background:color-mix(in srgb,${pnl>=0?"var(--up)":"var(--down)"} 8%,transparent);border-radius:12px;padding:16px 20px"><div style="font-size:12.5px;color:var(--faint)">평가손익</div><div style="font-size:22px;font-weight:700;color:${pnl>=0?"var(--up)":"var(--down)"};font-family:Inter">${pnl>=0?"+":""}$${fmt(pnl,0)} <span style="font-size:14px">(${pct>=0?"+":""}${fmt(pct)}%)</span></div></div>`:""}</div>
   <div class="card">${p.map((h,i)=>{const c=h.qty*h.price;const w=cost?c/cost*100:0;const q=pQ[h.ticker];const pp=q?(q.price-h.price)*h.qty:null;const pc=q?(q.price-h.price)/h.price*100:null;const col=pp>=0?"var(--up)":"var(--down)";return `<div style="padding:14px 18px;border-bottom:${i<p.length-1?"1px solid var(--line)":"none"}"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;flex-wrap:wrap"><div onclick="loadStock('${h.ticker}')" style="cursor:pointer"><b style="font-family:Inter;font-size:14.5px">${h.ticker}</b><span style="font-size:12.5px;color:var(--faint);margin-left:8px">${h.qty}주 × $${h.price}</span></div><div style="display:flex;align-items:center;gap:12px">${q?`<div style="text-align:right"><div style="font-size:13.5px;font-weight:700;color:${col};font-family:Inter">${pp>=0?"+":""}$${fmt(pp,0)} (${pc>=0?"+":""}${fmt(pc,1)}%)</div><div style="font-size:11.5px;color:var(--faint)">현재 $${fmt(q.price)}</div></div>`:`<span style="font-size:13.5px;font-weight:700;font-family:Inter">$${fmt(c,0)}</span>`}<button onclick="delPort('${h.ticker}')" style="font-size:12px;color:var(--faint);background:none;border:none">삭제</button></div></div><div style="height:5px;border-radius:3px;background:var(--line);overflow:hidden"><div style="width:${w}%;height:100%;background:var(--steel)"></div></div><div style="font-size:11.5px;color:var(--faint);margin-top:4px">비중 ${fmt(w,1)}%</div></div>`}).join("")}</div>
-  ${isPro()?'<button class="btn-sm" style="margin-top:14px" onclick="aiPortfolioDiag()">AI 포트폴리오 진단 (PRO)</button><div id="pDiag" style="margin-top:12px"></div>':'<div class="aiwarn" style="margin-top:14px;cursor:pointer" onclick="showPro()">🔒 AI 포트폴리오 진단(섹터 편중·분산·리밸런싱)은 Premium 기능이에요 →</div>'}
+  ${isPro()?'<button class="btn-sm" style="margin-top:14px" onclick="aiPortfolioDiag()">AI 포트폴리오 진단 (PRO)</button><div id="pDiag" style="margin-top:12px"></div>':'<div style="margin-top:14px">'+paywallBox("AI 포트폴리오 진단",'<div style="font-size:13.5px;line-height:1.8"><b>섹터 편중:</b> ●●●●● ●●●<br/><b>분산 수준:</b> ●●● ●●●●●<br/><b>위험도:</b> ●●●<br/><b>개선 의견:</b> ●●●● ●●●●● ●●</div>')+'</div>'}
   <p style="font-size:11.5px;color:var(--faint);margin-top:12px">현재가는 Finnhub 실시간 시세입니다.</p>`}`;
 }
 window.addPort=()=>{const t=document.getElementById("pT").value.trim().toUpperCase(),q=parseFloat(document.getElementById("pQty").value),p=parseFloat(document.getElementById("pP").value);if(!/^[A-Z0-9.]{1,6}$/.test(t)||!q||!p)return;const list=getList("portfolio").filter(h=>h.ticker!==t);list.push({ticker:t,qty:q,price:p});setList("portfolio",list);render()};
@@ -882,7 +931,7 @@ function paintParticles(){
 paintStars();paintParticles();
 
 // 모달
-function showPro(){document.getElementById("proModal").classList.add("show")}
+function showPro(){trackEvent("click_premium_preview",{feature:"pro_unlock",user_status:"free_tier"});document.getElementById("proModal").classList.add("show")}
 function hidePro(){document.getElementById("proModal").classList.remove("show")}
 window.showPro=showPro;
 document.getElementById("quotaBtn").addEventListener("click",()=>{if(!isPro())showPro()});
@@ -891,6 +940,7 @@ document.getElementById("closeModal").addEventListener("click",hidePro);
 document.getElementById("unlockBtn").addEventListener("click",async()=>{const v=document.getElementById("proCode").value.trim().toUpperCase();if(await sha256(v)===PRO_HASH){localStorage.setItem("pro",PRO_HASH);hidePro();render()}else document.getElementById("codeErr").style.display="block"});
 document.getElementById("proCode").addEventListener("input",()=>document.getElementById("codeErr").style.display="none");
 document.addEventListener("click",e=>{if(!e.target.closest("#searchWrap"))closeAc()});
+mountConsent();
 window.addEventListener("hashchange",()=>{if(_hashGuard)return;routeFromHash()});
 if(location.hash&&location.hash.length>1){routeFromHash()}else{render()}
 if(getList("alerts").filter(a=>!a.done).length)startAlertPoll();
