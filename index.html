@@ -199,7 +199,7 @@ const ADSENSE_SLOT="";   // 예) "1234567890"
 const GA4_ID="G-9GQYWQ2GEQ";
 const AFFILIATE={
   broker:{badge:"증권사 혜택",title:(t)=>`${t} 지금 거래하려면?`,desc:"해외주식 수수료·환전 우대 계좌 개설",link:""},
-  book:{badge:"도서 추천",title:()=>"재무제표 분석이 어렵다면?",desc:"초보자용 재무제표 마스터북",link:""}
+  book:{badge:"도서 추천",title:()=>"재무제표 분석이 어렵다면?",desc:"초보자용 재무제표 마스터북 (쿠팡)",link:"https://link.coupang.com/a/ffeRG2iWse"}
 };
 // GA4
 function initGA(){if(!GA4_ID||window._gaInit)return;window._gaInit=true;var sc=document.createElement("script");sc.async=true;sc.src="https://www.googletagmanager.com/gtag/js?id="+GA4_ID;document.head.appendChild(sc);window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments)};gtag("js",new Date());gtag("config",GA4_ID)}
@@ -231,7 +231,9 @@ function contextualAffiliate(ticker,aiText){
   const a=fin?AFFILIATE.book:AFFILIATE.broker;
   if(!a.link)return ""; // 링크 미설정 시 숨김
   const title=typeof a.title==="function"?a.title(ticker):a.title;
-  return `<div style="margin:14px 0 6px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;background:color-mix(in srgb,var(--steel) 6%,var(--card))"><div style="min-width:0"><span class="pill" style="font-size:10px;background:color-mix(in srgb,var(--steel) 14%,transparent);color:var(--steel)">${esc(a.badge)} · 광고</span><div style="font-size:13.5px;font-weight:700;margin-top:6px">${esc(title)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:2px">${esc(a.desc)}</div></div><a href="${esc(a.link)}" target="_blank" rel="noopener noreferrer sponsored" class="btn-sm" style="text-decoration:none;white-space:nowrap">바로가기 →</a></div>`;
+  const coupang=/coupa/i.test(a.link);
+  const notice=coupang?"이 링크는 쿠팡 파트너스 활동의 일환으로, 이에 따라 일정액의 수수료를 제공받을 수 있습니다.":"제휴 링크로, 구매 시 서비스가 일정 수수료를 받을 수 있습니다.";
+  return `<div style="margin:14px 0 4px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;background:color-mix(in srgb,var(--steel) 6%,var(--card))"><div style="min-width:0"><span class="pill" style="font-size:10px;background:color-mix(in srgb,var(--steel) 14%,transparent);color:var(--steel)">${esc(a.badge)} · 광고</span><div style="font-size:13.5px;font-weight:700;margin-top:6px">${esc(title)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:2px">${esc(a.desc)}</div></div><a href="${esc(a.link)}" target="_blank" rel="noopener noreferrer sponsored" class="btn-sm" style="text-decoration:none;white-space:nowrap">바로가기 →</a></div><div style="font-size:9.5px;color:var(--faint);margin:0 2px 8px;line-height:1.4">${notice}</div>`;
 }
 const FREE=5, CACHE_MIN=15;
 const IMP={positive:["긍정","var(--up)"],neutral:["중립","var(--hold)"],negative:["부정","var(--down)"]};
