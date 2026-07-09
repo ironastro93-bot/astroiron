@@ -227,7 +227,7 @@ window.aiDwellStop=()=>{clearTimeout(window._aiDwell)};
 // AdSense
 function initAds(){if(!ADSENSE_CLIENT||window._adsInit)return;window._adsInit=true;var sc=document.createElement("script");sc.async=true;sc.crossOrigin="anonymous";sc.src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client="+ADSENSE_CLIENT;document.head.appendChild(sc)}
 function adUnit(){
-  if(!ADSENSE_CLIENT||!ADSENSE_SLOT)return '<div class="adbox">광고 영역 · Premium에서 제거됩니다</div>';
+  if(!ADSENSE_CLIENT||!ADSENSE_SLOT){const cb=(typeof coupangBanner==="function")?coupangBanner():"";return cb||'<div class="adbox">광고 영역 · Premium에서 제거됩니다</div>';}
   setTimeout(()=>{try{(window.adsbygoogle=window.adsbygoogle||[]).push({})}catch(e){}},50);
   return `<div class="adbox" style="padding:8px"><span style="font-size:10px;color:var(--faint);letter-spacing:.12em;display:block;margin-bottom:4px">SPONSORED</span><ins class="adsbygoogle" style="display:block" data-ad-client="${ADSENSE_CLIENT}" data-ad-slot="${ADSENSE_SLOT}" data-ad-format="auto" data-full-width-responsive="true"></ins></div>`;
 }
@@ -469,7 +469,6 @@ function renderStockResult(){
       <p style="margin-top:16px;font-size:12px;color:var(--faint);line-height:1.6">모든 수치는 Finnhub 실시간 데이터입니다. 깊은 해석은 [AI 분석] 탭에서.</p>
       ${!isPro()?'<div style="margin-top:16px">'+adUnit()+'</div>':""}`;
     t+=alertSetter(d.symbol,name);
-    t+=coupangBanner();
   }
   else if(state.tab==="chart"){
     const INDS=[["vol","거래량"],["ma","MA"],["ema","EMA"],["boll","볼린저"],["vwap","VWAP"],["rsi","RSI"],["macd","MACD"]];
@@ -652,6 +651,7 @@ function renderHome(){
   <div class="card" style="margin-bottom:16px"><div style="padding:14px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px"><div><h2 style="font-size:14.5px">🚀 SpaceX <span class="pill" style="font-size:10px;background:color-mix(in srgb,var(--steel) 14%,transparent);color:var(--steel)">비상장</span></h2><div style="font-size:11px;color:var(--faint);margin-top:2px">최신 뉴스 · 클릭 시 상세</div></div><button class="btn-g" style="white-space:nowrap" onclick="loadPrivate('SPACEX')">상세 →</button></div><div id="dashSpacex"><div style="padding:16px 20px">${Array(3).fill('<div class="skel" style="height:32px;margin-bottom:8px"></div>').join("")}</div></div></div>
   ${watch.length?`<div class="card" style="margin-bottom:16px"><div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)"><h2 style="font-size:14.5px">관심종목 (${watch.length})</h2><button class="btn-g" onclick="switchView('watchlist')">전체 →</button></div><div style="padding:4px 12px 8px">${watch.slice(0,5).map(w=>`<div class="tk" style="border:none;width:100%;justify-content:space-between;background:none;padding:11px 8px" onclick="loadStock('${w.ticker}')"><span><b>${w.ticker}</b> <span>${esc(w.name)}</span></span><span style="color:var(--faint)">→</span></div>`).join("")}</div></div>`:""}
   ${recent.length?`<div style="margin-bottom:20px"><h2 style="margin-bottom:12px;font-size:14.5px">최근 조회</h2><div style="display:flex;flex-wrap:wrap;gap:8px">${recent.map(r=>`<button class="tk" onclick="loadStock('${r.ticker}')"><b>${r.ticker}</b><span>${esc(r.name)}</span></button>`).join("")}</div></div>`:""}`;
+  document.getElementById("app").insertAdjacentHTML("beforeend", coupangBanner());
   bindSearch();
   loadDashboard();
   startHomePoll();
