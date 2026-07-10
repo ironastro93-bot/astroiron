@@ -693,13 +693,34 @@ function renderAiTab(d){
   return '<div onmouseenter="aiDwellStart()" onmouseleave="aiDwellStop()">'+t+'</div>';
 }
 
+// ═══ 부적절 표현 필터 (댓글·닉네임) · 3단 분류, 목록 수정 가능 ═══
+// 원칙: 주식 대화에 쓰이는 정상어(매수/손절/폭락/서울/장애인/미친 단독 등)는 막지 않고, 명백한 표현만 차단.
+const FILTER={
+  hard:["예서","타코","공주대","김보균","이종환","씨발","시발","씨빨","시봘","씨발놈","씨발년","좆","좆같","병신","ㅂㅅ","ㅄ","ㅅㅂ","ㄲㅈ","ㅈㄹ","지랄","염병","개새끼","개색기","개세끼","개같","썅","미친놈","미친년","닥쳐","엿먹어","또라이","등신","머저리","호로","니애미","느금마","느금","개소리","자지","보지","씹새","씹창","씹년","빨아라","박아줘","정액","오르가즘","섹스","쎅스","야동","포르노","자위","딸딸이","따먹","걸레같","창녀","창놈","보지년","자지충","성노예","성폭행","성추행","성희롱","강간","변태","젖가슴","쓰레기같","김치녀","한남충","한녀","짱깨","쪽바리","전라디언","홍어","급식충","맘충","죽어라","죽어버려","뒤져라","자살해","fuck","fuk","shit","bitch","asshole","bastard","slut","whore","motherfucker","dickhead","cunt","faggot","nigger","nigga","retard"],
+  spam:["카톡","오픈채팅","오픈카톡","카카오톡","텔레그램","텔레그람","디스코드","초대코드","입장코드","수익인증","수익률인증","리딩방","종목추천방","무료리딩","vip방","단톡방"],
+  invest:["무조건오른다","무조건간다","무조건상한가","무조건매수","지금사라","지금사세요","풀매수","몰빵","영끌매수","10배간다","열배간다","상한가간다","떡상간다","강력매수","매수하세요","매도하세요","팔아라","사라고","존버가즈아"]
+};
+const _STRIP=/[\s._\-*~^·|/\\()\[\]{}!@#$%&+=,<>?'"`]/g;
+function normText(t){return String(t||"").toLowerCase().replace(_STRIP,"")}
+function normHard(t){return normText(t).replace(/[0-9]/g,"")}
+function _hitList(list,norm){for(const w of list){const nw=normText(w);if(nw&&norm.indexOf(nw)!==-1)return w}return null}
+function moderate(text){
+  const nh=normHard(text),nt=normText(text);
+  if(_hitList(FILTER.hard,nh))return{block:true,cat:"hard",msg:"부적절한 표현(욕설·성적·비하)이 포함돼 등록할 수 없어요"};
+  if(_hitList(FILTER.spam,nt))return{block:true,cat:"spam",msg:"광고·외부 채널 유도는 등록할 수 없어요"};
+  if(_hitList(FILTER.invest,nt))return{block:true,cat:"invest",msg:"매수·매도 권유 등 단정적 표현은 정책상 삼가 주세요"};
+  if(/(.)\1{7,}/.test(nt))return{block:true,cat:"spam",msg:"의미 없는 반복 문자는 등록할 수 없어요"};
+  return{block:false};
+}
+window.moderateText=moderate;
+window.validateNick=(nick)=>{const n=String(nick||"").trim();if(!n)return{ok:false,msg:"닉네임을 입력해 주세요"};const len=[...n].length;if(len<2||len>16)return{ok:false,msg:"닉네임은 2~16자로 해주세요"};if(_hitList(FILTER.hard,normHard(n))||_hitList(FILTER.spam,normText(n)))return{ok:false,msg:"닉네임에 사용할 수 없는 표현이 있어요"};return{ok:true,nick:n}};
 function renderDiscuss(ticker){
   const posts=getList("discuss_"+ticker);
   return `<p style="font-size:12px;color:var(--faint);margin-bottom:12px;line-height:1.6">${ticker} 투자 메모 (이 기기에만 저장)</p>
   <div style="display:flex;gap:8px;margin-bottom:16px"><input id="discInput" placeholder="메모 남기기…" style="flex:1;padding:10px 14px;font-size:14px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><button class="btn-sm" onclick="addDisc('${ticker}')">등록</button></div>
-  ${posts.length===0?'<p style="font-size:13.5px;color:var(--faint);text-align:center;padding:20px 0">아직 메모가 없어요.</p>':posts.map(p=>`<div style="padding:12px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px"><div><div style="font-size:14px;line-height:1.55">${esc(p.text)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:4px">${esc(p.at)}</div></div><button onclick="delDisc('${ticker}',${p.id})" style="font-size:12px;color:var(--faint);background:none;border:none">삭제</button></div>`).join("")}`;
+  ${posts.length===0?'<p style="font-size:13.5px;color:var(--faint);text-align:center;padding:20px 0">아직 메모가 없어요.</p>':posts.map(p=>`<div style="padding:12px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px"><div><div style="font-size:14px;line-height:1.55">${esc(p.text)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:4px">${esc(p.at)}</div></div><button onclick="delDisc('${ticker}',${p.id})" style="font-size:12px;color:var(--faint);background:none;border:none">삭제</button></div>`).join("")}<div style="font-size:12px;color:var(--faint);line-height:1.6;padding-top:20px;margin-top:18px;border-top:1px solid var(--line)">본 토론·메모는 ASTRO IRON의 공식 의견이 아니며, 모든 게시물의 책임은 작성자에게 있습니다.<br>타인에 대한 모욕·명예훼손·허위정보 유포·투자 권유는 자제해 주세요. 위반 시 관련 법령에 따라 법적 책임이 발생할 수 있습니다.<br>ASTRO IRON은 이용자 게시물을 상시 감시하지 않으며, 신고가 접수되면 검토 후 조치할 수 있습니다.<br><br><a href="/community-policy.html" target="_blank" rel="noreferrer" style="color:var(--sub);text-decoration:underline">운영 정책 전체보기</a></div>`;
 }
-window.addDisc=(t)=>{const el=document.getElementById("discInput");const v=el.value.trim();if(!v)return;const k="discuss_"+t;const p=[{id:Date.now(),text:v,at:new Date().toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})},...getList(k)];setList(k,p);render()};
+window.addDisc=(t)=>{const el=document.getElementById("discInput");const v=el.value.trim();if(!v)return;const _m=moderate(v);if(_m.block){toast(_m.msg);return}const k="discuss_"+t;const p=[{id:Date.now(),text:v,at:new Date().toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})},...getList(k)];setList(k,p);render()};
 window.delDisc=(t,id)=>{const k="discuss_"+t;setList(k,getList(k).filter(p=>p.id!==id));render()};
 
 // ═══ 뷰: 글로벌 시장 대시보드 ═══
@@ -1188,6 +1209,7 @@ function renderAlerts(){
   const list=getList("alerts");const active=list.filter(a=>!a.done);const done=list.filter(a=>a.done);
   const needPerm=window.Notification&&Notification.permission!=="granted";const denied=window.Notification&&Notification.permission==="denied";
   document.getElementById("app").innerHTML=myTabs("alerts")+`<h1>가격 알림</h1><p class="lede">목표가에 도달하면 알림으로 알려드려요. (이 기기에 저장 · 사이트가 열려 있을 때 감지, 1분 간격)</p>
+  ${fbEnabled()&&FCM_VAPID_KEY?`<button class="btn-sm" style="margin-bottom:14px" onclick="enablePush()">🔔 앱이 꺼져도 받는 백그라운드 푸시 켜기</button>`:""}
   ${needPerm?`<div class="aiwarn" style="margin-bottom:16px">브라우저 알림이 꺼져 있어요.${denied?" 브라우저 주소창의 자물쇠 → 알림 허용으로 바꿔주세요.":' <button class="btn-g" onclick="reqNotif()">알림 허용</button>'} 알림을 못 받아도 사이트 안에서는 배너로 표시됩니다.</div>`:""}
   ${active.length===0?'<div style="border:1px dashed var(--line-d);border-radius:14px;padding:40px 20px;text-align:center;color:var(--faint);font-size:14px">설정된 알림이 없어요.<br/>종목을 검색해 <b>개요 탭</b>에서 목표가를 추가하세요.</div>':`<div class="card">${active.map((a,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:${i<active.length-1?"1px solid var(--line)":"none"}"><div onclick="loadStock('${a.ticker}')" style="cursor:pointer"><b style="font-family:Inter">${a.ticker}</b> <span style="color:var(--faint);font-size:13px">${esc(a.name||"")}</span><div style="font-size:12.5px;color:var(--sub);margin-top:2px">${a.dir==="ge"?"≥":"≤"} $${fmt(a.price)}</div></div><button onclick="delAlert(${a.id})" style="font-size:12px;color:var(--faint);background:none;border:none">삭제</button></div>`).join("")}</div>`}
   ${done.length?`<h2 style="margin:22px 0 10px;font-size:14.5px">도달한 알림</h2><div class="card">${done.map((a,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:${i<done.length-1?"1px solid var(--line)":"none"};opacity:.75"><div><b style="font-family:Inter">${a.ticker}</b> <span style="font-size:12.5px;color:var(--faint)">${a.dir==="ge"?"≥":"≤"} $${fmt(a.price)} 도달 ✓</span></div><button onclick="delAlert(${a.id})" style="font-size:12px;color:var(--faint);background:none;border:none">삭제</button></div>`).join("")}</div>`:""}`;
@@ -1301,12 +1323,13 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "1053533695091",
   appId: "1:1053533695091:web:5d69e522e720ce10c1ce06",
   measurementId: "G-RN2MWLZ8D3"
-}; // 예: {apiKey:"...",authDomain:"xxx.firebaseapp.com",projectId:"xxx",appId:"..."}
+};
+const FCM_VAPID_KEY = "BH2MqAi3T0vHDy-6hLwa-vsXO2UU2nG3O1pjVFWdE4iKscSfkkGhMCNVeT1wQ91z2TTvjFDXt8ng8OFpREoZ-PM"; // Firebase 콘솔 > Cloud Messaging > 웹 푸시 인증서(Web Push certificates)의 키 쌍을 여기에 붙여넣기 // 예: {apiKey:"...",authDomain:"xxx.firebaseapp.com",projectId:"xxx",appId:"..."}
 let _fb={ready:false,user:null,db:null,auth:null};
 function fbEnabled(){return !!(FIREBASE_CONFIG&&FIREBASE_CONFIG.apiKey)}
 function loadFirebase(){return new Promise((resolve,reject)=>{
   if(window.firebase&&window.firebase.apps)return resolve();
-  const urls=["https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js","https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js","https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"];
+  const urls=["https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js","https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js","https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js","https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"];
   let i=0;const next=()=>{if(i>=urls.length)return resolve();const sc=document.createElement("script");sc.src=urls[i++];sc.onload=next;sc.onerror=()=>reject(new Error("firebase load fail"));document.head.appendChild(sc)};next();
 })}
 async function initFirebase(){
@@ -1316,11 +1339,27 @@ async function initFirebase(){
     firebase.initializeApp(FIREBASE_CONFIG);
     _fb.auth=firebase.auth();_fb.db=firebase.firestore();_fb.ready=true;
     try{await _fb.db.enablePersistence({synchronizeTabs:true})}catch(e){}
+    try{if(FCM_VAPID_KEY&&firebase.messaging&&firebase.messaging.isSupported&&firebase.messaging.isSupported()){_fb.messaging=firebase.messaging();_fb.messaging.onMessage((pl)=>{const n=(pl&&pl.notification)||{};toast("🔔 "+(n.title||"알림")+(n.body?" · "+n.body:""))})}}catch(e){}
     _fb.auth.onAuthStateChanged(async(u)=>{_fb.user=u;if(u){await cloudPull()}updateAuthUI();try{render()}catch(e){}});
   }catch(e){}
 }
 window.fbLogin=async()=>{try{if(!_fb.ready)await initFirebase();const pr=new firebase.auth.GoogleAuthProvider();await _fb.auth.signInWithPopup(pr);toast("로그인 · 데이터 동기화됨")}catch(e){toast("로그인 취소 또는 실패")}};
 window.fbLogout=async()=>{try{await _fb.auth.signOut();toast("로그아웃 됨")}catch(e){}};
+window.enablePush=async()=>{
+  if(!fbEnabled()||!FCM_VAPID_KEY){toast("푸시 설정이 아직 준비되지 않았어요(관리자 VAPID 키 필요)");return}
+  if(!_fb.ready){await initFirebase()}
+  if(!_fb.user){toast("먼저 로그인해 주세요");try{await window.fbLogin()}catch(e){}if(!_fb.user)return}
+  try{
+    const perm=await Notification.requestPermission();if(perm!=="granted"){toast("알림 권한이 필요해요");return}
+    if(!_fb.messaging){try{_fb.messaging=firebase.messaging()}catch(e){toast("이 브라우저는 웹 푸시를 지원하지 않아요");return}}
+    let reg;try{reg=await navigator.serviceWorker.getRegistration("/firebase-messaging-sw.js")||await navigator.serviceWorker.register("/firebase-messaging-sw.js")}catch(e){}
+    const token=await _fb.messaging.getToken({vapidKey:FCM_VAPID_KEY,serviceWorkerRegistration:reg});
+    if(!token){toast("푸시 토큰 발급 실패");return}
+    await _fb.db.collection("users").doc(_fb.user.uid).collection("devices").doc(token).set({platform:String(navigator.userAgent).slice(0,120),createdAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+    toast("백그라운드 푸시가 켜졌어요 🔔");render();
+  }catch(e){toast("푸시 설정 실패 · 콘솔(F12) 메시지를 확인해 주세요")}
+};
+
 function mergeLists(k,inc){
   if(k==="econRemind"){setListLocal(k,Array.from(new Set([...getList(k),...(Array.isArray(inc)?inc:[])])));return}
   const key=k==="alerts"?"id":"ticker";const m={};[...getList(k),...(Array.isArray(inc)?inc:[])].forEach(it=>{const kk=(it&&it[key]!=null)?String(it[key]):JSON.stringify(it);m[kk]=it});setListLocal(k,Object.values(m));
