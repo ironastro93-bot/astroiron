@@ -18,6 +18,16 @@ const STATIC_FALLBACK = [
 let goodModel = null;   // 성공한 모델 기억
 let discovered = null;  // 이 키가 실제 쓸 수 있는 모델 목록 (/v1/models)
 const TIMEOUT = 45000;
+// ── 남용 방지: IP당 분당 요청 제한(베스트에포트, 크레딧 도난 방지) ──
+const _rl = new Map();
+function rateLimited(ip) {
+  const now = Date.now(), WINDOW = 60000, MAX = 20;
+  let e = _rl.get(ip);
+  if (!e || now - e.t > WINDOW) e = { n: 0, t: now };
+  e.n++; _rl.set(ip, e);
+  if (_rl.size > 5000) _rl.clear();
+  return e.n > MAX;
+}
 
 // 이 키가 접근 가능한 모델을 Anthropic에서 직접 조회
 async function listModels() {
@@ -131,6 +141,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, provider: KEY ? "anthropic" : (NVIDIA_KEY ? "nvidia" : "none"), hasKey: !!(KEY || NVIDIA_KEY), keyPreview: KEY ? (KEY.slice(0,7)+"…"+KEY.slice(-4)) : (NVIDIA_KEY ? (NVIDIA_KEY.slice(0,7)+"…"+NVIDIA_KEY.slice(-4)) : null), nvidiaModel: NVIDIA_KEY ? NVIDIA_MODEL : null, availableModels: KEY ? await listModels() : [], activeModel: goodModel, env: process.env.VERCEL_ENV || "unknown" });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "POST만 허용됩니다." });
+    const ip = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.headers["x-real-ip"] || "?";
+    if (rateLimited(ip)) return res.status(429).json({ error: "요청이 많습니다. 잠시 후 다시 시도해 주세요.", aiUnavailable: true });
+    { const raw = typeof req.body === "string" ? req.body : JSON.stringify(req.body || ""); if (raw.length > 8000) return res.status(413).json({ error: "요청 본문이 너무 큽니다.", aiUnavailable: true }); }
     if (!KEY && !NVIDIA_KEY) return res.status(503).json({ error: "현재 AI 분석을 사용할 수 없습니다. (운영자: ANTHROPIC_API_KEY 또는 NVIDIA_API_KEY 등록 필요) 실시간 금융 데이터는 계속 제공됩니다.", aiUnavailable: true });
 
     let body = req.body;
