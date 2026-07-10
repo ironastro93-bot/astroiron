@@ -218,6 +218,21 @@
     .homeGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
     .homeGrid>*{margin-bottom:0!important}
   }
+  .calc-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+  .calc-wd{text-align:center;font-size:11.5px;color:var(--faint);padding:6px 0;font-weight:700}
+  .calc-cell{min-height:66px;border-top:1px solid var(--line);border-left:1px solid var(--line);padding:4px 4px 3px;cursor:pointer;overflow:hidden;background:var(--card)}
+  .calc-grid>.calc-cell:nth-child(7n){border-right:1px solid var(--line)}
+  .calc-grid>.calc-cell:nth-last-child(-n+7){border-bottom:1px solid var(--line)}
+  .calc-cell:hover{background:var(--soft)}
+  .calc-out{cursor:default;background:transparent}
+  .calc-sel{outline:2px solid var(--steel);outline-offset:-2px}
+  .calc-num{font-size:12px;font-weight:600;font-family:'Inter',sans-serif;margin-bottom:2px}
+  .calc-today{background:var(--ink);color:var(--bg);border-radius:50%;padding:1px 5px;display:inline-block;min-width:18px;text-align:center}
+  .calc-ev{font-size:9.5px;line-height:1.35;padding:1px 4px;border-radius:3px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .calc-econ{background:color-mix(in srgb,#3B6FE0 15%,transparent);color:#3B6FE0}
+  .calc-mine{background:color-mix(in srgb,var(--steel) 16%,transparent);color:var(--steel)}
+  .calc-more{font-size:9px;color:var(--faint)}
+  @media(max-width:640px){.calc-cell{min-height:54px;padding:3px 2px}.calc-ev{font-size:8px;padding:0 2px}.calc-num{font-size:11px}}
 </style>
 </head>
 <body>
@@ -1012,26 +1027,17 @@ function renderMarket(){document.getElementById("app").innerHTML=`<h1>시장</h1
 window.loadMarket=async()=>{const b=document.getElementById("mBtn"),body=document.getElementById("mBody");b.disabled=true;b.textContent="불러오는 중···";try{const d=cGet("indices")||await finApi("indices");cSet("indices",d);body.innerHTML=`<div class="card"><div style="display:flex;flex-wrap:wrap">${d.indices.map(it=>{const cc=it.changePercent>=0?"var(--up)":"var(--down)";return `<div style="flex:1 1 180px;padding:16px 20px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:160px"><div style="font-size:12.5px;color:var(--faint)">${esc(it.name)} <span style="font-size:10.5px">(${it.symbol})</span></div><div style="font-size:19px;font-weight:700;margin-top:4px;font-family:Inter">${it.price!=null?"$"+fmt(it.price):"—"}</div><div style="font-size:13px;font-weight:700;color:${cc};font-family:Inter">${it.changePercent!=null?(it.changePercent>=0?"▲":"▼")+" "+fmt(Math.abs(it.changePercent))+"%":"—"}</div></div>`}).join("")}</div></div><p style="font-size:11.5px;color:var(--faint);margin-top:12px">지수는 대표 ETF(SPY·QQQ·DIA·IWM) 실시간 시세로 표시됩니다 (Finnhub).</p>`;b.style.display="none"}catch(e){body.innerHTML=`<div class="err">${esc(e.message)}</div>`;b.disabled=false;b.textContent="다시 시도"}};
 
 // ═══ 뷰: 관심종목 ═══
-function backupData(){return {v:1,watchlist:getList("watchlist"),portfolio:getList("portfolio"),alerts:getList("alerts"),econRemind:getList("econRemind")}}
-window.makeBackup=()=>{try{const j=JSON.stringify(backupData());const code="AIRON1:"+btoa(unescape(encodeURIComponent(j)));const ta=document.getElementById("bkOut");if(ta){ta.value=code;ta.style.display="block";ta.select();try{navigator.clipboard.writeText(code)}catch{}}toast("백업 코드 생성 · 복사되었어요")}catch(e){toast("백업 생성 실패")}};
-window.copyBackup=()=>{const ta=document.getElementById("bkOut");if(ta&&ta.value){ta.select();try{navigator.clipboard.writeText(ta.value)}catch{}toast("복사되었어요")}};
-window.importBackup=()=>{const ta=document.getElementById("bkIn");if(!ta)return;let code=(ta.value||"").trim();if(!code){toast("코드를 붙여넣어 주세요");return}if(code.indexOf("AIRON1:")===0)code=code.slice(7);let obj;try{obj=JSON.parse(decodeURIComponent(escape(atob(code))))}catch(e){toast("코드가 올바르지 않아요");return}if(!obj||typeof obj!=="object"){toast("코드가 올바르지 않아요");return}
-  const mode=(document.querySelector('input[name=bkMode]:checked')||{}).value||"merge";
-  const mergeObj=(k,key)=>{const inc=Array.isArray(obj[k])?obj[k]:[];if(mode==="replace"){setList(k,inc);return}const m={};[...getList(k),...inc].forEach(it=>{const kk=(it&&it[key]!=null)?String(it[key]):JSON.stringify(it);m[kk]=it});setList(k,Object.values(m))};
-  mergeObj("watchlist","ticker");mergeObj("portfolio","ticker");mergeObj("alerts","id");
-  {const inc=Array.isArray(obj.econRemind)?obj.econRemind:[];setList("econRemind",mode==="replace"?inc:Array.from(new Set([...getList("econRemind"),...inc])))}
-  toast("복원 완료!");render()};
+function backupData(){return {v:1,watchlist:getList("watchlist"),portfolio:getList("portfolio"),alerts:getList("alerts"),econRemind:getList("econRemind"),mycal:getList("mycal")}}
+window.quickBackup=()=>{try{const code="AIRON1:"+btoa(unescape(encodeURIComponent(JSON.stringify(backupData()))));const done=()=>toast("백업 코드가 복사됐어요 📋");if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(done,()=>window.prompt("아래 코드를 복사해 보관하세요",code))}else{window.prompt("아래 코드를 복사해 보관하세요",code)}}catch(e){toast("백업 실패")}};
+window.toggleRestore=()=>{const el=document.getElementById("bkRestore");if(el)el.style.display=(el.style.display==="none"?"block":"none")};
+window.importBackup=(mode)=>{mode=mode||"merge";const ta=document.getElementById("bkIn");if(!ta)return;let code=(ta.value||"").trim();if(!code){toast("코드를 붙여넣어 주세요");return}if(code.indexOf("AIRON1:")===0)code=code.slice(7);let obj;try{obj=JSON.parse(decodeURIComponent(escape(atob(code))))}catch(e){toast("코드가 올바르지 않아요");return}if(!obj||typeof obj!=="object"){toast("코드가 올바르지 않아요");return}const mergeObj=(k,key)=>{const inc=Array.isArray(obj[k])?obj[k]:[];if(mode==="replace"){setList(k,inc);return}const mm={};[...getList(k),...inc].forEach(it=>{const kk=(it&&it[key]!=null)?String(it[key]):JSON.stringify(it);mm[kk]=it});setList(k,Object.values(mm))};mergeObj("watchlist","ticker");mergeObj("portfolio","ticker");mergeObj("alerts","id");mergeObj("mycal","id");{const inc=Array.isArray(obj.econRemind)?obj.econRemind:[];setList("econRemind",mode==="replace"?inc:Array.from(new Set([...getList("econRemind"),...inc])))}toast("복원 완료!");render()};
 function backupPanel(){
-  return `<div class="card" style="margin-top:16px"><div style="padding:16px 18px">
-    <div style="font-size:14px;font-weight:800;margin-bottom:4px">🔐 내 데이터 백업 · 복원</div>
-    <div style="font-size:12px;color:var(--faint);line-height:1.65;margin-bottom:12px">로그인 없이 관심종목·포트폴리오·가격 알림·캘린더 알림을 <b>코드 한 줄</b>로 저장해 다른 기기·브라우저로 옮길 수 있어요. 이 기기에만 저장되므로 <b>캐시 삭제 전 백업</b>을 권장합니다.</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button class="btn" onclick="makeBackup()">백업 코드 만들기</button><button class="btn-g" style="color:var(--steel)" onclick="copyBackup()">복사</button></div>
-    <textarea id="bkOut" readonly onclick="this.select()" style="display:none;width:100%;height:60px;font-size:11px;font-family:monospace;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--soft);color:var(--ink);resize:vertical;margin-bottom:14px"></textarea>
-    <div style="font-size:12.5px;font-weight:700;margin:8px 0 6px">다른 기기의 코드로 복원</div>
-    <textarea id="bkIn" placeholder="백업 코드를 붙여넣으세요 (AIRON1:...)" style="width:100%;height:60px;font-size:11px;font-family:monospace;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--card);color:var(--ink);resize:vertical"></textarea>
-    <div style="display:flex;align-items:center;gap:16px;margin:10px 0;font-size:12.5px;color:var(--sub)"><label style="cursor:pointer"><input type="radio" name="bkMode" value="merge" checked> 병합(합치기)</label><label style="cursor:pointer"><input type="radio" name="bkMode" value="replace"> 덮어쓰기</label></div>
-    <button class="btn" onclick="importBackup()">코드로 복원하기</button>
-  </div></div>`;
+  return `<div class="card" style="margin-top:16px;padding:18px 20px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:16px">🔐</span><b style="font-size:14.5px">데이터 백업 · 복원</b></div>
+    <div style="font-size:12px;color:var(--faint);line-height:1.6;margin-bottom:14px">관심종목·포트폴리오·알림·달력을 코드 하나로 다른 기기에 옮겨요. (캐시 삭제 전 백업 권장)</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-sm" onclick="quickBackup()">📤 백업 코드 복사</button><button class="btn-g" style="border:1.5px solid var(--line-d);border-radius:9px;padding:8px 14px" onclick="toggleRestore()">📥 코드로 복원</button></div>
+    <div id="bkRestore" style="display:none;margin-top:12px"><textarea id="bkIn" placeholder="백업 코드 붙여넣기 (AIRON1:...)" style="width:100%;height:54px;font-size:11px;font-family:monospace;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--card);color:var(--ink);resize:vertical"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button class="btn-sm" onclick="importBackup('merge')">합치기(권장)</button><button class="btn-g" style="color:var(--faint)" onclick="importBackup('replace')">덮어쓰기</button></div></div>
+  </div>`;
 }
 function renderWatchlist(){
   const w=getList("watchlist");
@@ -1256,7 +1262,7 @@ function bindCompareSearch(){const inp=document.getElementById("cmpIn");if(!inp)
 
 // ═══ 라우터 ═══
 // ═══ 뷰: 토론방 (공개·Firestore 공유 / 미연결 시 로컬 폴백) ═══
-function boardShared(){return fbEnabled()&&_fb.ready}
+function boardShared(){return fbEnabled()&&_fb.ready&&!!_fb.user}
 function boardNick(){return localStorage.getItem("boardNick")||(_fb.user&&(_fb.user.displayName||(_fb.user.email||"").split("@")[0]))||""}
 function subBoard(){
   if(!boardShared()||window._boardSub)return;
@@ -1306,20 +1312,42 @@ window.reportBoard=async(id)=>{
   const h=getList("boardHidden");if(!h.includes(id))setListLocal("boardHidden",[...h,id]);
   toast("신고 접수 · 이 글을 숨겼어요");render();
 };
-// ═══ 뷰: 내 캘린더(직접 날짜·시간·중요내용 입력) ═══
+// ═══ 뷰: 캘린더 (월 그리드 · 경제일정 + 개인일정) ═══
 function renderMyCal(){
-  const today=new Date().toISOString().slice(0,10);
-  const items=getList("mycal").slice().sort((a,b)=>((a.d+(a.t||""))<(b.d+(b.t||""))?-1:1));
-  document.getElementById("app").innerHTML=`<h1>내 캘린더</h1><p class="lede">원하는 날짜·시간과 중요 내용을 직접 기록하세요. (이 기기에 저장 · 로그인 시 동기화)</p>
-  <div class="card" style="margin-bottom:16px;padding:16px 18px">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><input id="calD" type="date" value="${today}" style="padding:9px 10px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><input id="calT" type="time" style="padding:9px 10px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/></div>
-    <input id="calTitle" maxlength="80" placeholder="제목 (예: 테슬라 실적 발표, 배당락일)" style="width:100%;padding:10px 12px;margin-bottom:8px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/>
-    <textarea id="calNote" maxlength="300" placeholder="중요 내용 메모 (선택)" style="width:100%;height:56px;padding:10px 12px;margin-bottom:10px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink);resize:vertical"></textarea>
-    <button class="btn-sm" onclick="addMyCal()">일정 추가</button>
-  </div>
-  ${items.length===0?'<div style="border:1px dashed var(--line-d);border-radius:14px;padding:34px 20px;text-align:center;color:var(--faint);font-size:14px">아직 등록한 일정이 없어요.<br/>위에서 날짜·시간·내용을 입력해 추가하세요.</div>':`<div class="card">${items.map((e,i)=>{const dt=new Date(e.d+"T00:00:00");const md=(dt.getMonth()+1)+"/"+dt.getDate();const wk="일월화수목금토"[dt.getDay()];const past=e.d<today;return `<div style="display:flex;gap:12px;align-items:flex-start;padding:13px 16px;border-bottom:${i<items.length-1?"1px solid var(--line)":"none"};opacity:${past?0.55:1}"><div style="text-align:center;min-width:52px"><div style="font-size:13px;font-weight:800;font-family:Inter">${md}</div><div style="font-size:10px;color:var(--faint)">${wk}${e.t?" · "+e.t:""}</div></div><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">${esc(e.title)}</div>${e.note?`<div style="font-size:12px;color:var(--faint);margin-top:2px;white-space:pre-wrap">${esc(e.note)}</div>`:""}</div><button onclick="delMyCal(${e.id})" style="font-size:11px;color:var(--faint);background:none;border:none">삭제</button></div>`}).join("")}</div>`}`;
+  const app=document.getElementById("app");if(!app)return;
+  const now=new Date();
+  if(!window._calYM)window._calYM={y:now.getFullYear(),m:now.getMonth()};
+  const y=window._calYM.y,m=window._calYM.m;
+  const startWd=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();
+  const pad=n=>String(n).padStart(2,"0");
+  const todayStr=new Date().toISOString().slice(0,10);
+  const mycal=getList("mycal");
+  const evOf=ds=>({econ:(typeof ECON_EVENTS!=="undefined"?ECON_EVENTS:[]).filter(e=>e.d===ds),mine:mycal.filter(e=>e.d===ds)});
+  const total=Math.ceil((startWd+dim)/7)*7;let cells="";
+  for(let idx=0;idx<total;idx++){
+    const dn=idx-startWd+1;
+    if(dn<1||dn>dim){cells+='<div class="calc-cell calc-out"></div>';continue}
+    const ds=y+"-"+pad(m+1)+"-"+pad(dn),o=evOf(ds),dow=idx%7,nc=dow===0?"color:var(--up)":dow===6?"color:#3B6FE0":"";
+    let lab="",shown=0;
+    o.econ.slice(0,1).forEach(e=>{lab+='<div class="calc-ev calc-econ">'+esc(e.t.replace(/\s*\(.*\)/,""))+'</div>';shown++});
+    o.mine.slice(0,2).forEach(e=>{lab+='<div class="calc-ev calc-mine">'+esc(e.title)+'</div>';shown++});
+    const more=(o.econ.length+o.mine.length)-shown;
+    cells+='<div class="calc-cell'+(window._calSel===ds?' calc-sel':'')+'" onclick="calPick(\''+ds+'\')"><div class="calc-num" style="'+nc+'">'+(ds===todayStr?'<span class="calc-today">'+dn+'</span>':dn)+'</div>'+lab+(more>0?'<div class="calc-more">+'+more+'</div>':'')+'</div>';
+  }
+  let panel="";
+  if(window._calSel){
+    const ds=window._calSel,o=evOf(ds),dt=new Date(ds+"T00:00:00");
+    panel='<div class="card" style="margin-top:16px"><div style="padding:14px 18px 4px"><h2 style="font-size:15px">'+(dt.getMonth()+1)+'월 '+dt.getDate()+'일 ('+"일월화수목금토"[dt.getDay()]+')</h2></div><div style="padding:2px 18px 8px">'+
+      o.econ.map(e=>'<div style="display:flex;gap:8px;align-items:center;padding:6px 0;font-size:13px"><span style="width:8px;height:8px;border-radius:2px;background:#3B6FE0;flex:0 0 auto"></span>'+esc(e.t)+'<span style="color:var(--faint);font-size:11px;margin-left:4px">· 경제일정</span></div>').join("")+
+      o.mine.map(e=>'<div style="display:flex;gap:8px;align-items:center;padding:6px 0;font-size:13px"><span style="width:8px;height:8px;border-radius:2px;background:var(--steel);flex:0 0 auto"></span><span style="flex:1;min-width:0">'+(e.t?'<b>'+esc(e.t)+'</b> ':'')+esc(e.title)+(e.note?'<span style="color:var(--faint);font-size:11px"> · '+esc(e.note)+'</span>':'')+'</span><button onclick="delMyCal('+e.id+')" style="font-size:11px;color:var(--faint);background:none;border:none">삭제</button></div>').join("")+
+      ((o.econ.length+o.mine.length)===0?'<div style="font-size:12.5px;color:var(--faint);padding:6px 0">등록된 일정이 없어요.</div>':"")+
+      '</div><div style="padding:8px 18px 16px;border-top:1px solid var(--line)"><div style="display:flex;gap:8px;margin:10px 0 8px"><input id="calT" type="time" style="padding:8px 10px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><input id="calTitle" maxlength="60" placeholder="일정 제목" style="flex:1;min-width:0;padding:9px 12px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/></div><input id="calNote" maxlength="200" placeholder="메모 (선택)" style="width:100%;padding:9px 12px;margin-bottom:8px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><button class="btn-sm" onclick="addMyCal()">이 날짜에 일정 추가</button></div></div>';
+  }
+  app.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><button class="btn-g" style="font-size:20px;padding:2px 12px" onclick="calNav(-1)">‹</button><h1 style="margin:0;font-size:20px">'+y+'. '+(m+1)+'.</h1><button class="btn-g" style="font-size:20px;padding:2px 12px" onclick="calNav(1)">›</button></div><p class="lede" style="margin-bottom:12px">파란 라벨=경제·실적 일정, 회색=내 일정. 날짜를 눌러 개인 일정을 추가하세요.</p><div class="calc-grid calc-head">'+["일","월","화","수","목","금","토"].map((w,i)=>'<div class="calc-wd" style="'+(i===0?'color:var(--up)':i===6?'color:#3B6FE0':'')+'">'+w+'</div>').join("")+'</div><div class="calc-grid">'+cells+'</div>'+panel;
 }
-window.addMyCal=()=>{const d=(document.getElementById("calD")||{}).value,t=(document.getElementById("calT")||{}).value,title=((document.getElementById("calTitle")||{}).value||"").trim(),note=((document.getElementById("calNote")||{}).value||"").trim();if(!d){toast("날짜를 선택해 주세요");return}if(!title){toast("제목을 입력해 주세요");return}setList("mycal",[...getList("mycal"),{id:Date.now(),d,t,title,note}]);toast("일정이 추가됐어요");render()};
+window.calNav=(d)=>{let y=window._calYM.y,m=window._calYM.m+d;if(m<0){m=11;y--}if(m>11){m=0;y++}window._calYM={y,m};render()};
+window.calPick=(ds)=>{window._calSel=(window._calSel===ds?null:ds);render()};
+window.addMyCal=()=>{const ds=window._calSel;if(!ds){toast("날짜를 먼저 선택하세요");return}const t=(document.getElementById("calT")||{}).value,title=((document.getElementById("calTitle")||{}).value||"").trim(),note=((document.getElementById("calNote")||{}).value||"").trim();if(!title){toast("제목을 입력해 주세요");return}setList("mycal",[...getList("mycal"),{id:Date.now(),d:ds,t,title,note}]);toast("일정이 추가됐어요");render()};
 window.delMyCal=(id)=>{setList("mycal",getList("mycal").filter(e=>e.id!==id));render()};
 function render(){
   if(state.view!=="home")stopHomePoll();
@@ -1408,7 +1436,7 @@ async function initFirebase(){
     _fb.auth=firebase.auth();_fb.db=firebase.firestore();_fb.ready=true;
     try{await _fb.db.enablePersistence({synchronizeTabs:true})}catch(e){}
     try{if(FCM_VAPID_KEY&&firebase.messaging&&firebase.messaging.isSupported&&firebase.messaging.isSupported()){_fb.messaging=firebase.messaging();_fb.messaging.onMessage((pl)=>{const n=(pl&&pl.notification)||{};toast("🔔 "+(n.title||"알림")+(n.body?" · "+n.body:""))})}}catch(e){}
-    _fb.auth.onAuthStateChanged(async(u)=>{_fb.user=u;if(u){await cloudPull()}updateAuthUI();try{render()}catch(e){}});
+    _fb.auth.onAuthStateChanged(async(u)=>{if(!u){try{await _fb.auth.signInAnonymously()}catch(e){}return}_fb.user=u;if(!u.isAnonymous){await cloudPull()}updateAuthUI();try{render()}catch(e){}});
   }catch(e){}
 }
 window.fbLogin=async()=>{try{if(!_fb.ready)await initFirebase();const pr=new firebase.auth.GoogleAuthProvider();await _fb.auth.signInWithPopup(pr);toast("로그인 · 데이터 동기화됨")}catch(e){toast("로그인 취소 또는 실패")}};
@@ -1435,7 +1463,7 @@ function mergeLists(k,inc){
 async function cloudPull(){try{const doc=await _fb.db.collection("users").doc(_fb.user.uid).get();const d=(doc.exists&&doc.data().data)||{};["watchlist","portfolio","alerts","econRemind","mycal"].forEach(k=>mergeLists(k,d[k]));await cloudPush()}catch(e){}}
 let _cloudT;function cloudPushDebounced(){if(!_fb.ready||!_fb.user)return;clearTimeout(_cloudT);_cloudT=setTimeout(cloudPush,1500)}
 async function cloudPush(){if(!_fb.ready||!_fb.user)return;try{await _fb.db.collection("users").doc(_fb.user.uid).set({data:{watchlist:getList("watchlist"),portfolio:getList("portfolio"),alerts:getList("alerts"),econRemind:getList("econRemind"),mycal:getList("mycal"),updatedAt:firebase.firestore.FieldValue.serverTimestamp()}},{merge:true})}catch(e){}}
-function updateAuthUI(){const el=document.getElementById("authBtn");if(!el)return;if(!fbEnabled()){el.style.display="none";return}el.style.display="";if(_fb.user){el.textContent="👤 "+String(_fb.user.displayName||_fb.user.email||"로그인됨").slice(0,10);el.title="로그아웃";el.onclick=window.fbLogout}else{el.textContent="로그인";el.title="구글 로그인 · 기기 간 동기화";el.onclick=window.fbLogin}}
+function updateAuthUI(){const el=document.getElementById("authBtn");if(!el)return;if(!fbEnabled()){el.style.display="none";return}el.style.display="";if(_fb.user&&!_fb.user.isAnonymous){el.textContent="👤 "+String(_fb.user.displayName||_fb.user.email||"계정").slice(0,10);el.title="로그아웃";el.onclick=window.fbLogout}else{el.textContent="로그인";el.title="구글 로그인 · 기기 간 동기화";el.onclick=window.fbLogin}}
 // ═══ 시작(부트) ═══
 initGA();initAds();
 if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("/sw.js").catch(()=>{})})}
