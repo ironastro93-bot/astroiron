@@ -1217,7 +1217,7 @@ function renderAlerts(){
 // 딥링크(해시 라우팅)
 let _hashGuard=false;
 function syncHash(){let h="";if(state.view==="stock"&&state.symbol)h="stock/"+state.symbol;else if(state.view&&state.view!=="home")h=state.view;const nh=h?("#"+h):(location.pathname);if(h){if(location.hash!=="#"+h){_hashGuard=true;location.hash=h;setTimeout(()=>_hashGuard=false,60)}}else if(location.hash){_hashGuard=true;history.replaceState(null,"",location.pathname+location.search);setTimeout(()=>_hashGuard=false,60)}}
-function routeFromHash(){const h=decodeURIComponent((location.hash||"").replace(/^#/,"")).trim();if(!h){switchView("home");return}if(h.toLowerCase().startsWith("stock/")){const sym=h.slice(6).toUpperCase();if(sym){loadStock(sym);return}}const vs=["home","market","watchlist","portfolio","calc","alerts"];if(vs.includes(h)){switchView(h);return}loadStock(h.toUpperCase())}
+function routeFromHash(){const h=decodeURIComponent((location.hash||"").replace(/^#/,"")).trim();if(!h){switchView("home");return}if(h.toLowerCase().startsWith("stock/")){const sym=h.slice(6).toUpperCase();if(sym){loadStock(sym);return}}const vs=["home","market","watchlist","portfolio","calc","alerts","board","cal","compare","news"];if(vs.includes(h)){switchView(h);return}loadStock(h.toUpperCase())}
 window.routeFromHash=routeFromHash;
 
 // ═══ 종목 비교 ═══
@@ -1255,10 +1255,76 @@ window.addCompareTicker=(t)=>{t=(t||"").toUpperCase();const list=getList("compar
 function bindCompareSearch(){const inp=document.getElementById("cmpIn");if(!inp)return;inp.addEventListener("input",()=>{window._acMode="compare";clearTimeout(acTimer);const q=inp.value.trim();if(q.length<1){closeAc();return}acTimer=setTimeout(()=>doAutocomplete(q),260)});inp.addEventListener("keydown",e=>{if(e.key==="Enter"){if(acSel>=0&&acItems[acSel]){addCompareTicker(acItems[acSel].symbol)}else addCompare()}else if(e.key==="ArrowDown"){acSel=Math.min(acSel+1,acItems.length-1);paintAc()}else if(e.key==="ArrowUp"){acSel=Math.max(acSel-1,0);paintAc()}else if(e.key==="Escape")closeAc()})}
 
 // ═══ 라우터 ═══
+// ═══ 뷰: 토론방 (공개·Firestore 공유 / 미연결 시 로컬 폴백) ═══
+function boardShared(){return fbEnabled()&&_fb.ready}
+function boardNick(){return localStorage.getItem("boardNick")||(_fb.user&&(_fb.user.displayName||(_fb.user.email||"").split("@")[0]))||""}
+function subBoard(){
+  if(!boardShared()||window._boardSub)return;
+  try{window._boardSub=_fb.db.collection("board").orderBy("ts","desc").limit(100).onSnapshot(function(snap){
+    window._boardPosts=snap.docs.map(function(d){var x=d.data();return {id:d.id,uid:x.uid,name:x.name,text:x.text,reports:x.reports||0,at:(x.ts&&x.ts.toDate)?x.ts.toDate().toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):""}});
+    if(state.view==="board")renderBoard();
+  },function(err){window._boardErr=String(err&&err.code||err)});}catch(e){}
+}
+function renderBoard(){
+  const app=document.getElementById("app");if(!app)return;
+  const shared=boardShared();if(shared)subBoard();
+  const hidden=getList("boardHidden");
+  const posts=shared?((window._boardPosts||[]).filter(x=>!hidden.includes(x.id))):getList("board");
+  let composer;
+  if(shared&&!_fb.user){
+    composer='<div class="card" style="margin-bottom:16px;padding:18px 20px;text-align:center"><div style="font-size:13.5px;color:var(--sub);margin-bottom:10px">로그인하면 모두가 함께 보는 토론방에 참여할 수 있어요.</div><button class="btn-sm" onclick="fbLogin()">구글 로그인</button></div>';
+  } else {
+    composer=`<div style="margin-bottom:16px"><div style="display:flex;gap:8px;margin-bottom:8px"><input id="boardNickIn" maxlength="16" value="${esc(boardNick())}" placeholder="닉네임" style="width:140px;padding:9px 12px;font-size:13px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><span style="font-size:11px;color:var(--faint);align-self:center">${shared?"공개 토론방":"이 기기 저장"}</span></div><div style="display:flex;gap:8px"><input id="boardIn" maxlength="300" placeholder="의견 남기기…" style="flex:1;min-width:0;padding:10px 14px;font-size:14px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)" onkeydown="if(event.key==='Enter')addBoard()"/><button class="btn-sm" onclick="addBoard()">등록</button></div></div>`;
+  }
+  app.innerHTML=`<h1>토론방 ${shared?'<span style="font-size:12px;font-weight:700;color:#16a34a">● 공개</span>':'<span style="font-size:12px;font-weight:600;color:var(--faint)">이 기기</span>'}</h1><p class="lede">미국 주식 의견을 나눠보세요. 부적절 표현은 자동 차단됩니다.</p>
+  ${composer}
+  ${posts.length===0?'<p style="font-size:13.5px;color:var(--faint);text-align:center;padding:24px 0">아직 글이 없어요. 첫 글을 남겨보세요.</p>':`<div class="card">${posts.map((x,i)=>{const mine=shared&&_fb.user&&x.uid===_fb.user.uid;const act=shared?(mine?`<button onclick="delBoard('${x.id}')" style="font-size:11px;color:var(--faint);background:none;border:none">삭제</button>`:`<button onclick="reportBoard('${x.id}')" style="font-size:11px;color:var(--faint);background:none;border:none">🚩 신고</button>`):`<button onclick="delBoard('${x.id}')" style="font-size:11px;color:var(--faint);background:none;border:none">삭제</button>`;return `<div style="padding:13px 16px;border-bottom:${i<posts.length-1?"1px solid var(--line)":"none"}"><div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:3px"><b style="font-size:12.5px;color:var(--steel)">${esc(x.name||"익명")}</b><span style="font-size:11px;color:var(--faint)">${esc(x.at||"")}</span></div><div style="font-size:14px;line-height:1.65;white-space:pre-wrap">${esc(x.text)}</div><div style="margin-top:6px">${act}</div></div>`}).join("")}</div>`}
+  <div style="font-size:12px;color:var(--faint);line-height:1.6;padding-top:20px;margin-top:16px;border-top:1px solid var(--line)">본 토론은 ASTRO IRON의 공식 의견이 아니며, 모든 게시물의 책임은 작성자에게 있습니다.<br>모욕·명예훼손·허위정보·투자 권유는 자제해 주세요. <a href="/community-policy.html" target="_blank" rel="noreferrer" style="color:var(--sub);text-decoration:underline">운영 정책 전체보기</a></div>`;
+}
+window.addBoard=async()=>{
+  const el=document.getElementById("boardIn");const v=(el&&el.value||"").trim();if(!v)return;
+  const _m=moderate(v);if(_m.block){toast(_m.msg);return}
+  const nickEl=document.getElementById("boardNickIn");const nick=(nickEl&&nickEl.value||"").trim();
+  if(boardShared()){
+    if(!_fb.user){toast("로그인이 필요해요");return}
+    const vn=window.validateNick(nick||boardNick()||"익명");if(!vn.ok){toast(vn.msg);return}
+    localStorage.setItem("boardNick",vn.nick);
+    try{await _fb.db.collection("board").add({uid:_fb.user.uid,name:vn.nick,text:v,reports:0,ts:firebase.firestore.FieldValue.serverTimestamp()});if(el)el.value="";toast("등록됐어요")}catch(e){toast("등록 실패 · 로그인/보안규칙을 확인해 주세요")}
+  } else {
+    const at=new Date().toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});
+    setList("board",[{id:Date.now(),name:(nick||"나"),text:v,at},...getList("board")]);if(el)el.value="";render();
+  }
+};
+window.delBoard=async(id)=>{
+  if(boardShared()){try{await _fb.db.collection("board").doc(String(id)).delete();toast("삭제됐어요")}catch(e){toast("삭제 실패")}}
+  else{setList("board",getList("board").filter(x=>String(x.id)!==String(id)));render()}
+};
+window.reportBoard=async(id)=>{
+  if(!boardShared())return;
+  if(!_fb.user){toast("로그인이 필요해요");return}
+  try{await _fb.db.collection("board").doc(String(id)).collection("reports").doc(_fb.user.uid).set({ts:firebase.firestore.FieldValue.serverTimestamp()})}catch(e){}
+  const h=getList("boardHidden");if(!h.includes(id))setListLocal("boardHidden",[...h,id]);
+  toast("신고 접수 · 이 글을 숨겼어요");render();
+};
+// ═══ 뷰: 내 캘린더(직접 날짜·시간·중요내용 입력) ═══
+function renderMyCal(){
+  const today=new Date().toISOString().slice(0,10);
+  const items=getList("mycal").slice().sort((a,b)=>((a.d+(a.t||""))<(b.d+(b.t||""))?-1:1));
+  document.getElementById("app").innerHTML=`<h1>내 캘린더</h1><p class="lede">원하는 날짜·시간과 중요 내용을 직접 기록하세요. (이 기기에 저장 · 로그인 시 동기화)</p>
+  <div class="card" style="margin-bottom:16px;padding:16px 18px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><input id="calD" type="date" value="${today}" style="padding:9px 10px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><input id="calT" type="time" style="padding:9px 10px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/></div>
+    <input id="calTitle" maxlength="80" placeholder="제목 (예: 테슬라 실적 발표, 배당락일)" style="width:100%;padding:10px 12px;margin-bottom:8px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/>
+    <textarea id="calNote" maxlength="300" placeholder="중요 내용 메모 (선택)" style="width:100%;height:56px;padding:10px 12px;margin-bottom:10px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink);resize:vertical"></textarea>
+    <button class="btn-sm" onclick="addMyCal()">일정 추가</button>
+  </div>
+  ${items.length===0?'<div style="border:1px dashed var(--line-d);border-radius:14px;padding:34px 20px;text-align:center;color:var(--faint);font-size:14px">아직 등록한 일정이 없어요.<br/>위에서 날짜·시간·내용을 입력해 추가하세요.</div>':`<div class="card">${items.map((e,i)=>{const dt=new Date(e.d+"T00:00:00");const md=(dt.getMonth()+1)+"/"+dt.getDate();const wk="일월화수목금토"[dt.getDay()];const past=e.d<today;return `<div style="display:flex;gap:12px;align-items:flex-start;padding:13px 16px;border-bottom:${i<items.length-1?"1px solid var(--line)":"none"};opacity:${past?0.55:1}"><div style="text-align:center;min-width:52px"><div style="font-size:13px;font-weight:800;font-family:Inter">${md}</div><div style="font-size:10px;color:var(--faint)">${wk}${e.t?" · "+e.t:""}</div></div><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">${esc(e.title)}</div>${e.note?`<div style="font-size:12px;color:var(--faint);margin-top:2px;white-space:pre-wrap">${esc(e.note)}</div>`:""}</div><button onclick="delMyCal(${e.id})" style="font-size:11px;color:var(--faint);background:none;border:none">삭제</button></div>`}).join("")}</div>`}`;
+}
+window.addMyCal=()=>{const d=(document.getElementById("calD")||{}).value,t=(document.getElementById("calT")||{}).value,title=((document.getElementById("calTitle")||{}).value||"").trim(),note=((document.getElementById("calNote")||{}).value||"").trim();if(!d){toast("날짜를 선택해 주세요");return}if(!title){toast("제목을 입력해 주세요");return}setList("mycal",[...getList("mycal"),{id:Date.now(),d,t,title,note}]);toast("일정이 추가됐어요");render()};
+window.delMyCal=(id)=>{setList("mycal",getList("mycal").filter(e=>e.id!==id));render()};
 function render(){
   if(state.view!=="home")stopHomePoll();
   if(state.view!=="news")stopNewsPoll();
-  const views=[["home","홈"],["stock","종목 분석"],["compare","비교"],["news","뉴스"],["watchlist","내 종목"],["calc","계산기"]];
+  const views=[["home","홈"],["compare","비교"],["news","뉴스"],["watchlist","내 종목"],["calc","계산기"],["board","토론방"],["cal","달력"]];
   document.getElementById("viewnav").innerHTML=views.map(v=>{let c="";if(v[0]==="watchlist"&&getList("watchlist").length)c=` (${getList("watchlist").length})`;if(v[0]==="alerts"){const n=getList("alerts").filter(a=>!a.done).length;if(n)c=` (${n})`}return `<button class="vitem ${state.view===v[0]?"on":""}" onclick="switchView('${v[0]}')">${v[1]}${c}</button>`}).join("");
   {const bn=document.getElementById("botnav");if(bn){const v=(state.view==="stock"?"":state.view);bn.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v===v))}}
   {const bd=document.getElementById("bellDot");if(bd){const n=getList("alerts").filter(a=>!a.done).length;if(n){bd.textContent=n>9?"9+":String(n);bd.style.display="block"}else bd.style.display="none"}}
@@ -1269,6 +1335,8 @@ function render(){
   else if(state.view==="watchlist")renderWatchlist();
   else if(state.view==="portfolio")renderPortfolio();
   else if(state.view==="calc")renderCalc();
+  else if(state.view==="board")renderBoard();
+  else if(state.view==="cal")renderMyCal();
   else if(state.view==="compare")renderCompare();
   else if(state.view==="alerts")renderAlerts();
   else if(state.view==="news"){renderNews();if(!window._newsLoaded){window._newsLoaded=true;loadNews()}startNewsPoll();}
@@ -1362,11 +1430,11 @@ window.enablePush=async()=>{
 
 function mergeLists(k,inc){
   if(k==="econRemind"){setListLocal(k,Array.from(new Set([...getList(k),...(Array.isArray(inc)?inc:[])])));return}
-  const key=k==="alerts"?"id":"ticker";const m={};[...getList(k),...(Array.isArray(inc)?inc:[])].forEach(it=>{const kk=(it&&it[key]!=null)?String(it[key]):JSON.stringify(it);m[kk]=it});setListLocal(k,Object.values(m));
+  const key=(k==="alerts"||k==="mycal")?"id":"ticker";const m={};[...getList(k),...(Array.isArray(inc)?inc:[])].forEach(it=>{const kk=(it&&it[key]!=null)?String(it[key]):JSON.stringify(it);m[kk]=it});setListLocal(k,Object.values(m));
 }
-async function cloudPull(){try{const doc=await _fb.db.collection("users").doc(_fb.user.uid).get();const d=(doc.exists&&doc.data().data)||{};["watchlist","portfolio","alerts","econRemind"].forEach(k=>mergeLists(k,d[k]));await cloudPush()}catch(e){}}
+async function cloudPull(){try{const doc=await _fb.db.collection("users").doc(_fb.user.uid).get();const d=(doc.exists&&doc.data().data)||{};["watchlist","portfolio","alerts","econRemind","mycal"].forEach(k=>mergeLists(k,d[k]));await cloudPush()}catch(e){}}
 let _cloudT;function cloudPushDebounced(){if(!_fb.ready||!_fb.user)return;clearTimeout(_cloudT);_cloudT=setTimeout(cloudPush,1500)}
-async function cloudPush(){if(!_fb.ready||!_fb.user)return;try{await _fb.db.collection("users").doc(_fb.user.uid).set({data:{watchlist:getList("watchlist"),portfolio:getList("portfolio"),alerts:getList("alerts"),econRemind:getList("econRemind"),updatedAt:firebase.firestore.FieldValue.serverTimestamp()}},{merge:true})}catch(e){}}
+async function cloudPush(){if(!_fb.ready||!_fb.user)return;try{await _fb.db.collection("users").doc(_fb.user.uid).set({data:{watchlist:getList("watchlist"),portfolio:getList("portfolio"),alerts:getList("alerts"),econRemind:getList("econRemind"),mycal:getList("mycal"),updatedAt:firebase.firestore.FieldValue.serverTimestamp()}},{merge:true})}catch(e){}}
 function updateAuthUI(){const el=document.getElementById("authBtn");if(!el)return;if(!fbEnabled()){el.style.display="none";return}el.style.display="";if(_fb.user){el.textContent="👤 "+String(_fb.user.displayName||_fb.user.email||"로그인됨").slice(0,10);el.title="로그아웃";el.onclick=window.fbLogout}else{el.textContent="로그인";el.title="구글 로그인 · 기기 간 동기화";el.onclick=window.fbLogin}}
 // ═══ 시작(부트) ═══
 initGA();initAds();
