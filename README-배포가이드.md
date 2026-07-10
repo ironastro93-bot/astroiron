@@ -195,3 +195,10 @@ ironastro/
 - **쿠키 동의 배너**: 첫 방문 시 동의/거부. **동의 전에는 GA4가 로드되지 않음**(옵트인). 선택은 기기에 저장.
 - **개인정보처리방침**: `privacy.html` 생성(푸터·동의배너·`/privacy.html`에서 링크). 애드센스 승인에 필요.
 - ⚠️ 배포 시 `index.html`, `api/`, `ads.txt`, `privacy.html`을 **모두** 저장소 루트에 올리세요(우주 배경 쓰려면 `space-bg.jpg`도).
+
+## v57 — 무료 AI 옵션: NVIDIA NIM 지원
+- `api/ai.js`가 이제 두 제공자를 지원합니다: **ANTHROPIC_API_KEY 있으면 Claude 사용**, 없고 **NVIDIA_API_KEY 있으면 NVIDIA NIM(무료·OpenAI 호환) 자동 사용**.
+- NVIDIA 무료 키 발급: **build.nvidia.com** → 로그인(카드 불필요) → API Key 생성(`nvapi-...`). 가입 무료 크레딧 + 분당 40회.
+- Vercel 환경변수: `NVIDIA_API_KEY = nvapi-...` (선택: `NVIDIA_MODEL`, 기본 `meta/llama-3.3-70b-instruct`).
+- 점검: `astroiron.com/api/ai?health=1` 에서 `provider:"nvidia"`, `nvidiaModel` 확인.
+- 주의: 무료 티어라 처리량 보장은 없음(개인 앱엔 충분). 모델명이 안 맞으면 `NVIDIA_MODEL`을 build.nvidia.com의 정확한 모델 ID로 지정.

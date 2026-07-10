@@ -6,6 +6,9 @@
 //           크레딧 부족/키 오류 등 진짜 사유는 응답 error 로 그대로 전달한다.
 
 const KEY = process.env.ANTHROPIC_API_KEY;
+// [무료 대안] NVIDIA NIM (OpenAI 호환) — ANTHROPIC 키가 없으면 자동 사용
+const NVIDIA_KEY = process.env.NVIDIA_API_KEY;
+const NVIDIA_MODEL = process.env.NVIDIA_MODEL || "meta/llama-3.3-70b-instruct";
 // 정적 폴백(모델 목록 조회 실패 시)
 const STATIC_FALLBACK = [
   "claude-sonnet-4-20250514", "claude-3-7-sonnet-20250219",
@@ -68,7 +71,31 @@ async function anthropic(model, prompt, maxTokens) {
   } finally { clearTimeout(timer); }
 }
 
+async function nvidiaChat(prompt, maxTokens) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT);
+  try {
+    const r = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+      method: "POST", signal: ctrl.signal,
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + NVIDIA_KEY },
+      body: JSON.stringify({ model: NVIDIA_MODEL, messages: [{ role: "user", content: prompt }], max_tokens: maxTokens, temperature: 0.3 }),
+    });
+    const raw = await r.text();
+    let d = {}; try { d = JSON.parse(raw); } catch { /* non-JSON */ }
+    if (!r.ok) {
+      const msg = d?.detail || d?.error?.message || raw.slice(0, 180) || ("NVIDIA 오류 " + r.status);
+      console.error("[ai] NVIDIA", r.status, msg.slice(0, 160));
+      throw { code: r.status === 429 ? 429 : 502, msg };
+    }
+    return (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "";
+  } catch (e) {
+    if (e.name === "AbortError") throw { code: 504, msg: "NVIDIA 응답 시간 초과" };
+    throw e;
+  } finally { clearTimeout(timer); }
+}
 async function callModel(prompt, maxTokens) {
+  // ANTHROPIC 키가 없고 NVIDIA 키만 있으면 NVIDIA(무료) 사용
+  if (!KEY && NVIDIA_KEY) return await nvidiaChat(prompt, maxTokens);
   const order = await modelOrder();
   if (!order.length) throw { code: 502, msg: "이 키로 사용 가능한 모델을 찾지 못했어요. (Anthropic 콘솔에서 모델 접근 권한 확인)" };
   let last = { msg: "AI 오류", status: 502 };
@@ -101,10 +128,10 @@ export default async function handler(req, res) {
   try {
     // 점검용: GET /api/ai?health=1 → 이 배포가 키를 보는지 확인 (키 값은 노출 안 함)
     if (req.method === "GET") {
-      return res.status(200).json({ ok: true, hasKey: !!KEY, keyPreview: KEY ? (KEY.slice(0, 7) + "…" + KEY.slice(-4)) : null, availableModels: await listModels(), activeModel: goodModel, env: process.env.VERCEL_ENV || "unknown" });
+      return res.status(200).json({ ok: true, provider: KEY ? "anthropic" : (NVIDIA_KEY ? "nvidia" : "none"), hasKey: !!(KEY || NVIDIA_KEY), keyPreview: KEY ? (KEY.slice(0,7)+"…"+KEY.slice(-4)) : (NVIDIA_KEY ? (NVIDIA_KEY.slice(0,7)+"…"+NVIDIA_KEY.slice(-4)) : null), nvidiaModel: NVIDIA_KEY ? NVIDIA_MODEL : null, availableModels: KEY ? await listModels() : [], activeModel: goodModel, env: process.env.VERCEL_ENV || "unknown" });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "POST만 허용됩니다." });
-    if (!KEY) return res.status(503).json({ error: "현재 AI 분석을 사용할 수 없습니다. (운영자: ANTHROPIC_API_KEY 등록 필요) 실시간 금융 데이터는 계속 제공됩니다.", aiUnavailable: true });
+    if (!KEY && !NVIDIA_KEY) return res.status(503).json({ error: "현재 AI 분석을 사용할 수 없습니다. (운영자: ANTHROPIC_API_KEY 또는 NVIDIA_API_KEY 등록 필요) 실시간 금융 데이터는 계속 제공됩니다.", aiUnavailable: true });
 
     let body = req.body;
     if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }

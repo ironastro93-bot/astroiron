@@ -358,6 +358,10 @@ export default async function handler(req, res) {
         const sparks = await yahooSpark(CRYPTO.map((x) => x[0]));
         return res.status(200).json({ crypto: CRYPTO.map(([s, name, tk]) => ({ name, symbol: tk, price: sparks[s]?.price ?? null, changePercent: sparks[s]?.changePercent ?? null, spark: sparks[s]?.spark || [] })) });
       }
+      case "fx": {
+        const y = await yahooQuote("KRW=X");
+        return res.status(200).json({ usdkrw: y?.price ?? null });
+      }
     }
 
     // ── 여기부터는 Finnhub 전용 (뉴스·재무·투자의견·실적·피어) ──
@@ -368,7 +372,7 @@ export default async function handler(req, res) {
       case "news": {
         const to = new Date().toISOString().slice(0, 10), from = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
         const n = await fh(`/company-news?symbol=${sym}&from=${from}&to=${to}`);
-        return res.status(200).json({ news: (n || []).slice(0, 10).map((x) => ({ title: x.headline, source: x.source, url: x.url, datetime: x.datetime })) });
+        return res.status(200).json({ news: (n || []).slice(0, 10).map((x) => ({ title: x.headline, source: x.source, url: x.url, datetime: x.datetime, image: x.image || "" })) });
       }
       case "financials": {
         const f = await fh(`/stock/metric?symbol=${sym}&metric=all`); const m = f.metric || {};
