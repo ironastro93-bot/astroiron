@@ -1172,14 +1172,17 @@ function renderNews(){
 window.setNewsCat=(c)=>{state.newsCat=c;state.newsShow=12;renderNews()};
 window.toggleNewsKo=async()=>{
   state.newsKo=!state.newsKo;renderNews();
-  if(!state.newsKo)return;
+  if(!state.newsKo){toast("영어 원문 보기");return}
   const all=window._news||[];const cat=state.newsCat||"전체";const show=state.newsShow||12;
+  if(!all.length){toast("뉴스를 불러오는 중이에요. 잠시 후 다시 눌러주세요");return}
   const list=(cat==="전체"?all:all.filter(x=>x.category===cat)).slice(0,show).filter(x=>!x._ko);
-  if(!list.length)return;
-  const el=document.getElementById("newsKoNote");if(el)el.textContent="번역 중…";
-  const r=await aiApi("translate_news",{titles:list.map(x=>x.title)});
-  if(r&&r.items){list.forEach((x,i)=>{if(r.items[i])x._ko=r.items[i]})}
-  renderNews();
+  if(!list.length){toast("이미 번역된 뉴스예요");return}
+  toast("한국어 번역 중…");
+  try{
+    const r=await aiApi("translate_news",{titles:list.map(x=>x.title)});
+    if(r&&r.items&&r.items.length){list.forEach((x,i)=>{if(r.items[i])x._ko=r.items[i]});renderNews();toast("번역 완료 ✓")}
+    else{toast("번역을 불러오지 못했어요. 잠시 후 다시 시도해 주세요")}
+  }catch(e){toast("번역 오류 · 잠시 후 다시 시도해 주세요")}
 };
 window.newsMore=()=>{state.newsShow=(state.newsShow||12)+12;renderNews()};
 window.aiNews=async(idx)=>{const it=(window._news||[])[idx];if(!it)return;it._ai="loading";const el=document.getElementById("nai_"+idx);if(el)el.innerHTML='<div class="skel" style="height:30px"></div>';const r=await aiApi("news_summary",{news:[it.title]});it._ai=(r.aiUnavailable||!r.summary)?{err:true}:{summary:r.summary};const el2=document.getElementById("nai_"+idx);if(el2)el2.innerHTML=newsAiArea(it,idx)};
@@ -1463,7 +1466,7 @@ function mergeLists(k,inc){
 async function cloudPull(){try{const doc=await _fb.db.collection("users").doc(_fb.user.uid).get();const d=(doc.exists&&doc.data().data)||{};["watchlist","portfolio","alerts","econRemind","mycal"].forEach(k=>mergeLists(k,d[k]));await cloudPush()}catch(e){}}
 let _cloudT;function cloudPushDebounced(){if(!_fb.ready||!_fb.user)return;clearTimeout(_cloudT);_cloudT=setTimeout(cloudPush,1500)}
 async function cloudPush(){if(!_fb.ready||!_fb.user)return;try{await _fb.db.collection("users").doc(_fb.user.uid).set({data:{watchlist:getList("watchlist"),portfolio:getList("portfolio"),alerts:getList("alerts"),econRemind:getList("econRemind"),mycal:getList("mycal"),updatedAt:firebase.firestore.FieldValue.serverTimestamp()}},{merge:true})}catch(e){}}
-function updateAuthUI(){const el=document.getElementById("authBtn");if(!el)return;if(!fbEnabled()){el.style.display="none";return}el.style.display="";if(_fb.user&&!_fb.user.isAnonymous){el.textContent="👤 "+String(_fb.user.displayName||_fb.user.email||"계정").slice(0,10);el.title="로그아웃";el.onclick=window.fbLogout}else{el.textContent="로그인";el.title="구글 로그인 · 기기 간 동기화";el.onclick=window.fbLogin}}
+function updateAuthUI(){const el=document.getElementById("authBtn");if(el)el.style.display="none"}
 // ═══ 시작(부트) ═══
 initGA();initAds();
 if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("/sw.js").catch(()=>{})})}
