@@ -52,6 +52,10 @@ async function fetchSeries(id) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin","*");
+  res.setHeader("Access-Control-Allow-Methods","GET,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers","Content-Type");
+  if(req.method==="OPTIONS")return res.status(204).end();
   const { group } = req.query;
   if (!KEY) return res.status(503).json({ error: "거시 데이터 서버가 설정되지 않았어요. 운영자: FRED_API_KEY를 등록해 주세요.", noKey: true });
 
