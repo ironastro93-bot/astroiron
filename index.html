@@ -6,17 +6,31 @@
 <title>ASTRO IRON (아스트로아이언) — 미국 주식 실시간 시세·AI 분석</title>
 <meta name="description" content="실시간 금융 데이터 기반 미국 주식 투자 플랫폼. AI는 요약·해석을 돕습니다."/>
 <meta name="google-site-verification" content="lCWqpOjz6_F0sxCKq2o-3bTlG0W8ZuyWttPq984o7-Y"/>
+<meta name="naver-site-verification" content="3f1a6e8c0d838961fad2a4645d89ee3c06d9f01b"/>
 <meta name="robots" content="index,follow"/>
 <meta name="theme-color" content="#0a0f2e"/>
 <link rel="canonical" href="https://astroiron.com/"/>
+<link rel="alternate" hreflang="ko" href="https://astroiron.com/"/>
+<link rel="alternate" hreflang="x-default" href="https://astroiron.com/"/>
 <meta property="og:type" content="website"/>
 <meta property="og:title" content="ASTRO IRON — 실시간 미국 주식·AI 분석"/>
 <meta property="og:description" content="실시간 시세·차트·뉴스·공시·AI 분석을 한 곳에서. 미국 주식 투자 대시보드."/>
 <meta property="og:url" content="https://astroiron.com/"/>
-<meta name="twitter:card" content="summary"/>
+<meta name="twitter:card" content="summary_large_image"/>
 <meta property="og:site_name" content="ASTRO IRON"/>
+<meta property="og:locale" content="ko_KR"/>
+<meta property="og:image" content="https://astroiron.com/og.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="ASTRO IRON — 미국 주식 실시간 시세·AI 분석"/>
+<meta name="twitter:image" content="https://astroiron.com/og.png"/>
+<meta name="twitter:title" content="ASTRO IRON — 실시간 미국 주식·AI 분석"/>
+<meta name="twitter:description" content="실시간 시세·차트·뉴스·공시·AI 분석을 한 곳에서."/>
+<meta name="keywords" content="미국주식, 실시간 시세, 미국주식 차트, 테슬라 주가, 애플 주가, 엔비디아 주가, S&P500, 나스닥, 배당, 실적, AI 주식분석, 아스트로아이언, ASTRO IRON"/>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"ASTRO IRON","alternateName":["아스트로아이언","astroiron","astro iron"],"url":"https://astroiron.com/"}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"ASTRO IRON","alternateName":"아스트로아이언","url":"https://astroiron.com/","description":"미국 주식 실시간 시세·차트·재무·뉴스·AI 분석 대시보드"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"무료로 쓸 수 있나요?","acceptedAnswer":{"@type":"Answer","text":"네. 실시간 시세·차트·뉴스·공시·재무·관심종목·포트폴리오·가격 알림은 모두 무료입니다. AI 심층 분석 일부만 Premium입니다."}},{"@type":"Question","name":"데이터는 실시간인가요?","acceptedAnswer":{"@type":"Answer","text":"공개 API 기반의 근실시간 데이터로, 무료 특성상 최대 15분 지연될 수 있습니다."}},{"@type":"Question","name":"AI 분석은 투자 권유인가요?","acceptedAnswer":{"@type":"Answer","text":"아니요. 자본시장법상 투자자문·투자권유가 아니며 데이터에 기반한 참고용 정보입니다. 투자 판단과 책임은 이용자 본인에게 있습니다."}},{"@type":"Question","name":"한국 주식도 되나요?","acceptedAnswer":{"@type":"Answer","text":"현재는 미국 상장 종목·ETF 중심이며, 일부 해외 지수·환율·원자재도 제공합니다."}},{"@type":"Question","name":"관심종목은 어디에 저장되나요?","acceptedAnswer":{"@type":"Answer","text":"서버가 아닌 이용자 브라우저(기기)에만 저장됩니다. 로그인이 필요 없습니다."}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"ASTRO IRON","url":"https://astroiron.com/","applicationCategory":"FinanceApplication","operatingSystem":"Web","inLanguage":"ko","offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"},"description":"미국 주식 실시간 시세·차트·재무·뉴스·AI 분석 대시보드"}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" media="print" onload="this.media='all'"/>
@@ -712,6 +726,7 @@ function renderHome(){
   <div class="card" style="margin-bottom:16px"><div style="padding:18px 20px 8px;display:flex;align-items:center;gap:8px"><h2 style="font-size:15px">실시간 인기 종목</h2><span class="live"><span class="live-dot"></span>LIVE</span></div>
   <div id="dashRank"><div style="padding:6px 20px 14px">${Array(5).fill('<div class="skel" style="height:34px;margin-bottom:12px"></div>').join("")}</div></div>
   <div style="padding:4px 20px 15px;font-size:9.5px;color:var(--faint)">거래량 순 · Yahoo Finance · 최대 15분 지연</div></div>
+  ${!isPro()?`<div style="margin-bottom:16px">${adUnit()}</div>`:""}
   ${dashSection("미국 주식 히트맵 · 급등락","dashMovers","인기 종목 등락률 순 · 클릭하면 분석 (Finnhub)")}
   ${dashSection("섹터 ETF 히트맵","dashSectors","11개 섹터 SPDR ETF 등락률 순 (Finnhub)")}
   ${dashSection("암호화폐","dashCrypto","BTC·ETH·SOL (Finnhub)")}
@@ -1074,6 +1089,19 @@ document.getElementById("unlockBtn").addEventListener("click",async()=>{const v=
 document.getElementById("proCode").addEventListener("input",()=>document.getElementById("codeErr").style.display="none");
 document.addEventListener("click",e=>{if(!e.target.closest("#searchWrap"))closeAc()});
 document.addEventListener("keydown",e=>{if(state.view!=="stock"||!state.data||state.data.private)return;const tag=(e.target&&e.target.tagName||"").toLowerCase();if(tag==="input"||tag==="textarea"||tag==="select")return;if(e.key==="ArrowRight"||e.key==="ArrowLeft"){const idx=TABS.findIndex(x=>x[0]===state.tab);if(idx<0)return;const ni=(idx+(e.key==="ArrowRight"?1:-1)+TABS.length)%TABS.length;state.tab=TABS[ni][0];render()}});
+
+// ═══ 시작(부트) ═══
+initGA();initAds();
+window.addEventListener("hashchange",()=>{if(_hashGuard)return;routeFromHash()});
+function _boot(){
+  try{
+    if(location.hash&&location.hash.length>1){routeFromHash()}else{render()}
+    if(getList("alerts").filter(a=>!a.done).length)startAlertPoll();
+  }catch(e){
+    try{state.view="home";render()}catch(_){}
+  }
+}
+if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",_boot)}else{_boot()}
 </script>
 </body>
 </html>
