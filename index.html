@@ -225,6 +225,17 @@
   .calc-mine{background:color-mix(in srgb,var(--steel) 16%,transparent);color:var(--steel)}
   .calc-more{font-size:9px;color:var(--faint)}
   @media(max-width:640px){.calc-cell{min-height:54px;padding:3px 2px}.calc-ev{font-size:8px;padding:0 2px}.calc-num{font-size:11px}}
+  .chatwrap{display:flex;flex-direction:column;height:62vh;min-height:340px;max-height:640px}
+  .chatmsgs{flex:1;overflow-y:auto;padding:8px 2px 4px;display:flex;flex-direction:column;gap:9px}
+  .cmsg{max-width:80%;display:flex;flex-direction:column;gap:2px}
+  .cmsg.me{align-self:flex-end;align-items:flex-end}
+  .cmsg .cnm{font-size:11px;color:var(--steel);font-weight:700;padding:0 4px}
+  .cbub{padding:8px 12px;border-radius:14px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word;background:var(--soft);color:var(--ink);border:1px solid var(--line)}
+  .cmsg.me .cbub{background:color-mix(in srgb,var(--steel) 15%,transparent);border-color:transparent}
+  .cmeta{font-size:10px;color:var(--faint);padding:0 4px;display:flex;gap:8px;align-items:center}
+  .cmeta button{background:none;border:none;color:var(--faint);font-size:10px;cursor:pointer;padding:0}
+  .chatbar{display:flex;gap:8px;padding-top:10px;border-top:1px solid var(--line);margin-top:4px}
+  .chatbar input{padding:10px 12px;font-size:14px;border-radius:10px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)}
 </style>
 </head>
 <body>
@@ -1256,56 +1267,67 @@ window.addCompareTicker=(t)=>{t=(t||"").toUpperCase();const list=getList("compar
 function bindCompareSearch(){const inp=document.getElementById("cmpIn");if(!inp)return;inp.addEventListener("input",()=>{window._acMode="compare";clearTimeout(acTimer);const q=inp.value.trim();if(q.length<1){closeAc();return}acTimer=setTimeout(()=>doAutocomplete(q),260)});inp.addEventListener("keydown",e=>{if(e.key==="Enter"){if(acSel>=0&&acItems[acSel]){addCompareTicker(acItems[acSel].symbol)}else addCompare()}else if(e.key==="ArrowDown"){acSel=Math.min(acSel+1,acItems.length-1);paintAc()}else if(e.key==="ArrowUp"){acSel=Math.max(acSel-1,0);paintAc()}else if(e.key==="Escape")closeAc()})}
 
 // ═══ 라우터 ═══
-// ═══ 뷰: 토론방 (공개·Firestore 공유 / 미연결 시 로컬 폴백) ═══
+// ═══ 뷰: 토론방 (실시간 채팅 · Firestore 무료 실시간 / 미연결 시 로컬) ═══
 function boardShared(){return fbEnabled()&&_fb.ready&&!!_fb.user}
 function boardNick(){return localStorage.getItem("boardNick")||(_fb.user&&(_fb.user.displayName||(_fb.user.email||"").split("@")[0]))||""}
+function _boardList(){
+  if(boardShared())return (window._boardPosts||[]);
+  return getList("board").slice().sort((a,b)=>a.id-b.id).map(x=>({id:x.id,uid:"local",name:x.name,text:x.text,at:x.at}));
+}
 function subBoard(){
   if(!boardShared()||window._boardSub)return;
-  try{window._boardSub=_fb.db.collection("board").orderBy("ts","desc").limit(100).onSnapshot(function(snap){
-    window._boardPosts=snap.docs.map(function(d){var x=d.data();return {id:d.id,uid:x.uid,name:x.name,text:x.text,reports:x.reports||0,at:(x.ts&&x.ts.toDate)?x.ts.toDate().toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):""}});
-    if(state.view==="board")renderBoard();
+  try{window._boardSub=_fb.db.collection("board").orderBy("ts","desc").limit(200).onSnapshot(function(snap){
+    var arr=snap.docs.map(function(d){var x=d.data();return {id:d.id,uid:x.uid,name:x.name,text:x.text,at:(x.ts&&x.ts.toDate)?x.ts.toDate().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"}):""}});
+    arr.reverse();window._boardPosts=arr;
+    if(state.view==="board")paintBoardMsgs(false);
   },function(err){window._boardErr=String(err&&err.code||err)});}catch(e){}
+}
+function paintBoardMsgs(stick){
+  const box=document.getElementById("chatmsgs");if(!box)return;
+  const hidden=getList("boardHidden");
+  const list=_boardList().filter(x=>!hidden.includes(x.id));
+  const shared=boardShared();
+  const mineUid=(shared&&_fb.user)?_fb.user.uid:"local";
+  const nearBottom=(box.scrollHeight-box.scrollTop-box.clientHeight)<160;
+  box.innerHTML=list.length?list.map(function(x){
+    var me=x.uid===mineUid;
+    var act=shared?(me?'<button onclick="delBoard(\''+x.id+'\')">삭제</button>':'<button onclick="reportBoard(\''+x.id+'\')">🚩신고</button>'):'<button onclick="delBoard(\''+x.id+'\')">삭제</button>';
+    return '<div class="cmsg '+(me?'me':'')+'">'+(me?'':'<div class="cnm">'+esc(x.name||'익명')+'</div>')+'<div class="cbub">'+esc(x.text)+'</div><div class="cmeta"><span>'+esc(x.at||'')+'</span>'+act+'</div></div>';
+  }).join(""):'<div style="margin:auto;color:var(--faint);font-size:13px;padding:30px 0">첫 메시지를 남겨보세요 👋</div>';
+  if(stick||nearBottom)box.scrollTop=box.scrollHeight;
 }
 function renderBoard(){
   const app=document.getElementById("app");if(!app)return;
   const shared=boardShared();if(shared)subBoard();
-  const hidden=getList("boardHidden");
-  const posts=shared?((window._boardPosts||[]).filter(x=>!hidden.includes(x.id))):getList("board");
-  let composer;
-  if(shared&&!_fb.user){
-    composer='<div class="card" style="margin-bottom:16px;padding:18px 20px;text-align:center"><div style="font-size:13.5px;color:var(--sub);margin-bottom:10px">로그인하면 모두가 함께 보는 토론방에 참여할 수 있어요.</div><button class="btn-sm" onclick="fbLogin()">구글 로그인</button></div>';
-  } else {
-    composer=`<div style="margin-bottom:16px"><div style="display:flex;gap:8px;margin-bottom:8px"><input id="boardNickIn" maxlength="16" value="${esc(boardNick())}" placeholder="닉네임" style="width:140px;padding:9px 12px;font-size:13px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><span style="font-size:11px;color:var(--faint);align-self:center">${shared?"공개 토론방":"이 기기 저장"}</span></div><div style="display:flex;gap:8px"><input id="boardIn" maxlength="300" placeholder="의견 남기기…" style="flex:1;min-width:0;padding:10px 14px;font-size:14px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)" onkeydown="if(event.key==='Enter')addBoard()"/><button class="btn-sm" onclick="addBoard()">등록</button></div></div>`;
-  }
-  app.innerHTML=`<h1>토론방 ${shared?'<span style="font-size:12px;font-weight:700;color:#16a34a">● 공개</span>':'<span style="font-size:12px;font-weight:600;color:var(--faint)">이 기기</span>'}</h1><p class="lede">미국 주식 의견을 나눠보세요. 부적절 표현은 자동 차단됩니다.</p>
-  ${composer}
-  ${posts.length===0?'<p style="font-size:13.5px;color:var(--faint);text-align:center;padding:24px 0">아직 글이 없어요. 첫 글을 남겨보세요.</p>':`<div class="card">${posts.map((x,i)=>{const mine=shared&&_fb.user&&x.uid===_fb.user.uid;const act=shared?(mine?`<button onclick="delBoard('${x.id}')" style="font-size:11px;color:var(--faint);background:none;border:none">삭제</button>`:`<button onclick="reportBoard('${x.id}')" style="font-size:11px;color:var(--faint);background:none;border:none">🚩 신고</button>`):`<button onclick="delBoard('${x.id}')" style="font-size:11px;color:var(--faint);background:none;border:none">삭제</button>`;return `<div style="padding:13px 16px;border-bottom:${i<posts.length-1?"1px solid var(--line)":"none"}"><div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:3px"><b style="font-size:12.5px;color:var(--steel)">${esc(x.name||"익명")}</b><span style="font-size:11px;color:var(--faint)">${esc(x.at||"")}</span></div><div style="font-size:14.5px;line-height:1.7;white-space:pre-wrap;color:var(--ink);word-break:break-word">${esc(x.text)}</div><div style="margin-top:6px">${act}</div></div>`}).join("")}</div>`}
-  <div style="font-size:12px;color:var(--faint);line-height:1.6;padding-top:20px;margin-top:16px;border-top:1px solid var(--line)">본 토론은 ASTRO IRON의 공식 의견이 아니며, 모든 게시물의 책임은 작성자에게 있습니다.<br>모욕·명예훼손·허위정보·투자 권유는 자제해 주세요. <a href="/community-policy.html" target="_blank" rel="noreferrer" style="color:var(--sub);text-decoration:underline">운영 정책 전체보기</a></div>`;
+  const composer='<div class="chatbar"><input id="boardNickIn" maxlength="16" value="'+esc(boardNick())+'" placeholder="닉네임" style="width:92px;min-width:0"/><input id="boardIn" maxlength="300" placeholder="메시지 입력…" style="flex:1;min-width:0" onkeydown="if(event.key===\'Enter\')addBoard()"/><button class="btn-sm" onclick="addBoard()">전송</button></div>';
+  app.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><h1 style="margin:0;font-size:20px">토론방</h1>'+(shared?'<span class="live"><span class="live-dot"></span>실시간</span>':'<span style="font-size:11px;color:var(--faint)">이 기기</span>')+'</div><div class="chatwrap"><div id="chatmsgs" class="chatmsgs"></div>'+composer+'</div><div style="font-size:11px;color:var(--faint);margin-top:8px">공식 의견 아님 · 모든 책임은 작성자 · 부적절 표현 자동 차단 · <a href="/community-policy.html" target="_blank" rel="noreferrer" style="color:var(--sub)">운영정책</a></div>';
+  paintBoardMsgs(true);
 }
 window.addBoard=async()=>{
   const el=document.getElementById("boardIn");const v=(el&&el.value||"").trim();if(!v)return;
   const _m=moderate(v);if(_m.block){toast(_m.msg);return}
-  const nickEl=document.getElementById("boardNickIn");const nick=(nickEl&&nickEl.value||"").trim();
+  const nick=((document.getElementById("boardNickIn")||{}).value||"").trim();
   if(boardShared()){
-    if(!_fb.user){toast("로그인이 필요해요");return}
+    if(!_fb.user){toast("연결 중이에요. 잠시 후 다시");return}
     const vn=window.validateNick(nick||boardNick()||"익명");if(!vn.ok){toast(vn.msg);return}
     localStorage.setItem("boardNick",vn.nick);
-    try{await _fb.db.collection("board").add({uid:_fb.user.uid,name:vn.nick,text:v,reports:0,ts:firebase.firestore.FieldValue.serverTimestamp()});if(el)el.value="";toast("등록됐어요")}catch(e){toast("등록 실패 · 로그인/보안규칙을 확인해 주세요")}
-  } else {
-    const at=new Date().toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});
-    setList("board",[{id:Date.now(),name:(nick||"나"),text:v,at},...getList("board")]);if(el)el.value="";render();
+    if(el){el.value="";el.focus()}
+    try{await _fb.db.collection("board").add({uid:_fb.user.uid,name:vn.nick,text:v,reports:0,ts:firebase.firestore.FieldValue.serverTimestamp()})}catch(e){toast("전송 실패 · 보안규칙 확인")}
+  }else{
+    const at=new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
+    const list=getList("board");list.push({id:Date.now(),name:(nick||"나"),text:v,at});setList("board",list);if(el){el.value="";el.focus()}paintBoardMsgs(true);
   }
 };
 window.delBoard=async(id)=>{
-  if(boardShared()){try{await _fb.db.collection("board").doc(String(id)).delete();toast("삭제됐어요")}catch(e){toast("삭제 실패")}}
-  else{setList("board",getList("board").filter(x=>String(x.id)!==String(id)));render()}
+  if(boardShared()){try{await _fb.db.collection("board").doc(String(id)).delete()}catch(e){toast("삭제 실패")}}
+  else{setList("board",getList("board").filter(x=>String(x.id)!==String(id)));paintBoardMsgs(false)}
 };
 window.reportBoard=async(id)=>{
-  if(!boardShared())return;
-  if(!_fb.user){toast("로그인이 필요해요");return}
+  if(!boardShared()){return}
+  if(!_fb.user){toast("연결 중이에요");return}
   try{await _fb.db.collection("board").doc(String(id)).collection("reports").doc(_fb.user.uid).set({ts:firebase.firestore.FieldValue.serverTimestamp()})}catch(e){}
   const h=getList("boardHidden");if(!h.includes(id))setListLocal("boardHidden",[...h,id]);
-  toast("신고 접수 · 이 글을 숨겼어요");render();
+  toast("신고 접수 · 이 메시지를 숨겼어요");paintBoardMsgs(false);
 };
 // ═══ 뷰: 캘린더 (월 그리드 · 경제일정 + 개인일정) ═══
 function renderMyCal(){
