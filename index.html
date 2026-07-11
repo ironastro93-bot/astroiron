@@ -304,6 +304,11 @@
 <script>
 /* 인앱 브라우저(인스타·카톡 등)에서 localStorage 차단 시 메모리로 폴백 → 초기 실행 예외 방지 */
 (function(){try{var _t="__probe__";window.localStorage.setItem(_t,"1");window.localStorage.removeItem(_t)}catch(e){try{var mem={};Object.defineProperty(window,"localStorage",{configurable:true,value:{getItem:function(k){return Object.prototype.hasOwnProperty.call(mem,k)?mem[k]:null},setItem:function(k,v){mem[k]=String(v)},removeItem:function(k){delete mem[k]},clear:function(){mem={}},key:function(i){return Object.keys(mem)[i]||null},get length(){return Object.keys(mem).length}}})}catch(_){}}})();
+/* 진단: 렌더 전 오류를 화면에 표시(스크린샷용) */
+window._rendered=false;
+function _showBootErr(msg){try{if(window._rendered)return;var a=document.getElementById("app");if(a)a.innerHTML='<div style="padding:26px 18px;font-size:12px;color:#c1121f;font-family:monospace;white-space:pre-wrap;word-break:break-word;line-height:1.5">\u26A0 \uB85C\uB529 \uC624\uB958(\uC774 \uD654\uBA74 \uC2A4\uD06C\uB9B0\uC0F7\uC744 \uBCF4\uB0B4\uC8FC\uC138\uC694):\n\n'+String(msg).slice(0,500)+'</div>'}catch(e){}}
+window.addEventListener("error",function(ev){_showBootErr((ev&&ev.message||"")+"\n"+((ev&&ev.error&&ev.error.stack)||""))});
+window.addEventListener("unhandledrejection",function(ev){_showBootErr("promise: "+((ev&&ev.reason&&ev.reason.message)||(ev&&ev.reason)||ev))});
 const PRO_HASH="c7257f5ae3597dbf5dbfa1fb5c9876ed4cdf6d59f78306eba955dccb1fd0a255";
 // ══ 수익화·분석 설정 (본인 ID/링크 입력 시에만 활성, 비워두면 무시) ══
 const ADSENSE_CLIENT="ca-pub-9617531470345660";
@@ -1376,7 +1381,7 @@ function render(){
   else if(state.view==="alerts")renderAlerts();
   else if(state.view==="news"){renderNews();if(!window._newsLoaded){window._newsLoaded=true;loadNews()}startNewsPoll();}
   {const ab=document.getElementById("aboutSection");if(ab)ab.style.display=(state.view==="home"?"block":"none")}
-  setNavH();syncHash();
+  setNavH();syncHash();window._rendered=true;
 }
 window.render=render;
 window.switchView=(v)=>{state.view=v;state.error=null;closeAc();render()};
