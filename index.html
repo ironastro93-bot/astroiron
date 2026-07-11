@@ -302,6 +302,8 @@
   <button data-v="calc" onclick="switchView('calc')"><span>🧮</span>계산</button>
 </nav>
 <script>
+/* 인앱 브라우저(인스타·카톡 등)에서 localStorage 차단 시 메모리로 폴백 → 초기 실행 예외 방지 */
+(function(){try{var _t="__probe__";window.localStorage.setItem(_t,"1");window.localStorage.removeItem(_t)}catch(e){try{var mem={};Object.defineProperty(window,"localStorage",{configurable:true,value:{getItem:function(k){return Object.prototype.hasOwnProperty.call(mem,k)?mem[k]:null},setItem:function(k,v){mem[k]=String(v)},removeItem:function(k){delete mem[k]},clear:function(){mem={}},key:function(i){return Object.keys(mem)[i]||null},get length(){return Object.keys(mem).length}}})}catch(_){}}})();
 const PRO_HASH="c7257f5ae3597dbf5dbfa1fb5c9876ed4cdf6d59f78306eba955dccb1fd0a255";
 // ══ 수익화·분석 설정 (본인 ID/링크 입력 시에만 활성, 비워두면 무시) ══
 const ADSENSE_CLIENT="ca-pub-9617531470345660";
@@ -1469,19 +1471,20 @@ async function cloudPull(){try{const doc=await _fb.db.collection("users").doc(_f
 let _cloudT;function cloudPushDebounced(){if(!_fb.ready||!_fb.user)return;clearTimeout(_cloudT);_cloudT=setTimeout(cloudPush,1500)}
 async function cloudPush(){if(!_fb.ready||!_fb.user)return;try{await _fb.db.collection("users").doc(_fb.user.uid).set({data:{watchlist:getList("watchlist"),portfolio:getList("portfolio"),alerts:getList("alerts"),econRemind:getList("econRemind"),mycal:getList("mycal"),updatedAt:firebase.firestore.FieldValue.serverTimestamp()}},{merge:true})}catch(e){}}
 function updateAuthUI(){const el=document.getElementById("authBtn");if(el)el.style.display="none"}
-// ═══ 시작(부트) ═══
-initGA();initAds();
-if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("/sw.js").catch(()=>{})})}
-updateAuthUI();initFirebase();
-window.addEventListener("hashchange",()=>{if(_hashGuard)return;routeFromHash()});
+// ═══ 시작(부트) · 방탄 ═══
+try{window.addEventListener("hashchange",()=>{if(_hashGuard)return;routeFromHash()})}catch(e){}
 function _boot(){
-  try{
-    if(location.hash&&location.hash.length>1){routeFromHash()}else{render()}
-    if(getList("alerts").filter(a=>!a.done).length)startAlertPoll();
-    checkEconReminders();
-  }catch(e){
-    try{state.view="home";render()}catch(_){}
-  }
+  // 1) 무조건 화면부터 그린다 (다른 무엇도 이걸 막지 못하게)
+  try{ if(location.hash&&location.hash.length>1){routeFromHash()}else{render()} }
+  catch(e){ try{state.view="home";render()}catch(_){ try{document.getElementById("app").innerHTML='<div style="padding:40px;text-align:center;color:#888">화면을 불러오지 못했어요. 새로고침해 주세요.</div>'}catch(__){} } }
+  // 2) 부가기능은 렌더 이후, 각각 격리 (하나가 실패해도 앱은 뜬다)
+  try{ if(getList("alerts").filter(a=>!a.done).length)startAlertPoll() }catch(e){}
+  try{ checkEconReminders() }catch(e){}
+  try{ initGA() }catch(e){}
+  try{ initAds() }catch(e){}
+  try{ if("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{}) }catch(e){}
+  try{ updateAuthUI() }catch(e){}
+  try{ initFirebase() }catch(e){}
 }
 if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",_boot)}else{_boot()}
 </script>
