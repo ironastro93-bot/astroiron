@@ -1,0 +1,38 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>폰트 preload 적용 방법 · AstroIron</title>
+<meta name="description" content="웹폰트 preload로 텍스트 표시를 앞당기고 레이아웃 이동을 줄이는 방법을 코드 예시와 함께 정리했습니다.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://astroiron.com/blog/font-preload.html">
+<style>
+body{font-family:'Noto Sans KR',system-ui,sans-serif;max-width:760px;margin:0 auto;padding:28px 20px 72px;color:#1D2025;line-height:1.85;font-size:15px;background:#fff}
+h1{font-size:24px;margin:0 0 6px;letter-spacing:-.01em}h2{font-size:17px;margin:26px 0 8px}
+.muted{color:#6B7280;font-size:13px}a{color:#2B3A55}hr{border:none;border-top:1px solid #E8EAEE;margin:20px 0}
+nav a{margin-right:14px;font-size:13px}p{margin:0 0 12px}
+code{background:#F1F3F6;padding:2px 6px;border-radius:5px;font-size:13px}
+pre{background:#F1F3F6;padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.5}
+</style></head><body>
+<nav><a href="/">홈</a><a href="/blog/">블로그</a><a href="/about.html">소개</a><a href="/contact.html">문의하기</a></nav>
+<hr>
+<h1>폰트 preload 적용 방법</h1>
+<p class="muted">2026-07-13 · 웹 성능</p>
+
+<p>웹폰트는 늦게 로드되면 글자가 뒤늦게 바뀌며(FOUT) 레이아웃이 흔들립니다. <code>preload</code>로 핵심 폰트를 미리 불러오면 텍스트 표시를 앞당기고 이동을 줄일 수 있습니다.</p>
+
+<h2>preload 기본 문법</h2>
+<p>문서 <code>&lt;head&gt;</code> 상단에 아래처럼 선언합니다. 브라우저가 폰트를 우선순위 높게 미리 받아 둡니다.</p>
+<pre>&lt;link rel="preload" href="/fonts/pretendard.woff2"
+  as="font" type="font/woff2" crossorigin&gt;</pre>
+<p><code>crossorigin</code> 속성은 폰트 요청에 필수입니다. 빠뜨리면 preload가 재사용되지 않고 폰트를 두 번 받게 됩니다.</p>
+
+<h2>무엇을 preload할지 고르기</h2>
+<p>모든 폰트를 preload하면 오히려 초기 대역폭을 잡아먹습니다. <b>첫 화면에 실제로 쓰이는 서브셋 한두 개</b>만 골라야 효과가 큽니다. 굵기별로 파일이 나뉜다면 본문에 쓰는 Regular와 제목용 Bold 정도로 제한하는 것이 좋습니다.</p>
+
+<h2>font-display와 함께 쓰기</h2>
+<p>preload는 <code>@font-face</code>의 <code>font-display</code> 설정과 함께 동작합니다. <code>swap</code>은 폰트가 늦어도 기본 폰트로 먼저 보여 주고, <code>optional</code>은 조금이라도 늦으면 웹폰트를 포기해 레이아웃 이동을 원천 차단합니다. CLS가 중요하면 <code>optional</code>을, 브랜드 폰트 노출이 중요하면 <code>swap</code>을 택하세요.</p>
+
+<h2>결론</h2>
+<p>핵심 폰트만 골라 <code>crossorigin</code>과 함께 preload하고, <code>font-display</code>를 목적에 맞게 설정하면 텍스트가 빠르고 안정적으로 표시됩니다. 작은 설정 하나가 체감 속도를 크게 바꿉니다.</p>
+
+<hr>
+<p class="muted"><a href="/blog/">← 블로그 목록</a></p>
+</body></html>

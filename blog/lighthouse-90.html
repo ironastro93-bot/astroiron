@@ -1,0 +1,34 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lighthouse 90점 달성 사례 — AstroIron 개발 일지 · AstroIron</title>
+<meta name="description" content="AstroIron 페이지를 Lighthouse 90점 이상으로 끌어올린 과정을 기록합니다. 이미지·폰트·자바스크립트 최적화의 실제 적용 사례.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://astroiron.com/blog/lighthouse-90.html">
+<style>
+body{font-family:'Noto Sans KR',system-ui,sans-serif;max-width:760px;margin:0 auto;padding:28px 20px 72px;color:#1D2025;line-height:1.85;font-size:15px;background:#fff}
+h1{font-size:24px;margin:0 0 6px;letter-spacing:-.01em}h2{font-size:17px;margin:26px 0 8px}
+.muted{color:#6B7280;font-size:13px}a{color:#2B3A55}hr{border:none;border-top:1px solid #E8EAEE;margin:20px 0}
+nav a{margin-right:14px;font-size:13px}p{margin:0 0 12px}
+code{background:#F1F3F6;padding:2px 6px;border-radius:5px;font-size:13px}
+</style></head><body>
+<nav><a href="/">홈</a><a href="/blog/">블로그</a><a href="/about.html">소개</a><a href="/contact.html">문의하기</a></nav>
+<hr>
+<h1>Lighthouse 90점 달성 사례 — AstroIron 개발 일지</h1>
+<p class="muted">2026-07-13 · 웹 성능 · 개발 일지</p>
+
+<p>AstroIron을 만들며 초기 모바일 Lighthouse 성능 점수는 60점대에 머물렀습니다. 무거운 스크립트와 최적화되지 않은 이미지가 원인이었습니다. 몇 가지 원칙을 순서대로 적용해 90점 이상으로 끌어올린 과정을 기록합니다.</p>
+
+<h2>1단계 — 이미지와 레이아웃</h2>
+<p>가장 먼저 손댄 것은 이미지였습니다. 배경과 아이콘을 WebP·SVG로 교체하고, 모든 이미지에 명시적 크기를 지정해 레이아웃 이동을 없앴습니다. 이 작업만으로 LCP가 크게 빨라지고 CLS가 0.1 이하로 떨어졌습니다. 동적으로 나타나는 카드 영역에는 스켈레톤을 넣어 공간을 미리 예약했습니다.</p>
+
+<h2>2단계 — 폰트와 렌더링</h2>
+<p>웹폰트는 첫 화면에 쓰는 서브셋만 <code>preload</code>하고, 나머지는 지연시켰습니다. <code>font-display</code>를 조정해 폰트 교체로 인한 깜빡임과 이동을 줄였습니다. 인라인 CSS를 최소화하고 초기 렌더에 필요 없는 스타일은 뒤로 미뤄, 첫 페인트 시점을 앞당겼습니다.</p>
+
+<h2>3단계 — 자바스크립트 다이어트</h2>
+<p>가장 큰 개선은 스크립트 정리에서 나왔습니다. 당장 필요 없는 코드를 동적 import로 분할하고, 외부 위젯을 상호작용 이후로 미뤘습니다. 사용하지 않는 라이브러리를 제거하니 번들이 가벼워지며 TBT가 눈에 띄게 줄었습니다. 폴링 주기도 화면이 보일 때만 동작하도록 손봤습니다.</p>
+
+<h2>결론</h2>
+<p>이미지 → 폰트 → 자바스크립트 순으로 병목을 하나씩 제거하자 점수는 자연스럽게 90점을 넘었습니다. 핵심 교훈은 단순합니다. <b>측정하고, 가장 큰 병목부터 고치고, 다시 측정하라.</b> 화려한 기법보다 이 반복이 성능을 만듭니다.</p>
+
+<hr>
+<p class="muted"><a href="/blog/">← 블로그 목록</a></p>
+</body></html>
