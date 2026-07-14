@@ -50,7 +50,13 @@
   body{background:var(--bg);color:var(--ink);font-family:'Noto Sans KR','Inter',sans-serif;transition:background .2s,color .2s}
   button{font-family:inherit;cursor:pointer}
   input:focus{outline:none;border-color:var(--steel)!important}
-  input:focus-visible,button:focus-visible{outline:2px solid var(--steel);outline-offset:2px}
+  input:focus-visible,button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--steel);outline-offset:2px;border-radius:6px}
+  .skiplink{position:absolute;left:8px;top:-48px;z-index:200;background:var(--charcoal);color:var(--bg);padding:9px 16px;border-radius:0 0 10px 10px;font-size:13px;font-weight:700;text-decoration:none;transition:top .18s}
+  .skiplink:focus{top:0}
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+    .marquee-track{animation:none!important}
+  }
   .wrap{max-width:900px;margin:0 auto;padding:28px 24px 72px;position:relative;z-index:1}
   .num{font-family:'Inter',sans-serif}
   #sky{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
@@ -287,9 +293,10 @@
 <body>
 <div id="sky"><div class="neb"></div><svg id="stars" style="position:absolute;top:0;left:0;width:100%;height:400px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice"></svg><div id="particles"></div></div>
 
+<a href="#app" class="skiplink">본문 바로가기</a>
 <nav>
   <div class="navin">
-    <div onclick="goHome()" style="display:flex;align-items:center;gap:10px;cursor:pointer" title="홈으로"><div class="logo">AI</div><span class="brand">ASTRO IRON</span></div>
+    <div onclick="goHome()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goHome()}" role="button" tabindex="0" aria-label="ASTRO IRON 홈으로" style="display:flex;align-items:center;gap:10px;cursor:pointer" title="홈으로"><div class="logo">AI</div><span class="brand">ASTRO IRON</span></div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
       <button class="icon-btn" id="bellBtn" title="가격 알림" aria-label="가격 알림" onclick="switchView('alerts')" style="position:relative"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="bellDot" style="display:none;position:absolute;top:3px;right:3px;min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:var(--up);color:#fff;font-size:9px;font-weight:800;line-height:15px;text-align:center;font-family:'Inter',sans-serif;box-shadow:0 0 0 2px var(--card)"></span></button><button class="icon-btn" id="themeBtn" title="다크 모드" aria-label="다크 모드 전환">◐</button>
       <button id="authBtn" class="icon-btn" style="display:none;width:auto;padding:0 10px;font-size:12px;font-weight:700"></button>
@@ -409,7 +416,7 @@ function proTeaser(){
 function adUnit(){
   if(!ADSENSE_CLIENT||!ADSENSE_SLOT){const cb=(typeof coupangBanner==="function")?coupangBanner():"";return cb||'<div class="adbox">광고 영역 · Premium에서 제거됩니다</div>';}
   requestAnimationFrame(()=>requestAnimationFrame(flushAds));
-  return `<div class="adbox" style="padding:8px;min-height:120px"><span style="font-size:10px;color:var(--faint);letter-spacing:.12em;display:block;margin-bottom:4px">SPONSORED</span><ins class="adsbygoogle" style="display:block;min-height:100px" data-ad-client="${ADSENSE_CLIENT}" data-ad-slot="${ADSENSE_SLOT}" data-ad-format="auto" data-full-width-responsive="true"></ins></div>`;
+  return `<div class="adbox" style="padding:8px;min-height:120px"><span style="font-size:10px;color:var(--faint);letter-spacing:.12em;display:block;margin-bottom:4px">광고</span><ins class="adsbygoogle" style="display:block;min-height:100px" data-ad-client="${ADSENSE_CLIENT}" data-ad-slot="${ADSENSE_SLOT}" data-ad-format="auto" data-full-width-responsive="true"></ins></div>`;
 }
 // 화면에 실제로 붙었고(폭>0) 아직 광고가 채워지지 않은 ins만 안전하게 push
 function flushAds(){
@@ -478,6 +485,15 @@ async function aiApi(task,context,question,history){
     if(!res.ok||d.aiUnavailable)return{aiUnavailable:true,...d};
     return d;
   }catch{return{aiUnavailable:true}}
+}
+// 무료 번역(LLM 미사용) — /api/translate (Google 무키 → MyMemory 폴백)
+async function transApi(titles){
+  try{
+    const res=await fetch("/api/translate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({titles})});
+    if(res.status===404)return{items:[],notDeployed:true};
+    const d=await res.json().catch(()=>({items:[]}));
+    return d&&Array.isArray(d.items)?d:{items:[]};
+  }catch{return{items:[]}}
 }
 
 let state={view:"home",symbol:"",tab:"overview",data:null,loading:false,error:null,period:"1d",ind:{vol:true,ma:false,ema:false,boll:false,vwap:false,rsi:false,macd:false}};
@@ -1089,7 +1105,7 @@ function volFmt(v){if(v==null)return "—";if(v>=1e8)return (v/1e8).toFixed(2)+"
 function rankRow(x,i){const rank=i+1,up=x.changePercent>=0;const rc=rank===1?"#F5C451":rank<=3?"var(--steel)":"var(--faint)";const arrow=x.changePercent==null?"—":(up?"▲":"▼");
   return `<div class="rankrow" onclick="loadStock('${x.symbol}')"><span class="rk" style="color:${rc}">${rank}</span><div style="flex:1;min-width:0"><div class="tk">${esc(x.symbol)}</div><div class="nm">${esc(x.name)}</div></div><div style="text-align:right"><div class="vol"><span class="vlab">거래량</span> ${volFmt(x.volume)}</div><div class="chg">${x.changePercent!=null?`<span style="color:${up?"var(--up)":"var(--down)"}">${arrow} ${fmt(Math.abs(x.changePercent),1)}%</span>`:'<span style="color:var(--faint)">—</span>'}</div></div></div>`;
 }
-function rankAd(){const t=(window._rankAll||[])[0];return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;margin:10px 14px;border-radius:10px;border:1px solid color-mix(in srgb,#22C55E 35%,var(--line));background:color-mix(in srgb,#22C55E 7%,transparent)"><div style="flex:1;min-width:0"><div style="font-size:9.5px;font-weight:800;letter-spacing:.1em;color:var(--faint);text-transform:uppercase">Sponsored</div><div style="font-size:13.5px;font-weight:700;margin-top:1px">지금 가장 활발한 종목${t?" · "+esc(t.symbol):""}</div></div><button class="btn-g" style="color:#16a34a;border-color:#22C55E;white-space:nowrap" onclick="${t?`loadStock('${t.symbol}')`:""}">확인하기</button></div>`}
+function rankAd(){const t=(window._rankAll||[])[0];return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;margin:10px 14px;border-radius:10px;border:1px solid color-mix(in srgb,#22C55E 35%,var(--line));background:color-mix(in srgb,#22C55E 7%,transparent)"><div style="flex:1;min-width:0"><div style="font-size:9.5px;font-weight:800;letter-spacing:.1em;color:var(--faint);text-transform:uppercase">광고</div><div style="font-size:13.5px;font-weight:700;margin-top:1px">지금 가장 활발한 종목${t?" · "+esc(t.symbol):""}</div></div><button class="btn-g" style="color:#16a34a;border-color:#22C55E;white-space:nowrap" onclick="${t?`loadStock('${t.symbol}')`:""}">확인하기</button></div>`}
 function renderRank(list){
   const el=document.getElementById("dashRank");if(!el)return;
   if(list)window._rankAll=list;const all=window._rankAll||[];
@@ -1276,12 +1292,14 @@ function newsAiArea(it,idx){
 }
 function newsCard(it,idx,big){
   const rel=(it.related||[]).map(t=>`<button onclick="event.stopPropagation();loadStock('${esc(t)}')" style="font-size:10.5px;font-weight:700;font-family:Inter;color:var(--steel);background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 7px;cursor:pointer">${esc(t)}</button>`).join(" ");
-  const meta=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--faint);margin-top:7px"><span class="pill" style="font-size:10px;background:color-mix(in srgb,var(--steel) 12%,transparent);color:var(--steel)">${esc(it.category)}</span>${(it._sent||it.sentiment)?newsSentBadge(it._sent||it.sentiment):""}${it._impact?newsImpactBadge(it._impact):""}<span style="font-weight:600;color:var(--sub)">${esc(it.source||"")}</span><span>·</span><span>${relTime(it.datetime)}</span></div>`;
+  const meta=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--faint);margin-top:7px"><span class="pill" style="font-size:10px;background:color-mix(in srgb,var(--steel) 12%,transparent);color:var(--steel)">${esc(newsCatKo(it.category))}</span>${(it._sent||it.sentiment)?newsSentBadge(it._sent||it.sentiment):""}${it._impact?newsImpactBadge(it._impact):""}<span style="font-weight:600;color:var(--sub)">${esc(it.source||"")}</span><span>·</span><span>${relTime(it.datetime)}</span></div>`;
   const thumb=it.image?`<img src="${esc(it.image)}" alt="" loading="lazy" onerror="this.style.display='none'" style="${big?"width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-bottom:10px":"width:66px;height:66px;object-fit:cover;border-radius:9px;flex-shrink:0"}"/>`:"";
   const inner=`${big&&thumb?thumb:""}<a href="${esc(it.url)}" target="_blank" rel="noreferrer" class="newslink">${(state.newsKo&&it._ko)?`<div style="font-size:${big?"16.5px":"14.5px"};font-weight:700;line-height:1.4">${esc(it._ko)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:3px;line-height:1.4" class="clamp3">${esc(it.title)}</div>`:`<div style="font-size:${big?"17px":"14.5px"};font-weight:700;line-height:1.4" class="${big?"":"clamp3"}">${esc(it.title)}</div>`}</a>${meta}`;
   const bodyHtml=big?inner:`<div style="display:flex;gap:12px;align-items:flex-start">${thumb}<div style="flex:1;min-width:0">${inner}</div></div>`;
-  return `<div class="card" style="margin-bottom:12px${big?";border-left:4px solid var(--steel)":""}"><div style="padding:${big?"18px 20px":"14px 18px"}">${big?'<div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--steel);margin-bottom:6px">TOP NEWS</div>':""}${bodyHtml}${rel?`<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${rel}</div>`:""}<div id="nai_${idx}" style="margin-top:10px">${newsAiArea(it,idx)}</div><div style="margin-top:8px"><a href="${esc(it.url)}" target="_blank" rel="noreferrer" style="font-size:11px;color:var(--faint)">원문 보기 →</a></div></div></div>`;
+  return `<div class="card" style="margin-bottom:12px${big?";border-left:4px solid var(--steel)":""}"><div style="padding:${big?"18px 20px":"14px 18px"}">${big?'<div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--steel);margin-bottom:6px">주요 뉴스</div>':""}${bodyHtml}${rel?`<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${rel}</div>`:""}<div id="nai_${idx}" style="margin-top:10px">${newsAiArea(it,idx)}</div><div style="margin-top:8px"><a href="${esc(it.url)}" target="_blank" rel="noreferrer" style="font-size:11px;color:var(--faint)">원문 보기 →</a></div></div></div>`;
 }
+const NEWS_CAT_KO={"전체":"전체","Market":"시장","Earnings":"실적","Economy":"경제","Technology":"기술","AI":"AI","Crypto":"암호화폐"};
+function newsCatKo(c){return NEWS_CAT_KO[c]||c}
 function renderNews(){
   const cats=["전체","Market","Earnings","Economy","Technology","AI","Crypto"];
   const all=window._news||null;const cat=state.newsCat||"전체";const show=state.newsShow||12;
@@ -1299,7 +1317,7 @@ function renderNews(){
   }
   document.getElementById("app").innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><h1 style="margin:0">AI 뉴스 센터</h1><span class="live"><span class="live-dot"></span>LIVE</span></div>
   <p class="lede">라이선스 API 기반 · 제목·출처·시간·원문 링크만 표시하고, 요약·분석은 AI가 생성합니다.</p>
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:16px"><div style="display:flex;gap:6px;flex-wrap:wrap;overflow-x:auto">${cats.map(c=>`<button class="chip ${cat===c?"on":""}" onclick="setNewsCat('${c}')">${c}</button>`).join("")}</div><button class="chip" style="white-space:nowrap" onclick="aiNewsSentiment()">✨ 감성분석</button><button class="chip ${state.newsKo?"on":""}" style="white-space:nowrap" onclick="toggleNewsKo()">🇰🇷 한국어</button></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:16px"><div style="display:flex;gap:6px;flex-wrap:wrap;overflow-x:auto">${cats.map(c=>`<button class="chip ${cat===c?"on":""}" onclick="setNewsCat('${c}')">${newsCatKo(c)}</button>`).join("")}</div><button class="chip" style="white-space:nowrap" onclick="aiNewsSentiment()">✨ 감성분석</button><button class="chip ${state.newsKo?"on":""}" style="white-space:nowrap" onclick="toggleNewsKo()">🇰🇷 한국어</button></div>
   ${newsSentBanner()}${body}`;
 }
 window.setNewsCat=(c)=>{state.newsCat=c;state.newsShow=12;renderNews()};
@@ -1312,8 +1330,11 @@ window.toggleNewsKo=async()=>{
   if(!list.length){toast("이미 번역된 뉴스예요");return}
   toast("한국어 번역 중…");
   try{
-    const r=await aiApi("translate_news",{titles:list.map(x=>x.title)});
-    if(r&&r.items&&r.items.length){list.forEach((x,i)=>{if(r.items[i])x._ko=r.items[i]});renderNews();toast("번역 완료 ✓")}
+    const r=await transApi(list.map(x=>x.title));
+    if(r&&r.notDeployed){toast("번역 서버(api/translate)가 아직 배포되지 않았어요.");return}
+    const got=(r&&r.items)||[];
+    let n=0;list.forEach((x,i)=>{if(got[i]){x._ko=got[i];n++}});
+    if(n){renderNews();toast("번역 완료 ✓ ("+n+"건)")}
     else{toast("번역을 불러오지 못했어요. 잠시 후 다시 시도해 주세요")}
   }catch(e){toast("번역 오류 · 잠시 후 다시 시도해 주세요")}
 };
@@ -1325,7 +1346,7 @@ function startNewsPoll(){if(window._newsPoll)return;window._newsPoll=setInterval
 function stopNewsPoll(){if(window._newsPoll){clearInterval(window._newsPoll);window._newsPoll=null}}
 
 // ═══ 가격 알림 · 공유 · 딥링크 ═══
-function toast(msg){let el=document.getElementById("toast");if(!el){el=document.createElement("div");el.id="toast";el.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--charcoal);color:var(--bg);padding:12px 18px;border-radius:12px;font-size:13.5px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.35);max-width:90%;text-align:center";document.body.appendChild(el)}el.textContent=msg;el.style.opacity="1";clearTimeout(window._toastT);window._toastT=setTimeout(()=>{el.style.transition="opacity .5s";el.style.opacity="0"},5000)}
+function toast(msg){let el=document.getElementById("toast");if(!el){el=document.createElement("div");el.id="toast";el.setAttribute("role","status");el.setAttribute("aria-live","polite");el.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--charcoal);color:var(--bg);padding:12px 18px;border-radius:12px;font-size:13.5px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.35);max-width:90%;text-align:center";document.body.appendChild(el)}el.textContent=msg;el.style.opacity="1";clearTimeout(window._toastT);window._toastT=setTimeout(()=>{el.style.transition="opacity .5s";el.style.opacity="0"},5000)}
 window.reqNotif=()=>{if(window.Notification)Notification.requestPermission().then(()=>render())};
 function alertSetter(sym,name){
   const mine=getList("alerts").filter(a=>a.ticker===sym&&!a.done);
@@ -1764,7 +1785,7 @@ function paintSheet(){
   sh.className="ppSheetBg show";sh.setAttribute("onclick","if(event.target===this)closeSheet()");
   sh.innerHTML='<div id="ppSheetCard" class="ppCard">'
    +'<div class="ppGrab"></div>'
-   +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px"><div><div style="font-size:16px;font-weight:800">'+esc(nm||"주문")+(PP.ticker?' <span style="font-family:Inter;color:var(--faint);font-size:13px">'+esc(PP.ticker)+'</span>':"")+'</div><div id="ppQuoteLine" style="margin-top:2px">'+quoteLine+'</div></div><div style="text-align:right;white-space:nowrap"><span class="sessBadge '+ss.k+'">'+ss.t+'</span> <button onclick="closeSheet()" style="background:none;border:none;font-size:20px;color:var(--faint);cursor:pointer;line-height:1">×</button></div></div>'
+   +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px"><div><div style="font-size:16px;font-weight:800">'+esc(nm||"주문")+(PP.ticker?' <span style="font-family:Inter;color:var(--faint);font-size:13px">'+esc(PP.ticker)+'</span>':"")+'</div><div id="ppQuoteLine" style="margin-top:2px">'+quoteLine+'</div></div><div style="text-align:right;white-space:nowrap"><span class="sessBadge '+ss.k+'">'+ss.t+'</span> <button onclick="closeSheet()" aria-label="주문창 닫기" style="background:none;border:none;font-size:20px;color:var(--faint);cursor:pointer;line-height:1">×</button></div></div>'
    +(PP.ticker&&PP.quote?"":'<div style="margin-bottom:12px"><input id="ppTk" class="ppNum" style="text-transform:uppercase" value="'+esc(PP.ticker)+'" placeholder="티커 (예: NVDA)" autocomplete="off" onchange="ppTkChange(this.value)" onkeydown="if(event.key===\'Enter\')ppTkChange(this.value)"></div>')
    +ppMktBarHTML()
    +'<div class="ppSeg2" style="margin-bottom:10px"><button class="'+(buy?"on buy":"")+'" onclick="ppSetSide(\'buy\')">매수</button><button class="'+(!buy?"on sell":"")+'" onclick="ppSetSide(\'sell\')">매도</button></div>'
@@ -1873,7 +1894,7 @@ function renderPaper(){
   var pos=ppPos();var pend=ppPending();var ords=getList("paperOrders");
   var upPos=pnl>=0;var heroCol=todayPL>=0?"var(--up)":"var(--down)";var tab=PP.tab||"hold";
   var app=myTabs("paper")+`
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="display:flex;align-items:center;gap:8px"><h1 style="margin:0">모의투자</h1><span class="pill" style="background:color-mix(in srgb,var(--steel) 16%,transparent);color:var(--steel);font-size:10px;font-weight:800">가상 · 모의</span></div><div style="display:flex;gap:6px"><button class="btn-g" onclick="ppMute()" style="color:var(--faint);font-size:12px">${localStorage.getItem("ppMute")==="1"?"🔇":"🔊"}</button><button class="btn-g" onclick="paperReset()" style="color:var(--faint);font-size:12px">시작자금·초기화</button></div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="display:flex;align-items:center;gap:8px"><h1 style="margin:0">모의투자</h1><span class="pill" style="background:color-mix(in srgb,var(--steel) 16%,transparent);color:var(--steel);font-size:10px;font-weight:800">가상 · 모의</span></div><div style="display:flex;gap:6px"><button class="btn-g" onclick="ppMute()" aria-label="${localStorage.getItem("ppMute")==="1"?"체결음 켜기":"체결음 끄기"}" style="color:var(--faint);font-size:12px">${localStorage.getItem("ppMute")==="1"?"🔇":"🔊"}</button><button class="btn-g" onclick="paperReset()" style="color:var(--faint);font-size:12px">시작자금·초기화</button></div></div>
   <div class="ppHero">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div><span class="sessBadge ${ppSession().k}" style="margin-bottom:4px;display:inline-block">${ppSession().t}</span><div style="font-size:12.5px;opacity:.7">총 평가자산</div><div style="font-size:30px;font-weight:800;font-family:Inter;letter-spacing:-.5px">$${fmt(eq.equity,0)}</div>
@@ -1960,7 +1981,7 @@ function renderPaper(){
   }
   app+=`<p style="font-size:11px;color:var(--faint);margin:16px 2px 2px;line-height:1.6">⚠ 모의투자는 교육·연습용 가상거래입니다. 실제 현금 입출금·실물 주식 거래가 없으며, 시세는 지연·오차가 있을 수 있습니다. 「자본시장법」상 투자권유가 아닙니다.</p>
   <div style="height:78px"></div>
-  <button class="ppFab" onclick="openSheet('buy','')">＋ 주문하기</button>`;
+  <button class="ppFab" onclick="openSheet('buy','')" aria-label="새 모의 주문하기">＋ 주문하기</button>`;
   document.getElementById("app").innerHTML=app;
   if(pos.length&&!Object.keys(paperQ).length)setTimeout(()=>{if(state.view==="paper")refreshPaper()},60);
   if(tab==="discover"&&PP_UNIVERSE.some(u=>!paperQ[u[0]]))setTimeout(ppLoadUniverse,40);
@@ -2111,7 +2132,7 @@ function render(){
   if(state.view!=="home")stopHomePoll();
   if(state.view!=="news")stopNewsPoll();
   const views=[["home","홈"],["paper","모의투자"],["news","뉴스"],["board","커뮤니티"],["cal","캘린더"]];
-  document.getElementById("viewnav").innerHTML=views.map(v=>{let c="";if(v[0]==="watchlist"&&getList("watchlist").length)c=` (${getList("watchlist").length})`;if(v[0]==="alerts"){const n=getList("alerts").filter(a=>!a.done).length;if(n)c=` (${n})`}return `<button class="vitem ${state.view===v[0]?"on":""}" onclick="switchView('${v[0]}')">${v[1]}${c}</button>`}).join("");
+  document.getElementById("viewnav").innerHTML=views.map(v=>{let c="";if(v[0]==="watchlist"&&getList("watchlist").length)c=` (${getList("watchlist").length})`;if(v[0]==="alerts"){const n=getList("alerts").filter(a=>!a.done).length;if(n)c=` (${n})`}return `<button class="vitem ${state.view===v[0]?"on":""}" role="tab" aria-selected="${state.view===v[0]?"true":"false"}" onclick="switchView('${v[0]}')">${v[1]}${c}</button>`}).join("");
   {const bd=document.getElementById("bellDot");if(bd){const n=getList("alerts").filter(a=>!a.done).length;if(n){bd.textContent=n>9?"9+":String(n);bd.style.display="block"}else bd.style.display="none"}}
   const q=document.getElementById("quotaBtn");if(isPro()){q.textContent="PRO";q.className="pro"}else{q.textContent="오늘 "+Math.max(0,FREE-getUsage())+"회 · Premium";q.className=""}
   if(state.view==="home")renderHome();
