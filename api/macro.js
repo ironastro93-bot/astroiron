@@ -18,12 +18,28 @@ const SERIES = {
     ["DTWEXBGS", "달러인덱스(광의)", ""],
   ],
   commodity: [
-    ["GOLDAMGBD228NLBM", "금 ($/oz)", "$"],
-    ["SLVPRUSD", "은 ($/oz)", "$"],
+    // FRED LBMA 금·은 시리즈는 2024년 제공 중단 → Yahoo 선물(무키)로 대체
+    ["YH:GC=F", "금 ($/oz)", "$"],
+    ["YH:SI=F", "은 ($/oz)", "$"],
     ["DCOILWTICO", "WTI 유가 ($/bbl)", "$"],
     ["DHHNGSP", "천연가스 ($/MMBtu)", "$"],
   ],
 };
+
+async function yahooSeries(sym) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT);
+  try {
+    const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=1mo&interval=1d`, { headers: { "User-Agent": "Mozilla/5.0 ASTRO IRON" }, signal: ctrl.signal });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const res0 = j?.chart?.result?.[0];
+    const closes = (res0?.indicators?.quote?.[0]?.close || []).filter((v) => v != null);
+    if (closes.length < 2) return null;
+    const latest = closes[closes.length - 1], prev = closes[closes.length - 2];
+    return { latest, change: latest - prev, changePercent: prev ? ((latest - prev) / prev) * 100 : 0, spark: closes.slice(-20) };
+  } catch { return null; } finally { clearTimeout(timer); }
+}
 
 async function fetchSeries(id) {
   const ctrl = new AbortController();
@@ -65,7 +81,7 @@ export default async function handler(req, res) {
   try {
     const out = [];
     for (const [id, name, unit] of list) {
-      const d = await fetchSeries(id);
+      const d = id.startsWith("YH:") ? await yahooSeries(id.slice(3)) : await fetchSeries(id);
       out.push({ id, name, unit, ...(d || { latest: null, change: null, changePercent: null, spark: [] }) });
     }
     return res.status(200).json({ group, items: out });
