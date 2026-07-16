@@ -255,6 +255,11 @@ ONLY raw JSON, 한국어: {"summary":"3문장 시장 요약"}`;
 제목 목록(JSON): ${ctxStr}
 반드시 입력과 동일한 개수·순서로, ONLY raw JSON: {"items":["한국어번역1","한국어번역2"]}`;
       maxTokens = 1300;
+    } else if (task === "board_reply") {
+      prompt = `당신은 미국 주식 커뮤니티의 친근한 AI 봇 "아이언봇"입니다. 아래 사용자 채팅에 자연스러운 한국어로 짧게 답하세요.
+규칙: 특정 종목 매수·매도 추천, 목표가 제시는 절대 금지. 시장·용어 질문엔 초보도 알기 쉽게. 인사·잡담엔 가볍게 호응. 1~2문장, 이모지 최대 1개.
+사용자 메시지: ${String((context && context.text) || "").slice(0, 300)}`;
+      wantJson = false; maxTokens = 220;
     } else if (task === "chat") {
       const history = Array.isArray(body.history) ? body.history.slice(-6).map((m) => (m.role === "user" ? "사용자" : "AI") + ": " + String(m.text || "").slice(0, 300)).join("\n") : "";
       prompt = `당신은 투자 정보 도우미입니다. 참고 데이터와 이전 대화 맥락으로 질문에 답하세요.

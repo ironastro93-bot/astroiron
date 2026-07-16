@@ -1524,7 +1524,23 @@ window.addBoard=async()=>{
     const at=new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
     const list=getList("board");list.push({id:Date.now(),name:nick,text:v,at});setList("board",list);if(el){el.value="";el.focus()}paintBoardMsgs(true);
   }
+  boardBotReply(v);
 };
+// 커뮤니티 AI 자동 답장 (아이언봇 · NVIDIA 우선, 25초 스로틀)
+async function boardBotReply(v){
+  try{
+    if(Date.now()-(window._botAt||0)<25000)return;
+    window._botAt=Date.now();
+    const r=await aiApi("board_reply",{text:v});
+    const a=r&&r.answer&&String(r.answer).trim();if(!a||r.aiUnavailable)return;
+    const nm="아이언봇 🤖";
+    if(boardShared()){
+      await _fb.db.collection("board").add({uid:"ai-bot",name:nm,text:a,bot:true,reports:0,ts:firebase.firestore.FieldValue.serverTimestamp()});
+    }else{
+      const list=getList("board");list.push({id:Date.now(),name:nm,text:a,at:new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})});setList("board",list);paintBoardMsgs(true);
+    }
+  }catch(e){}
+}
 window.delBoard=async(id)=>{
   if(boardShared()){try{await _fb.db.collection("board").doc(String(id)).delete()}catch(e){toast("삭제 실패")}}
   else{setList("board",getList("board").filter(x=>String(x.id)!==String(id)));paintBoardMsgs(false)}
