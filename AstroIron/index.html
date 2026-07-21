@@ -293,6 +293,8 @@
   .chatbar input:focus{box-shadow:0 0 0 3px color-mix(in srgb,var(--steel) 16%,transparent)}
   .chatbar input#boardIn{flex:1;min-width:0}
   .chatbar .btn-sm{border-radius:24px;padding:11px 20px}
+  .boardRule{font-size:11.5px;line-height:1.55;color:var(--sub);background:color-mix(in srgb,var(--steel) 8%,var(--soft));border:1px solid color-mix(in srgb,var(--steel) 20%,var(--line));border-radius:12px;padding:9px 13px;margin-bottom:10px}
+  .boardRule b{color:var(--steel)}
   @media(max-width:640px){.chatwrap{height:calc(100dvh - 300px);min-height:340px;padding:10px}.ccol{max-width:84%}}
   /* ── 디자인 폴리시: 우주·스틸 테마 강화 (라이트/다크) ── */
   .card{box-shadow:0 6px 20px rgba(20,30,60,.06),inset 0 1px 0 rgba(255,255,255,.5);transition:box-shadow .18s,transform .18s,border-color .18s}
@@ -825,7 +827,7 @@ window.runDeepAnalysis=async()=>{
 // ═══ 부적절 표현 필터 (댓글·닉네임) · 3단 분류, 목록 수정 가능 ═══
 // 원칙: 주식 대화에 쓰이는 정상어(매수/손절/폭락/서울/장애인/미친 단독 등)는 막지 않고, 명백한 표현만 차단.
 const FILTER={
-  hard:["예서","타코","공주대","김보균","이종환","게이","보털","잠털","자지털","좆털","불알","꼬추","한발빼","발빼주","빼주실","빼드림","빼드릴","원나잇","조건만남","조건녀","조건남","섹파","섹친","섹스팅","즉석만남","번개만남","애인대행","재워줄","재워주실","따먹","박아줘","박아주","성매매","출장샵","출장만남","조건있","만남원해","만남구함","섹트","야스","딸감","발정","꼴려","꼴리","음란","오랄","삽입해","애무","유두","성기노출","자위녀","알몸","나체","노예녀","노예남","걸레년","창남","후장","애널","변태새끼","한번빼","씨발","시발","씨빨","시봘","씨발놈","씨발년","좆","좆같","병신","ㅂㅅ","ㅄ","ㅅㅂ","ㄲㅈ","ㅈㄹ","지랄","염병","개새끼","개색기","개세끼","개같","썅","미친놈","미친년","닥쳐","엿먹어","또라이","등신","머저리","호로","니애미","느금마","느금","개소리","자지","보지","씹새","씹창","씹년","빨아라","박아줘","정액","오르가즘","섹스","쎅스","야동","포르노","자위","딸딸이","따먹","걸레같","창녀","창놈","보지년","자지충","성노예","성폭행","성추행","성희롱","강간","변태","젖가슴","쓰레기같","김치녀","한남충","한녀","짱깨","쪽바리","전라디언","홍어","급식충","맘충","죽어라","죽어버려","뒤져라","자살해","fuck","fuk","shit","bitch","asshole","bastard","slut","whore","motherfucker","dickhead","cunt","faggot","nigger","nigga","retard"],
+  hard:["예서","타코","공주대","김보균","이종환","게이","보털","잠털","자지털","좆털","불알","꼬추","한발빼","발빼주","빼주실","빼드림","빼드릴","원나잇","조건만남","조건녀","조건남","섹파","섹친","섹스팅","즉석만남","번개만남","애인대행","재워줄","재워주실","따먹","박아줘","박아주","성매매","출장샵","출장만남","조건있","만남원해","만남구함","섹트","야스","딸감","발정","꼴려","꼴리","음란","오랄","삽입해","애무","유두","성기노출","자위녀","알몸","나체","노예녀","노예남","걸레년","창남","후장","애널","변태새끼","한번빼","씨발","시발","씨빨","시봘","씨발놈","씨발년","좆","좆같","병신","ㅂㅅ","ㅄ","ㅅㅂ","ㄲㅈ","ㅈㄹ","지랄","염병","개새끼","개색기","개세끼","개같","썅","미친놈","미친년","닥쳐","엿먹어","또라이","등신","머저리","호로","니애미","느금마","느금","개소리","자지","보지","씹새","씹창","씹년","빨아라","박아줘","정액","오르가즘","섹스","쎅스","야동","포르노","자위","딸딸이","따먹","걸레같","창녀","창놈","보지년","자지충","성노예","성폭행","성추행","성희롱","강간","변태","젖가슴","쓰레기같","김치녀","한남충","한녀","짱깨","쪽바리","전라디언","홍어","급식충","맘충","죽어라","죽어버려","뒤져라","자살해","fuck","fuk","shit","bitch","asshole","bastard","slut","whore","motherfucker","dickhead","cunt","faggot","nigger","nigga","retard","짬냄","짬내","짭새","꺼져라","꺼져버려","닥치라","닥치고","엿같","좇같","시1발","시바알","ㅆㅂ","ㅈㄴ","존나","존내","빡치네","좆밥","ㄱㅁㄸ","개마따","니미","닝겐","꺼지라"],
   spam:["카톡","오픈채팅","오픈카톡","카카오톡","텔레그램","텔레그람","디스코드","초대코드","입장코드","수익인증","수익률인증","리딩방","종목추천방","무료리딩","vip방","단톡방"],
   invest:["무조건오른다","무조건간다","무조건상한가","무조건매수","지금사라","지금사세요","풀매수","몰빵","영끌매수","10배간다","열배간다","상한가간다","떡상간다","강력매수","매수하세요","매도하세요","팔아라","사라고","존버가즈아"]
 };
@@ -1495,6 +1497,7 @@ function boardAgreed(){try{return localStorage.getItem("boardAgreed")==="1"}catc
 window.agreeBoard=()=>{try{localStorage.setItem("boardAgreed","1")}catch(e){}render();};
 function renderBoard(){
   const app=document.getElementById("app");if(!app)return;
+  try{initFirebase()}catch(e){}
   if(!boardAgreed()){
     app.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><h1 style="margin:0;font-size:20px">커뮤니티</h1></div>'+'<div class="card" style="padding:20px"><div style="font-size:15px;font-weight:800;margin-bottom:10px">커뮤니티 이용 동의</div>'+'<ul style="margin:0 0 14px;padding-left:18px;font-size:13px;line-height:1.8;color:var(--sub)">'+'<li>본 커뮤니티은 이용자 간 자유 게시 공간이며, ASTRO IRON의 공식 의견이 아닙니다.</li>'+'<li>모든 게시물의 내용과 책임은 <b>작성자 본인</b>에게 있으며, ASTRO IRON은 이용자 게시물에 대해 책임지지 않습니다.</li>'+'<li>모욕·명예훼손·허위정보·음란물·성적 유도·투자 권유·광고·타인 개인정보 게시는 금지되며, 위반 시 삭제·이용 제한 및 관련 법령에 따른 책임이 발생할 수 있습니다.</li>'+'<li>본 서비스는 만 14세 이상 이용을 권장하며, 청소년 유해정보 게시를 금지합니다. 신고 누적 시 자동으로 숨김 처리됩니다.</li>'+'</ul>'+'<div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn-g" href="/community-policy.html" target="_blank" rel="noreferrer" style="border:1.5px solid var(--line-d);border-radius:10px;padding:9px 14px;color:var(--sub)">운영정책 보기</a><button class="btn" onclick="agreeBoard()">동의하고 시작하기</button></div>'+'<div style="font-size:11px;color:var(--faint);margin-top:10px">동의 시 위 내용에 동의한 것으로 간주됩니다.</div></div>';
     return;
@@ -1507,6 +1510,7 @@ function renderBoard(){
     ? '<div class="chatbar"><input id="boardIn" maxlength="300" placeholder="메시지 입력…" style="flex:1;min-width:0" onkeydown="if(event.key===\'Enter\')addBoard()"/><button class="btn-sm" onclick="addBoard()">전송</button></div>'
     : '<div class="chatbar"><input id="nickSet" maxlength="16" placeholder="닉네임을 정해주세요 (2~16자)" style="flex:1;min-width:0" onkeydown="if(event.key===\'Enter\')setNick()"/><button class="btn-sm" onclick="setNick()">시작</button></div>';
   app.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:2px"><h1 style="margin:0;font-size:20px">커뮤니티</h1>'+badge+nickChip+'</div>'+'<p class="lede" style="margin:0 0 12px">미국 주식 투자자들의 실시간 라운지 🚀</p>'
+    +'<div class="boardRule">🤖 <b>아이언봇 안내</b> · 욕설·모욕·성적 표현·투자 권유는 <b>자동 차단·삭제 대상</b>입니다. 신고가 쌓인 글은 즉시 사라집니다.</div>'
     +'<div class="chatwrap"><div id="chatmsgs" class="chatmsgs"></div>'+composer+'</div>'
     +'<div style="font-size:11px;color:var(--faint);margin-top:8px;text-align:center">공식 의견 아님 · 부적절 표현 자동 차단 · <a href="/community-policy.html" target="_blank" rel="noreferrer" style="color:var(--sub)">운영정책</a></div>'+bottomAds();
   paintBoardMsgs(true);
@@ -1529,10 +1533,12 @@ window.addBoard=async()=>{
 // 커뮤니티 AI 자동 답장 (아이언봇 · NVIDIA 우선, 25초 스로틀)
 async function boardBotReply(v){
   try{
-    if(Date.now()-(window._botAt||0)<25000)return;
+    if(Date.now()-(window._botAt||0)<8000)return;
     window._botAt=Date.now();
-    const r=await aiApi("board_reply",{text:v});
-    const a=r&&r.answer&&String(r.answer).trim();if(!a||r.aiUnavailable)return;
+    var a;
+    const soft=/씨발|시발|병신|ㅅㅂ|ㅂㅅ|좆|지랄|염병|개새|미친놈|미친년|닥쳐|엿먹|자지|보지|짬냄|꺼져|존나|모욕|욕설/.test(String(v));
+    if(soft){a="⚠️ 방금 표현은 커뮤니티 금지 대상이에요. 욕설·모욕·성적 표현·투자 권유는 자동 차단·삭제되며 이용이 제한될 수 있어요. 서로 존중하는 대화 부탁드려요 🙏";}
+    else{const r=await aiApi("board_reply",{text:v});a=r&&r.answer&&String(r.answer).trim();if(!a||r.aiUnavailable)return;}
     const nm="아이언봇 🤖";
     if(boardShared()){
       await _fb.db.collection("board").add({uid:"ai-bot",name:nm,text:a,bot:true,reports:0,ts:firebase.firestore.FieldValue.serverTimestamp()});
@@ -1552,7 +1558,9 @@ window.reportBoard=async(id)=>{
   if(!boardShared())return;
   const rep=getList("boardReported");if(rep.includes(id))return; // 이 기기 중복 신고 방지
   setListLocal("boardReported",[...rep,id]);
-  try{var ref=_fb.db.collection("board").doc(String(id));var snap=await ref.get();var cur=(snap.exists&&snap.data().reports)||0;await ref.update({reports:cur+1})}catch(e){}
+  try{var ref=_fb.db.collection("board").doc(String(id));var snap=await ref.get();var cur=(snap.exists&&snap.data().reports)||0;var next=cur+1;
+    if(next>=2){try{await ref.delete()}catch(e){await ref.update({reports:next})}}else{await ref.update({reports:next})}
+  }catch(e){}
 };
 // ═══ 뷰: 캘린더 (월 그리드 · 경제일정 + 개인일정) ═══
 function renderMyCal(){
@@ -2297,7 +2305,8 @@ function _boot(){
   try{ initAds() }catch(e){}
   try{ if("serviceWorker" in navigator){navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister()})}).catch(function(){})} }catch(e){}
   try{ updateAuthUI() }catch(e){}
-  try{ initFirebase() }catch(e){}
+  // Firebase(약 700KiB)는 초기 렌더를 막지 않도록 유휴 시점에 로드 (커뮤니티 진입 시엔 즉시)
+  try{ const fbIdle=()=>{try{initFirebase()}catch(e){}}; if(state.view==="board")fbIdle(); else if("requestIdleCallback" in window)requestIdleCallback(fbIdle,{timeout:6000}); else setTimeout(fbIdle,3500) }catch(e){}
 }
 if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",_boot)}else{_boot()}
 </script>

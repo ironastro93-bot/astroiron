@@ -19,7 +19,7 @@ const STATIC_FALLBACK = [
 let goodModel = null;
 let discovered = null;
 let lastProvider = null;
-const TIMEOUT = 45000;
+const TIMEOUT = 18000;
 
 // ── 남용 방지: IP당 분당 요청 제한 ──
 const _rl = new Map();
@@ -139,17 +139,24 @@ function providerOrder() {
   return base.filter((n) => PROVIDERS[n] && PROVIDERS[n].available());
 }
 // 우선 Provider부터 시도 → 실패하면 다음 Provider로 자동 폴백
+// 실패한 Provider는 10분간 건너뜀(웜 인스턴스 기준) → 매 요청마다 타임아웃 대기하는 문제 방지
+const PROV_COOLDOWN = 10 * 60 * 1000;
+const provFail = {};
 async function callModel(prompt, maxTokens) {
   const order = providerOrder();
   if (!order.length) throw { code: 503, msg: "AI 키가 설정되지 않았어요." };
+  let effective = order.filter((n) => !provFail[n] || Date.now() - provFail[n] > PROV_COOLDOWN);
+  if (!effective.length) effective = order;
   let last = { code: 502, msg: "AI 오류" };
-  for (const name of order) {
+  for (const name of effective) {
     try {
       const text = await PROVIDERS[name].call(prompt, maxTokens);
       lastProvider = name;
+      delete provFail[name];
       return text;
     } catch (e) {
       last = { code: e.code || 502, msg: e.msg || String(e) };
+      provFail[name] = Date.now();
       console.error("[ai] provider '" + name + "' 실패 → 폴백 시도", last.code, String(last.msg).slice(0, 140));
     }
   }
