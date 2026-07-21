@@ -58,6 +58,9 @@
     .marquee-track{animation:none!important}
   }
   .wrap{max-width:900px;margin:0 auto;padding:28px 24px 72px;position:relative;z-index:1}
+  #app{min-height:88vh}
+  .adbox,.adsbygoogle{min-height:120px;display:block}
+  img{height:auto}
   .num{font-family:'Inter',sans-serif}
   #sky{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
   #sky .neb{position:absolute;top:0;left:0;right:0;height:420px;background:radial-gradient(ellipse 90% 60% at 15% -10%,rgba(43,58,85,.15),transparent 60%),radial-gradient(ellipse 70% 50% at 85% -15%,rgba(90,70,140,.09),transparent 60%),linear-gradient(180deg,rgba(24,32,52,.09) 0%,rgba(255,255,255,0) 85%)}
@@ -1554,12 +1557,10 @@ window.delBoard=async(id)=>{
 window.hideBoard=(id)=>{const h=getList("boardHidden");if(!h.includes(id))setListLocal("boardHidden",[...h,id]);toast("내 화면에서 숨겼어요");paintBoardMsgs(false)};
 window.reportBoard=async(id)=>{
   const h=getList("boardHidden");if(!h.includes(id))setListLocal("boardHidden",[...h,id]);
-  toast("신고 접수 · 이 메시지를 숨겼어요");paintBoardMsgs(false);
+  toast("신고 완료 · 메시지를 삭제했어요");paintBoardMsgs(false);
   if(!boardShared())return;
-  const rep=getList("boardReported");if(rep.includes(id))return; // 이 기기 중복 신고 방지
-  setListLocal("boardReported",[...rep,id]);
-  try{var ref=_fb.db.collection("board").doc(String(id));var snap=await ref.get();var cur=(snap.exists&&snap.data().reports)||0;var next=cur+1;
-    if(next>=2){try{await ref.delete()}catch(e){await ref.update({reports:next})}}else{await ref.update({reports:next})}
+  try{var ref=_fb.db.collection("board").doc(String(id));
+    try{await ref.delete()}catch(e){var snap=await ref.get();var cur=(snap.exists&&snap.data().reports)||0;await ref.update({reports:cur+1})}
   }catch(e){}
 };
 // ═══ 뷰: 캘린더 (월 그리드 · 경제일정 + 개인일정) ═══
