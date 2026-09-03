@@ -1971,6 +1971,7 @@ function showPro(){trackEvent("click_premium_preview",{feature:"pro_unlock",user
 function hidePro(){document.getElementById("proModal").classList.remove("show")}
 window.showPro=showPro;
 document.getElementById("quotaBtn").addEventListener("click",()=>{if(!isPro())showPro()});
+try{document.getElementById("authBtn").addEventListener("click",function(){if(_fb&&_fb.user){if(window.confirm("로그아웃할까요? (이 기기의 데이터는 남아있어요)"))fbLogout();}else{fbLogin();}})}catch(e){}
 document.getElementById("proModal").addEventListener("click",hidePro);
 document.getElementById("closeModal").addEventListener("click",hidePro);
 document.getElementById("unlockBtn").addEventListener("click",async()=>{const v=document.getElementById("proCode").value.trim().toUpperCase();if(await sha256(v)===PRO_HASH){localStorage.setItem("pro",PRO_HASH);hidePro();render()}else document.getElementById("codeErr").style.display="block"});
@@ -2006,13 +2007,34 @@ async function initFirebase(){
     await loadFirebase();
     firebase.initializeApp(FIREBASE_CONFIG);
     try{if(APPCHECK_KEY&&firebase.appCheck){firebase.appCheck().activate(APPCHECK_KEY,true)}}catch(e){}
-    _fb.db=firebase.firestore();_fb.ready=true;   // 인증 불필요 — Firestore만 사용
+    _fb.db=firebase.firestore();_fb.ready=true;
+    try{
+      _fb.auth=firebase.auth();
+      try{await _fb.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)}catch(e){}
+      _fb.auth.onAuthStateChanged(function(u){_fb.user=u||null;try{updateAuthUI()}catch(e){}if(u){try{cloudPull().then(function(){try{if(state.view!=="board")render()}catch(e){}})}catch(e){}}});
+    }catch(e){}
     try{await _fb.db.enablePersistence({synchronizeTabs:true})}catch(e){}
     try{if(state.view==="board")render()}catch(e){}
   }catch(e){}
 }
-window.fbLogin=async()=>{toast("로그인 없이 바로 사용돼요")};
-window.fbLogout=async()=>{};
+window.fbLogin=async()=>{
+  if(!fbEnabled()){toast("로그인 설정이 준비되지 않았어요");return}
+  if(!_fb.ready){await initFirebase()}
+  if(!_fb.auth){toast("로그인을 초기화하지 못했어요");return}
+  try{
+    var provider=new firebase.auth.GoogleAuthProvider();provider.setCustomParameters({prompt:"select_account"});
+    await _fb.auth.signInWithPopup(provider);
+    toast("로그인됐어요 · 기기 간 동기화가 켜졌어요 ☁️");
+  }catch(e){
+    var c=(e&&e.code)||"";
+    if(c==="auth/operation-not-allowed")toast("운영자 설정 필요: Firebase 콘솔 > Authentication에서 Google 로그인을 켜주세요");
+    else if(c==="auth/unauthorized-domain")toast("운영자 설정 필요: Firebase 승인된 도메인에 astroiron.com 추가");
+    else if(c==="auth/popup-closed-by-user"||c==="auth/cancelled-popup-request"){}
+    else if(c==="auth/popup-blocked"){try{await _fb.auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider())}catch(_){toast("팝업이 차단됐어요. 팝업 허용 후 다시 시도해 주세요")}}
+    else toast("로그인 실패 · 잠시 후 다시 시도해 주세요");
+  }
+};
+window.fbLogout=async()=>{try{if(_fb.auth)await _fb.auth.signOut();_fb.user=null;try{updateAuthUI()}catch(e){}toast("로그아웃됐어요")}catch(e){}};
 window.enablePush=async()=>{
   if(!fbEnabled()||!FCM_VAPID_KEY){toast("푸시 설정이 아직 준비되지 않았어요(관리자 VAPID 키 필요)");return}
   if(!_fb.ready){await initFirebase()}
@@ -2035,7 +2057,7 @@ function mergeLists(k,inc){
 async function cloudPull(){try{const doc=await _fb.db.collection("users").doc(_fb.user.uid).get();const d=(doc.exists&&doc.data().data)||{};["watchlist","portfolio","alerts","econRemind","mycal"].forEach(k=>mergeLists(k,d[k]));await cloudPush()}catch(e){}}
 let _cloudT;function cloudPushDebounced(){if(!_fb.ready||!_fb.user)return;clearTimeout(_cloudT);_cloudT=setTimeout(cloudPush,1500)}
 async function cloudPush(){if(!_fb.ready||!_fb.user)return;try{await _fb.db.collection("users").doc(_fb.user.uid).set({data:{watchlist:getList("watchlist"),portfolio:getList("portfolio"),alerts:getList("alerts"),econRemind:getList("econRemind"),mycal:getList("mycal"),updatedAt:firebase.firestore.FieldValue.serverTimestamp()}},{merge:true})}catch(e){}}
-function updateAuthUI(){const el=document.getElementById("authBtn");if(el)el.style.display="none"}
+function updateAuthUI(){var el=document.getElementById("authBtn");if(!el)return;if(_fb&&_fb.user){var nm=_fb.user.displayName||_fb.user.email||"내 계정";el.textContent="☁ "+String(nm).split(" ")[0].slice(0,10);el.title="클릭하면 로그아웃";}else{el.textContent="로그인";el.title="Google로 로그인 · 기기 간 동기화";}el.style.display=""}
 // ═══ 시작(부트) · 방탄 ═══
 try{window.addEventListener("hashchange",()=>{if(_hashGuard)return;routeFromHash()})}catch(e){}
 window._deferredPrompt=null;
