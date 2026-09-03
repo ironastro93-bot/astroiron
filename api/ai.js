@@ -19,7 +19,7 @@ const STATIC_FALLBACK = [
 let goodModel = null;
 let discovered = null;
 let lastProvider = null;
-const TIMEOUT = 18000;
+const TIMEOUT = 45000;
 
 // ── 남용 방지: IP당 분당 요청 제한 ──
 const _rl = new Map();
@@ -139,24 +139,17 @@ function providerOrder() {
   return base.filter((n) => PROVIDERS[n] && PROVIDERS[n].available());
 }
 // 우선 Provider부터 시도 → 실패하면 다음 Provider로 자동 폴백
-// 실패한 Provider는 10분간 건너뜀(웜 인스턴스 기준) → 매 요청마다 타임아웃 대기하는 문제 방지
-const PROV_COOLDOWN = 10 * 60 * 1000;
-const provFail = {};
 async function callModel(prompt, maxTokens) {
   const order = providerOrder();
   if (!order.length) throw { code: 503, msg: "AI 키가 설정되지 않았어요." };
-  let effective = order.filter((n) => !provFail[n] || Date.now() - provFail[n] > PROV_COOLDOWN);
-  if (!effective.length) effective = order;
   let last = { code: 502, msg: "AI 오류" };
-  for (const name of effective) {
+  for (const name of order) {
     try {
       const text = await PROVIDERS[name].call(prompt, maxTokens);
       lastProvider = name;
-      delete provFail[name];
       return text;
     } catch (e) {
       last = { code: e.code || 502, msg: e.msg || String(e) };
-      provFail[name] = Date.now();
       console.error("[ai] provider '" + name + "' 실패 → 폴백 시도", last.code, String(last.msg).slice(0, 140));
     }
   }
@@ -262,11 +255,6 @@ ONLY raw JSON, 한국어: {"summary":"3문장 시장 요약"}`;
 제목 목록(JSON): ${ctxStr}
 반드시 입력과 동일한 개수·순서로, ONLY raw JSON: {"items":["한국어번역1","한국어번역2"]}`;
       maxTokens = 1300;
-    } else if (task === "board_reply") {
-      prompt = `당신은 미국 주식 커뮤니티의 친근한 AI 봇 "아이언봇"입니다. 아래 사용자 채팅에 자연스러운 한국어로 짧게 답하세요.
-규칙: 특정 종목 매수·매도 추천, 목표가 제시는 절대 금지. 시장·용어 질문엔 초보도 알기 쉽게. 인사·잡담엔 가볍게 호응. 1~2문장, 이모지 최대 1개.
-사용자 메시지: ${String((context && context.text) || "").slice(0, 300)}`;
-      wantJson = false; maxTokens = 220;
     } else if (task === "chat") {
       const history = Array.isArray(body.history) ? body.history.slice(-6).map((m) => (m.role === "user" ? "사용자" : "AI") + ": " + String(m.text || "").slice(0, 300)).join("\n") : "";
       prompt = `당신은 투자 정보 도우미입니다. 참고 데이터와 이전 대화 맥락으로 질문에 답하세요.

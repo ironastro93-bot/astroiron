@@ -25,6 +25,57 @@ async function fh(path) {
   } finally { t.done(); }
 }
 
+
+// ── 세계 뉴스: Google News RSS (무료·무키) · 나라별 정치(NATION)+경제(BUSINESS) ──
+const GNEWS_ED = {
+  US:["en-US","US","US:en"], KR:["ko","KR","KR:ko"], JP:["ja","JP","JP:ja"],
+  CN:["zh-CN","CN","CN:zh-Hans"], GB:["en-GB","GB","GB:en"], DE:["de","DE","DE:de"],
+  FR:["fr","FR","FR:fr"], IN:["en-IN","IN","IN:en"], TW:["zh-TW","TW","TW:zh-Hant"],
+  CA:["en-CA","CA","CA:en"], AU:["en-AU","AU","AU:en"], BR:["pt-BR","BR","BR:pt-419"]
+};
+async function fetchText(url) {
+  const t = withTimeout();
+  try { const r = await fetch(url, { signal: t.signal, headers: UA }); if (!r.ok) return ""; return await r.text(); }
+  catch { return ""; } finally { t.done(); }
+}
+function decodeEnt(x) {
+  return (x || "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&#x27;/g, "'")
+    .replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").trim();
+}
+function parseGNews(xml, category) {
+  const out = []; const chunks = String(xml || "").split("<item>").slice(1);
+  for (const c of chunks) {
+    const g = (re) => { const m = c.match(re); return m ? decodeEnt(m[1]) : ""; };
+    let title = g(/<title>([\s\S]*?)<\/title>/);
+    const link = g(/<link>([\s\S]*?)<\/link>/);
+    const pub = g(/<pubDate>([\s\S]*?)<\/pubDate>/);
+    const source = g(/<source[^>]*>([\s\S]*?)<\/source>/);
+    if (!title || !link) continue;
+    if (source && title.endsWith(" - " + source)) title = title.slice(0, -(source.length + 3)).trim();
+    const dt = pub ? Math.floor(Date.parse(pub) / 1000) : Math.floor(Date.now() / 1000);
+    out.push({ title, source: source || "Google News", url: link, datetime: dt || Math.floor(Date.now()/1000), category });
+    if (out.length >= 25) break;
+  }
+  return out;
+}
+async function worldNews(country) {
+  const ed = GNEWS_ED[String(country || "US").toUpperCase()] || GNEWS_ED.US;
+  const q = `hl=${ed[0]}&gl=${ed[1]}&ceid=${ed[2]}`;
+  const [biz, nat] = await Promise.all([
+    fetchText(`https://news.google.com/rss/headlines/section/topic/BUSINESS?${q}`),
+    fetchText(`https://news.google.com/rss/headlines/section/topic/NATION?${q}`),
+  ]);
+  let items = [...parseGNews(biz, "경제"), ...parseGNews(nat, "정치")];
+  const seen = new Set(); const outp = [];
+  for (const it of items) {
+    const k = it.title.toLowerCase().replace(/[^a-z0-9가-힣]/g, "").slice(0, 40);
+    if (!k || seen.has(k)) continue; seen.add(k); outp.push(it);
+  }
+  outp.sort((a, b) => b.datetime - a.datetime);
+  return outp.slice(0, 50);
+}
+
 // ── Yahoo Finance (무료·무키) ─────────────────────────────
 async function yahooJson(url) {
   const t = withTimeout();
@@ -91,6 +142,7 @@ function newsCategory(t) {
   if (/bitcoin|crypto|ethereum|blockchain|\bcoin\b|token/.test(s)) return "Crypto";
   if (/\bfed\b|inflation|\bcpi\b|\bppi\b|\bgdp\b|jobs|unemployment|rate cut|rate hike|treasury|tariff|economy/.test(s)) return "Economy";
   if (/chip|semiconductor|software|cloud|apple|microsoft|google|meta|tech\b/.test(s)) return "Technology";
+  if (/forex|currency|dollar index|\beuro\b|\byuan\b|\byen\b|\bchina\b|europe|\bopec\b|\boil\b|geopolit|\bwar\b|election|sanction|trade deal|\bimf\b|\bg7\b|global|overseas|emerging market/.test(s)) return "글로벌";
   return "Market";
 }
 const NEWS_POS = ["surge","surges","jump","jumps","beat","beats","soar","rally","record","gains","upgrade","growth","strong","profit","wins","rise","rises","boost","tops","outperform"];
@@ -160,8 +212,7 @@ async function yahooCandles(sym, period) {
     const dt = new Date(x.t * 1000);
     const p2 = (n) => String(n).padStart(2, "0");
     let d;
-    if (interval === "1m") d = p2(dt.getHours()) + ":" + p2(dt.getMinutes());
-    else if (intradayLabel) d = (dt.getMonth() + 1) + "/" + dt.getDate() + " " + p2(dt.getHours()) + ":" + p2(dt.getMinutes());
+    if (intradayLabel) d = p2(dt.getHours()) + ":" + p2(dt.getMinutes());
     else if (interval === "60m") d = (dt.getMonth() + 1) + "/" + dt.getDate() + " " + p2(dt.getHours()) + "시";
     else if (interval === "1mo") d = String(dt.getFullYear()).slice(2) + "/" + p2(dt.getMonth() + 1);
     else d = (dt.getMonth() + 1) + "/" + dt.getDate();
@@ -284,7 +335,7 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods","GET,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers","Content-Type");
   if(req.method==="OPTIONS")return res.status(204).end();
-  const { type, symbol, query, resolution } = req.query;
+  const { type, symbol, query, resolution, country } = req.query;
   const sym = (symbol || "").toUpperCase();
 
   try {
@@ -300,12 +351,16 @@ export default async function handler(req, res) {
         return res.status(200).json({ spark: (await getCandles(sym, "1M")).map((x) => x.c).slice(-20) });
       case "keyword_news":
         return res.status(200).json({ news: await keywordNews(query || "SpaceX") });
+      case "worldnews":
+        return res.status(200).json({ news: await worldNews(country || "US"), country: String(country || "US").toUpperCase() });
       case "market_news": {
         let items = [];
         if (KEY) {
           try {
-            const n = await fh(`/news?category=general`);
-            items = (n || []).map((x) => ({ title: x.headline, source: x.source, url: x.url, datetime: x.datetime, related: String(x.related || "").split(",").filter(Boolean).slice(0, 4), image: x.image || "" }));
+            const cats = ["general", "forex", "merger"];
+            const results = await Promise.all(cats.map((c) => fh(`/news?category=${c}`).catch(() => [])));
+            const merged = [].concat(...results.map((r) => r || []));
+            items = merged.map((x) => ({ title: x.headline, source: x.source, url: x.url, datetime: x.datetime, related: String(x.related || "").split(",").filter(Boolean).slice(0, 4), image: x.image || "" }));
           } catch { /* Yahoo 폴백 */ }
         }
         if (!items.length) {
@@ -319,7 +374,8 @@ export default async function handler(req, res) {
           seen.add(key);
           out.push({ ...it, category: newsCategory(it.title), sentiment: newsSentiment(it.title) });
         }
-        return res.status(200).json({ news: out.slice(0, 40), source: KEY ? "Finnhub" : "Yahoo Finance" });
+        out.sort((a, b) => (b.datetime || 0) - (a.datetime || 0));
+        return res.status(200).json({ news: out.slice(0, 60), source: KEY ? "Finnhub" : "Yahoo Finance" });
       }
       case "spacex_stats":
         return res.status(200).json(await spacexStats());
