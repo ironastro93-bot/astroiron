@@ -8,6 +8,7 @@
 //   AI_PROVIDER_ORDER(선택, 예: "nvidia,anthropic" — 우선순위 재정의)
 // 어떤 키도 코드에 하드코딩하지 않는다.
 
+import { verifyToken } from "./redeem.js";
 const KEY = process.env.ANTHROPIC_API_KEY;
 const NVIDIA_KEY = process.env.NVIDIA_API_KEY;
 const NVIDIA_MODEL = process.env.NVIDIA_MODEL || "meta/llama-3.3-70b-instruct";
@@ -192,25 +193,26 @@ export default async function handler(req, res) {
     let body = req.body;
     if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
     const { task, context, question, premium } = body || {};
+    const isPremium = verifyToken(body && body.proToken) || (!process.env.PRO_SECRET && !!premium);
     const ctxStr = JSON.stringify(context || {}).slice(0, 4500);
-    const depth = premium ? "심층적으로 (기업 개요·성장성·경쟁 환경 포함)" : "간결하게 (핵심만)";
+    const depth = isPremium ? "심층적으로 (기업 개요·성장성·경쟁 환경 포함)" : "간결하게 (핵심만)";
 
-    let prompt, maxTokens = premium ? 1400 : 800, wantJson = true;
+    let prompt, maxTokens = isPremium ? 1400 : 800, wantJson = true;
     if (task === "summary") {
       prompt = `다음은 미국 주식/ETF의 실제 금융 데이터입니다. 이 데이터만 근거로 ${depth} 분석하세요. 수치를 지어내지 마세요.
 데이터: ${ctxStr}
 ONLY raw JSON, 한국어:
-{"signal":"strong_buy|buy|hold|sell|strong_sell","score":<-100~100>,"summary":"${premium ? "4~6문장 심층 요약" : "2문장 요약"}","bullPoints":["강세1","강세2","강세3"],"bearPoints":["약세1","약세2","약세3"]${premium ? ',"overview":"기업/ETF 개요 2문장","growth":"성장성 평가 1~2문장"' : ""}}
+{"signal":"strong_buy|buy|hold|sell|strong_sell","score":<-100~100>,"summary":"${isPremium ? "4~6문장 심층 요약" : "2문장 요약"}","bullPoints":["강세1","강세2","강세3"],"bearPoints":["약세1","약세2","약세3"]${isPremium ? ',"overview":"기업/ETF 개요 2문장","growth":"성장성 평가 1~2문장"' : ""}}
 signal은 매수/매도 지시가 아닌 데이터 기반 방향성 신호입니다.`;
     } else if (task === "risk") {
       prompt = `다음 금융 데이터로 리스크를 ${depth} 분석하세요. 수치 날조 금지.
 데이터: ${ctxStr}
 ONLY raw JSON, 한국어:
-{"shortTermVolatility":"단기 변동성 1문장","currentRisks":["위험1","위험2"${premium ? ',"위험3"' : ""}],"growthPotential":"성장 가능성 1문장","longTermOutlook":"장기 전망 1문장"}`;
+{"shortTermVolatility":"단기 변동성 1문장","currentRisks":["위험1","위험2"${isPremium ? ',"위험3"' : ""}],"growthPotential":"성장 가능성 1문장","longTermOutlook":"장기 전망 1문장"}`;
     } else if (task === "scenario") {
       prompt = `다음 데이터로 투자 시나리오 3가지를 제시하세요. 수치 날조 금지.
 데이터: ${ctxStr}
-ONLY raw JSON, 한국어: {"bull":"강세 시나리오 ${premium ? "2문장" : "1문장"}","neutral":"중립 ${premium ? "2문장" : "1문장"}","bear":"약세 ${premium ? "2문장" : "1문장"}"}`;
+ONLY raw JSON, 한국어: {"bull":"강세 시나리오 ${isPremium ? "2문장" : "1문장"}","neutral":"중립 ${isPremium ? "2문장" : "1문장"}","bear":"약세 ${isPremium ? "2문장" : "1문장"}"}`;
     } else if (task === "news_summary") {
       prompt = `뉴스 제목 목록을 ${depth} 요약하고 각 영향을 분류하세요.
 뉴스: ${ctxStr}
@@ -239,7 +241,7 @@ ONLY raw JSON, 한국어: {"verdict":"종합 비교 2~3문장","rows":[{"ticker"
     } else if (task === "portfolio") {
       prompt = `사용자 포트폴리오를 진단하세요(개인 맞춤 매매 지시 금지, 일반 원칙만).
 포트폴리오: ${ctxStr}
-ONLY raw JSON, 한국어: {"concentration":"섹터 편중 1문장","diversification":"분산 수준 1문장","riskLevel":"낮음|보통|높음","advice":"일반적 개선 의견 ${premium ? "2~3문장" : "1문장"}"}`;
+ONLY raw JSON, 한국어: {"concentration":"섹터 편중 1문장","diversification":"분산 수준 1문장","riskLevel":"낮음|보통|높음","advice":"일반적 개선 의견 ${isPremium ? "2~3문장" : "1문장"}"}`;
     } else if (task === "order_assist") {
       prompt = `다음은 미국 주식의 실시간 데이터입니다. 이 데이터만 근거로 매매 '참고' 정보를 제시하세요. 투자권유·단정·목표가 제시 금지, 수치 날조 금지.
 데이터: ${ctxStr}
@@ -261,14 +263,14 @@ ONLY raw JSON, 한국어: {"summary":"3문장 시장 요약"}`;
 규칙: 개인 맞춤 매매 지시 금지, 판단 재료(근거·위험) 제시, 모르면 모른다고, 투자 초보도 이해하기 쉽게.
 참고 데이터: ${ctxStr}
 ${history ? "이전 대화:\n" + history + "\n" : ""}질문: ${String(question || "").slice(0, 500)}
-${premium ? "4~6문장" : "2~3문장"} 한국어. 일반 텍스트.`;
-      wantJson = false; maxTokens = premium ? 900 : 500;
+${isPremium ? "4~6문장" : "2~3문장"} 한국어. 일반 텍스트.`;
+      wantJson = false; maxTokens = isPremium ? 900 : 500;
     } else {
       return res.status(400).json({ error: "지원하지 않는 AI 작업입니다." });
     }
 
     // 캐시(챗 제외 — 대화는 매번 신선하게)
-    const ckey = task !== "chat" ? (task + "|" + (premium ? 1 : 0) + "|" + ctxStr) : null;
+    const ckey = task !== "chat" ? (task + "|" + (isPremium ? 1 : 0) + "|" + ctxStr) : null;
     if (ckey) { const hit = cacheGet(ckey); if (hit) return res.status(200).json(hit); }
 
     for (let attempt = 1; attempt <= 2; attempt++) {

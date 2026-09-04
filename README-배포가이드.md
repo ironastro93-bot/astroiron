@@ -1,4 +1,48 @@
-# ASTRO IRON — 배포 가이드 (v7 · 글로벌 시장 대시보드)
+# ASTRO IRON — 배포 가이드 (v139)
+
+## ✅ 현재 배포 파일 (zip에 모두 포함)
+```
+ironastro/
+├── index.html                  (앱 본체 · SPA)
+├── manifest.webmanifest, sw.js, offline.html, firebase-messaging-sw.js   (PWA/설치)
+├── icon-192.png, icon-512.png, icon-180.png, og.png                       (아이콘/공유이미지)
+├── robots.txt, sitemap.xml, ads.txt, google7b2f13fdceb9da06.html          (SEO/광고)
+├── about.html, faq.html, contact.html, terms.html, privacy.html, community-policy.html  (정적 페이지)
+├── mock-investing.html, realtime-us-stocks.html, ai-stock-analysis.html   (SEO 랜딩)
+└── api/
+    ├── finance.js   ← 시세·차트·재무·뉴스·지수·크립토·세계뉴스·실적캘린더  [FINNHUB_API_KEY]
+    ├── macro.js     ← 국채·달러·원자재                                    [FRED_API_KEY]
+    ├── ai.js        ← AI 해석(NVIDIA 우선 → Anthropic 폴백)               [NVIDIA_API_KEY/ANTHROPIC_API_KEY]
+    └── redeem.js    ← Premium 결제코드 서버검증(HMAC 30일 토큰)           [PRO_SECRET, PRO_CODES]
+```
+> 블로그(`/blog/…`)는 별도 관리 폴더로, 이 zip에는 없지만 라이브에 이미 존재합니다. sitemap이 참조하므로 **삭제하지 마세요.**
+
+## ⚙️ Vercel 환경변수 (한눈에)
+| 변수 | 용도 | 필수 |
+|---|---|---|
+| `FINNHUB_API_KEY` | 시세·뉴스·재무·실적캘린더 | 권장(없으면 Yahoo 폴백) |
+| `FRED_API_KEY` | 국채·달러·원자재 | 선택 |
+| `NVIDIA_API_KEY` | **기본 AI 엔진** | AI 쓰려면 |
+| `ANTHROPIC_API_KEY` | AI 폴백 | 선택 |
+| `AI_PROVIDER_ORDER` | 예: `nvidia,anthropic` (우선순위 재정의) | 선택 |
+| `PRO_SECRET` | 결제 토큰 서명 비밀키(임의 긴 문자열) | 결제 서버검증 켤 때 |
+| `PRO_CODES` | 발급할 해제코드들, 쉼표구분 예)`ASTRO-AB12,ASTRO-CD34` | 결제 서버검증 켤 때 |
+> `PRO_SECRET`/`PRO_CODES` 미설정이면 결제는 기존(클라이언트) 방식으로 계속 동작합니다.
+
+## 🔥 Firebase 콘솔 설정 (로그인·토론방용, 한 번만)
+1. **Authentication → 로그인 방법 → Google 사용 설정 ON**
+2. **Authentication → 설정 → 승인된 도메인**에 `astroiron.com` 추가
+3. **Firestore → 규칙**에 제공한 규칙(`firestore_rules_토론방_신고자동숨김.txt`) 게시 — 로그인 동기화(`users/{uid}`)와 토론방 신고자동숨김 포함
+4. (권장) **App Check → Firestore 시행(Enforce)** — 봇/우회 차단
+> 안 하면: 로그인 버튼은 보이되 누르면 "콘솔에서 Google 로그인을 켜주세요" 안내(정상), 토론방은 규칙 게시 전까지 실시간 안 됨.
+
+## 🔎 배포 후 (유입)
+- **구글 서치콘솔** + **네이버 서치어드바이저**에 `sitemap.xml` 제출 · 주요 URL 색인 요청
+- 카톡/트위터 공유 미리보기가 옛 이미지면 각 디버거에서 "스크랩 초기화"
+
+---
+
+# (참고) 이전 상세 가이드 (v7 · 글로벌 시장 대시보드)
 
 ## 구조
 - **금융 데이터**(시세·차트·재무·뉴스·공시·지수·크립토) → Finnhub / SEC EDGAR

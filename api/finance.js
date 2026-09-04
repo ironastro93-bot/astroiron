@@ -335,7 +335,7 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods","GET,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers","Content-Type");
   if(req.method==="OPTIONS")return res.status(204).end();
-  const { type, symbol, query, resolution, country } = req.query;
+  const { type, symbol, query, resolution, country, from, to } = req.query;
   const sym = (symbol || "").toUpperCase();
 
   try {
@@ -353,6 +353,29 @@ export default async function handler(req, res) {
         return res.status(200).json({ news: await keywordNews(query || "SpaceX") });
       case "worldnews":
         return res.status(200).json({ news: await worldNews(country || "US"), country: String(country || "US").toUpperCase() });
+      case "earnings_cal": {
+        const esyms = String(query || "").split(",").map((x) => x.trim().toUpperCase()).filter((x) => /^[A-Z0-9.]{1,6}$/.test(x)).slice(0, 25);
+        const ef = /^\d{4}-\d{2}-\d{2}$/.test(from || "") ? from : "", et = /^\d{4}-\d{2}-\d{2}$/.test(to || "") ? to : "";
+        if (!KEY || !esyms.length || !ef || !et) return res.status(200).json({ earnings: [] });
+        const eout = [];
+        await Promise.all(esyms.map(async (sm) => {
+          try { const j = await fh(`/calendar/earnings?from=${ef}&to=${et}&symbol=${sm}`); (j && j.earningsCalendar || []).forEach((e) => eout.push({ ticker: sm, date: e.date, hour: e.hour || "", epsEst: e.epsEstimate })); } catch { /* skip */ }
+        }));
+        return res.status(200).json({ earnings: eout });
+      }
+      case "watch_news": {
+        const wsyms = String(query || "").split(",").map((x) => x.trim().toUpperCase()).filter((x) => /^[A-Z0-9.]{1,6}$/.test(x)).slice(0, 20);
+        if (!KEY || !wsyms.length) return res.status(200).json({ news: [] });
+        const wto = new Date().toISOString().slice(0, 10), wfrom = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+        const wall = [];
+        await Promise.all(wsyms.map(async (sm) => {
+          try { const n = await fh(`/company-news?symbol=${sm}&from=${wfrom}&to=${wto}`); (n || []).slice(0, 6).forEach((x) => { if (x.headline && x.url) wall.push({ title: x.headline, source: x.source, url: x.url, datetime: x.datetime, image: x.image || "", related: [sm], category: sm }); }); } catch { /* skip */ }
+        }));
+        wall.sort((a, b) => (b.datetime || 0) - (a.datetime || 0));
+        const wseen = new Set(); const wout = [];
+        for (const it of wall) { const k = (it.url || it.title || "").slice(0, 60); if (!k || wseen.has(k)) continue; wseen.add(k); wout.push(it); }
+        return res.status(200).json({ news: wout.slice(0, 50) });
+      }
       case "market_news": {
         let items = [];
         if (KEY) {
