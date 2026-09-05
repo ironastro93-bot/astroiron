@@ -103,12 +103,22 @@
   .ac{position:absolute;top:52px;left:0;right:0;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:20;overflow:hidden;max-width:520px}
   .ac-item{padding:11px 16px;display:flex;gap:10px;align-items:center;cursor:pointer;border-bottom:1px solid var(--line)}
   .ac-item:hover,.ac-item.sel{background:var(--soft)}
-  .worldwrap{position:relative;width:100%;background:radial-gradient(130% 140% at 50% -10%,#123056,#07152b);border-radius:16px;overflow:hidden;border:1px solid var(--line);box-shadow:inset 0 2px 22px rgba(0,0,0,.4)}
-  .worldwrap svg{display:block;width:100%;height:auto}
-  .wland{fill:#2a4a74;stroke:#0b1f3a;stroke-width:.5;vector-effect:non-scaling-stroke}
-  .wc{fill:#3E74DE;stroke:#0b1f3a;stroke-width:.5;cursor:pointer;transition:fill .12s;vector-effect:non-scaling-stroke}
-  .wc:hover,.wc:focus{fill:#8FB6FF;outline:none}
-  .wc.on{fill:#E5484D}
+  .worldwrap{position:relative;width:100%;background:radial-gradient(140% 150% at 50% -20%,#0b2a52 0%,#061530 55%,#03081a 100%);border-radius:18px;overflow:hidden;border:1px solid #1b3a63;box-shadow:inset 0 2px 34px rgba(0,0,0,.6),0 10px 34px rgba(0,20,60,.4)}
+  .worldwrap::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:18px;box-shadow:inset 0 0 120px rgba(0,0,0,.55)}
+  .worldwrap svg{display:block;width:100%;height:auto;touch-action:none;cursor:grab}
+  .worldwrap svg.grab{cursor:grabbing}
+  #wg{transition:transform .05s linear}
+  .wgrid{stroke:rgba(120,180,255,.09);stroke-width:1;vector-effect:non-scaling-stroke}
+  .wland{fill:#1e3f68;stroke:#0a1f3c;stroke-width:1;vector-effect:non-scaling-stroke}
+  .wc{fill:#2f6fd6;stroke:#9ad4ff;stroke-width:1.1;cursor:pointer;transition:fill .12s;vector-effect:non-scaling-stroke;filter:url(#wglow)}
+  .wc:hover,.wc:focus{fill:#5ab6ff;outline:none}
+  .wc.on{fill:#ffb020;stroke:#ffe6a0}
+  .whud{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:4}
+  .whud button{width:34px;height:34px;border-radius:9px;border:1px solid #2a4d7a;background:rgba(8,22,44,.72);color:#cfe4ff;font-size:17px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+  .whud button:hover{background:rgba(30,70,130,.9);border-color:#5aa0ff}
+  .wlabel{position:absolute;left:12px;top:12px;z-index:4;font-size:12px;font-weight:800;color:#eaf4ff;background:rgba(8,22,44,.62);border:1px solid #234a78;padding:4px 11px;border-radius:8px;pointer-events:none;opacity:0;transition:opacity .15s}
+  .wlabel.show{opacity:1}
+  .whint{position:absolute;left:12px;bottom:10px;z-index:4;font-size:10.5px;color:rgba(200,220,255,.5);pointer-events:none}
   .chip{padding:5px 12px;font-size:12.5px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--sub);cursor:pointer}
   .chip.on{background:var(--charcoal);color:var(--bg);border-color:var(--charcoal);font-weight:700}
   .adbox{border:1px dashed var(--line-d);border-radius:12px;padding:14px;text-align:center;font-size:12px;color:var(--faint);background:var(--soft)}
@@ -813,7 +823,7 @@ function renderStockResult(){
   else if(state.tab==="news"){
     if(d.news===null)t=Array(4).fill('<div class="skel" style="height:56px;margin-bottom:10px"></div>').join("");
     else if(!d.news.length)t='<p style="font-size:14px;color:var(--sub)">최근 7일 뉴스를 찾지 못했어요.</p>';
-    else t='<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="chip '+(state.newsKo?"on":"")+'" onclick="setNewsKo('+(state.newsKo?"false":"true")+')">🇰🇷 번역</button></div>'+d.news.map((n,i)=>`<a class="newslink" href="${esc(n.url)}" target="_blank" rel="noreferrer" style="display:block;padding:13px 0;border-bottom:${i<d.news.length-1?"1px solid var(--line)":"none"}">${(state.newsKo&&n._ko)?`<div style="font-size:14px;line-height:1.5;font-weight:600">${esc(n._ko)}</div><div style="font-size:11px;color:var(--faint);margin-top:2px;line-height:1.4">${esc(n.title)}</div>`:`<div style="font-size:14px;line-height:1.5;font-weight:500">${esc(n.title)}</div>`}<div style="font-size:11.5px;color:var(--faint);margin-top:5px;display:flex;gap:8px;align-items:center"><span style="font-weight:600;color:var(--steel)">${esc(n.source)}</span><span>·</span><span>${relTime(n.datetime)}</span><span style="margin-left:auto">원문 →</span></div></a>`).join("")+'<p style="font-size:11.5px;color:var(--faint);margin-top:14px">제목·출처·원문 링크만 제공 (저작권 준수). 요약은 [AI 분석] 탭에서.</p>';
+    else t='<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="chip '+(state.newsKo?"on":"")+'" onclick="setNewsKo('+(state.newsKo?"false":"true")+')">'+(state.newsKo?"🇰🇷 한국어 ✓":"🇬🇧 원문(영어)")+'</button></div>'+d.news.map((n,i)=>`<a class="newslink" href="${esc(n.url)}" target="_blank" rel="noreferrer" style="display:block;padding:13px 0;border-bottom:${i<d.news.length-1?"1px solid var(--line)":"none"}">${(state.newsKo&&n._ko)?`<div style="font-size:14px;line-height:1.5;font-weight:600">${esc(n._ko)}</div><div style="font-size:11px;color:var(--faint);margin-top:2px;line-height:1.4">${esc(n.title)}</div>`:`<div style="font-size:14px;line-height:1.5;font-weight:500">${esc(n.title)}</div>`}<div style="font-size:11.5px;color:var(--faint);margin-top:5px;display:flex;gap:8px;align-items:center"><span style="font-weight:600;color:var(--steel)">${esc(n.source)}</span><span>·</span><span>${relTime(n.datetime)}</span><span style="margin-left:auto">원문 →</span></div></a>`).join("")+'<p style="font-size:11.5px;color:var(--faint);margin-top:14px">제목·출처·원문 링크만 제공 (저작권 준수). 요약은 [AI 분석] 탭에서.</p>';
   }
   else if(state.tab==="filings"){
     if(d.filings===null)t=Array(3).fill('<div class="skel" style="height:48px;margin-bottom:10px"></div>').join("");
@@ -1427,8 +1437,13 @@ const WORLD_GEO=[
 ];
 function renderMap(){
   document.getElementById("app").innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><h1 style="margin:0">세계 뉴스 지도</h1><span class="live"><span class="live-dot"></span>LIVE</span></div>
-  <p class="lede" style="margin-bottom:12px">지도에서 나라를 누르면 그 나라의 오늘 정치·경제 뉴스를 보여드려요. <b style="color:var(--steel)">밝게 표시된 나라</b>를 탭하세요.</p>
-  <div class="worldwrap" id="worldMapBox"><div style="padding:64px 20px;text-align:center;color:rgba(255,255,255,.6);font-size:13px">세계 지도를 불러오는 중…</div></div>
+  <p class="lede" style="margin-bottom:12px">지도에서 <b style="color:var(--steel)">밝게 빛나는 나라</b>를 탭하면 그 나라 오늘 뉴스로 이동해요. 휠·손가락으로 확대·이동됩니다.</p>
+  <div class="worldwrap" id="worldMapBox">
+    <div class="whud"><button aria-label="확대" onclick="wZoom(1.5)">＋</button><button aria-label="축소" onclick="wZoom(0.6667)">－</button><button aria-label="원위치" onclick="wReset()" style="font-size:15px">⟳</button></div>
+    <div class="wlabel" id="wlabel"></div>
+    <div class="whint">드래그 이동 · 휠/버튼 확대 · 핀치 줌</div>
+    <div id="wmapLoading" style="padding:70px 20px;text-align:center;color:rgba(200,220,255,.6);font-size:13px">🛰️ 세계 지도를 불러오는 중…</div>
+  </div>
   <div id="worldBrief" style="margin-top:16px"></div>`;
   ensureWorldMap();
 }
@@ -1438,22 +1453,46 @@ function ensureWorldMap(){
   window._wmLoading=true;
   const s=document.createElement("script");s.src="worldmap.js";s.async=true;
   s.onload=()=>{window._wmLoading=false;if(state.view==="map"){paintWorldMap();try{loadWorldBrief()}catch(e){}}};
-  s.onerror=()=>{window._wmLoading=false;const b=document.getElementById("worldMapBox");if(b)b.innerHTML='<div style="padding:50px 20px;text-align:center;color:rgba(255,255,255,.7);font-size:13px">지도를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</div>'};
+  s.onerror=()=>{window._wmLoading=false;const b=document.getElementById("wmapLoading");if(b)b.innerHTML='지도를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'};
   document.body.appendChild(s);
 }
 function paintWorldMap(){
   const box=document.getElementById("worldMapBox");if(!box||!window.WORLD_PATHS)return;
-  const sup={},supSet=new Set();WORLD_GEO.forEach(g=>{sup[g[0]]={ko:g[1],lat:g[3],lon:g[4]};supSet.add(g[0])});
+  const supSet=new Set(),ko={};WORLD_GEO.forEach(g=>{supSet.add(g[0]);ko[g[0]]=g[1]});
+  let grid="";
+  for(let lon=-150;lon<=150;lon+=30){const x=((lon+180)/360*2000).toFixed(0);grid+='<line class="wgrid" x1="'+x+'" y1="0" x2="'+x+'" y2="1000"/>';}
+  for(let lat=-60;lat<=60;lat+=30){const y=((90-lat)/180*1000).toFixed(0);grid+='<line class="wgrid" x1="0" y1="'+y+'" x2="2000" y2="'+y+'"/>';}
   const paths=window.WORLD_PATHS.map(c=>{
-    const a2=c.a2,ok=a2&&supSet.has(a2),nm=ok?sup[a2].ko:(c.n||"");
-    if(ok)return '<path d="'+c.d+'" class="wc'+(state.newsCountry===a2?' on':'')+'" tabindex="0" role="button" aria-label="'+esc(nm)+' 뉴스" onclick="openCountry(\''+a2+'\')" onkeydown="if(event.key===\'Enter\')openCountry(\''+a2+'\')"><title>'+esc(nm)+'</title></path>';
-    return '<path d="'+c.d+'" class="wland"><title>'+esc(nm)+'</title></path>';
+    const a2=c.a2,ok=a2&&supSet.has(a2),nm=ok?ko[a2]:(c.n||"");
+    if(ok)return '<path d="'+c.d+'" class="wc'+(state.newsCountry===a2?' on':'')+'" tabindex="0" role="button" data-ko="'+esc(nm)+'" aria-label="'+esc(nm)+' 뉴스" onclick="wCountryClick(\''+a2+'\')" onkeydown="if(event.key===\'Enter\')openCountry(\''+a2+'\')"><title>'+esc(nm)+'</title></path>';
+    return '<path d="'+c.d+'" class="wland"/>';
   }).join("");
-  const dots=WORLD_GEO.filter(g=>!window.WORLD_PATHS.some(c=>c.a2===g[0])).map(g=>{
-    const x=((g[4]+180)/360*1000).toFixed(1),y=((90-g[3])/180*500).toFixed(1);
-    return '<circle cx="'+x+'" cy="'+y+'" r="4.5" class="wc'+(state.newsCountry===g[0]?' on':'')+'" tabindex="0" role="button" aria-label="'+esc(g[1])+' 뉴스" onclick="openCountry(\''+g[0]+'\')" onkeydown="if(event.key===\'Enter\')openCountry(\''+g[0]+'\')"><title>'+esc(g[1])+'</title></circle>';
-  }).join("");
-  box.innerHTML='<svg viewBox="0 0 1000 500" role="img" aria-label="세계 지도">'+paths+dots+'</svg>';
+  const svg='<svg id="wsvg" viewBox="0 0 2000 1000" role="img" aria-label="세계 지도"><defs><filter id="wglow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#5ab0ff" flood-opacity="0.75"/></filter></defs><g>'+grid+'</g><g id="wg">'+paths+'</g></svg>';
+  const ld=document.getElementById("wmapLoading");if(ld)ld.remove();
+  const old=document.getElementById("wsvg");if(old)old.remove();
+  box.insertAdjacentHTML("afterbegin",svg);
+  _map={s:1,x:0,y:0};wApply();bindMapGestures();
+}
+let _map={s:1,x:0,y:0};
+function wApply(){const g=document.getElementById("wg");if(g)g.setAttribute("transform","translate("+_map.x.toFixed(1)+","+_map.y.toFixed(1)+") scale("+_map.s.toFixed(3)+")")}
+function wClamp(){_map.s=Math.max(1,Math.min(9,_map.s));const W=2000,H=1000;_map.x=Math.max(W-W*_map.s,Math.min(0,_map.x));_map.y=Math.max(H-H*_map.s,Math.min(0,_map.y))}
+window.wZoom=function(f,cx,cy){const W=2000,H=1000;if(cx==null){cx=W/2;cy=H/2}const ns=Math.max(1,Math.min(9,_map.s*f)),k=ns/_map.s;_map.x=cx-(cx-_map.x)*k;_map.y=cy-(cy-_map.y)*k;_map.s=ns;wClamp();wApply()};
+window.wReset=function(){_map={s:1,x:0,y:0};wApply()};
+window.wCountryClick=function(code){if(window._wmMoved)return;openCountry(code)};
+function bindMapGestures(){
+  const svg=document.getElementById("wsvg");if(!svg)return;
+  const toVB=(cxp,cyp)=>{const r=svg.getBoundingClientRect();return [(cxp-r.left)/(r.width||1)*2000,(cyp-r.top)/(r.height||1)*1000]};
+  svg.addEventListener("wheel",e=>{e.preventDefault();const p=toVB(e.clientX,e.clientY);wZoom(e.deltaY<0?1.2:1/1.2,p[0],p[1])},{passive:false});
+  let drag=false,lx=0,ly=0;window._wmMoved=false;
+  svg.addEventListener("pointerdown",e=>{drag=true;window._wmMoved=false;lx=e.clientX;ly=e.clientY;try{svg.setPointerCapture(e.pointerId)}catch(_){}svg.classList.add("grab")});
+  svg.addEventListener("pointermove",e=>{if(!drag)return;const dx=e.clientX-lx,dy=e.clientY-ly;if(Math.abs(dx)+Math.abs(dy)>4)window._wmMoved=true;const r=svg.getBoundingClientRect();_map.x+=dx/(r.width||1)*2000;_map.y+=dy/(r.height||1)*1000;lx=e.clientX;ly=e.clientY;wClamp();wApply()});
+  const up=()=>{drag=false;svg.classList.remove("grab");setTimeout(()=>{window._wmMoved=false},60)};
+  svg.addEventListener("pointerup",up);svg.addEventListener("pointercancel",up);svg.addEventListener("pointerleave",up);
+  const lab=document.getElementById("wlabel"),g=document.getElementById("wg");
+  if(g&&lab){g.addEventListener("pointerover",e=>{const t=e.target.closest&&e.target.closest(".wc");if(t){lab.textContent=t.getAttribute("data-ko")||"";lab.classList.add("show")}});g.addEventListener("pointerout",()=>lab.classList.remove("show"))}
+  let pd=0;
+  svg.addEventListener("touchstart",e=>{if(e.touches.length===2)pd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)},{passive:true});
+  svg.addEventListener("touchmove",e=>{if(e.touches.length===2){e.preventDefault();const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(pd){const mx=(e.touches[0].clientX+e.touches[1].clientX)/2,my=(e.touches[0].clientY+e.touches[1].clientY)/2,p=toVB(mx,my);wZoom(nd/pd,p[0],p[1])}pd=nd;window._wmMoved=true}},{passive:false});
 }
 window.openCountry=function(code){state.view="news";state.newsWatch=false;state.newsCountry=code;state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;render();loadNews(true);try{window.scrollTo({top:0,behavior:"smooth"})}catch(e){}};
 function worldBriefCard(code,ko,flag,items){
@@ -1496,7 +1535,7 @@ function renderNews(){
   <p class="lede" style="margin-bottom:12px">${watch?"내 관심종목 관련 뉴스만 모아서. 제목·출처·원문 링크만 표시합니다.":world?"선택한 나라의 정치·경제 뉴스를 실시간으로. 제목·출처·원문 링크만 표시합니다.":"미국 증시 헤드라인과 글로벌 뉴스. 제목·출처·원문 링크만 표시하고, 요약·감성 분석은 AI가 생성합니다."}</p>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px">
     <select aria-label="나라 선택" onchange="setNewsCountry(this.value)" style="flex:1;min-width:0;max-width:230px;padding:9px 12px;font-size:13.5px;font-weight:700;border-radius:10px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink);cursor:pointer">${newsCountryOpts()}</select>
-    <div style="display:flex;gap:6px"><button class="chip ${watch?"on":""}" style="white-space:nowrap" onclick="setNewsWatch(${watch?"false":"true"})">⭐ 관심종목</button><button class="chip" style="white-space:nowrap" onclick="aiNewsSentiment()">✨ 감성분석</button><button class="chip ${state.newsKo?"on":""}" style="white-space:nowrap" onclick="toggleNewsKo()">🇰🇷 번역</button></div>
+    <div style="display:flex;gap:6px"><button class="chip ${watch?"on":""}" style="white-space:nowrap" onclick="setNewsWatch(${watch?"false":"true"})">⭐ 관심종목</button><button class="chip" style="white-space:nowrap" onclick="aiNewsSentiment()">✨ 감성분석</button><button class="chip ${state.newsKo?"on":""}" style="white-space:nowrap" onclick="toggleNewsKo()">${state.newsKo?"🇰🇷 한국어 ✓":"🇬🇧 원문(영어)"}</button></div>
   </div>
   <div style="display:flex;gap:6px;flex-wrap:wrap;overflow-x:auto;margin-bottom:16px">${cats.map(c=>`<button class="chip ${cat===c?"on":""}" onclick="setNewsCat('${c}')">${c}</button>`).join("")}</div>
   ${newsSentBanner()}${body}`;
