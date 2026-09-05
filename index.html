@@ -496,13 +496,22 @@ async function aiApi(task,context,question,history){
 
 let state={view:"home",symbol:"",tab:"overview",data:null,loading:false,error:null,period:"1d",ind:{vol:true,ma:false,ema:false,boll:false,vwap:false,rsi:false,macd:false}};
 window.state=state;
+try{state.newsKo=(localStorage.getItem("newsKo")===null)?true:localStorage.getItem("newsKo")==="1"}catch(e){state.newsKo=true}
 
 // ═══ 종목 로드 ═══
 async function loadStock(sym){
-  sym=(sym||state.symbol).trim().toUpperCase().replace(/\s+/g,"");
+  const raw=String(sym!=null?sym:(state.symbol||""));
+  sym=raw.trim().toUpperCase().replace(/\s+/g,"");
   if(!sym||state.loading)return;
-  if(PRIVATE[sym]){return loadPrivate(sym)}
-  if(!/^[A-Z0-9.]{1,6}$/.test(sym)){state.view="stock";state.error="티커는 영문·숫자 1~6자만 입력할 수 있어요. 예) TSLA";state.data=null;render();return}
+  if(PRIVATE[sym])return loadPrivate(sym);
+  if(!/^[A-Z0-9.]{1,6}$/.test(sym)){
+    const hit=resolveQuery(raw);
+    if(!hit){state.view="stock";state.error="검색 결과가 없어요. 티커(예: TSLA)나 회사명(예: 테슬라, 엔비디아)으로 검색해 보세요.";state.data=null;render();return}
+    sym=hit;
+  }else if(!TICKERSET.has(sym)){
+    const ex=resolveExact(raw);if(ex)sym=ex;
+  }
+  if(PRIVATE[sym])return loadPrivate(sym);
   trackEvent("search_ticker",{ticker:sym});
   state.view="stock";state.symbol=sym;state.tab="overview";state.period="1d";state.loading=true;state.error=null;state.data=null;closeAc();render();
   try{
@@ -513,7 +522,7 @@ async function loadStock(sym){
     state.loading=false;render();
     finApi("candle",{symbol:sym,resolution:state.period}).then(r=>{state.data.candles=r.candles;if(state.tab==="chart")render()}).catch(()=>{state.data.candles=[]});
     finApi("financials",{symbol:sym}).then(r=>{state.data.financials=r.metrics;if(state.tab==="financials")render()}).catch(()=>{});
-    finApi("news",{symbol:sym}).then(r=>{state.data.news=r.news;if(state.tab==="news")render()}).catch(()=>{state.data.news=[]});
+    finApi("news",{symbol:sym}).then(r=>{state.data.news=r.news;if(state.tab==="news"){render();autoTransStock()}}).catch(()=>{state.data.news=[]});
     finApi("filings",{symbol:sym}).then(r=>{state.data.filings=r.filings;if(state.tab==="filings")render()}).catch(()=>{state.data.filings=[]});
     finApi("recommend",{symbol:sym}).then(r=>{state.data.recommend=r.recommend;if(state.tab==="recommend")render()}).catch(()=>{state.data.recommend=[]});
     finApi("earnings",{symbol:sym}).then(r=>{state.data.earnings=r.earnings;if(state.tab==="earnings")render()}).catch(()=>{state.data.earnings=[]});
@@ -649,11 +658,70 @@ function myTabs(active){
 function inWatch(s){return getList("watchlist").some(w=>w.ticker===s)}
 window.toggleWatch=(sym,name)=>{const w=getList("watchlist");const ex=w.find(x=>x.ticker===sym);setList("watchlist",ex?w.filter(x=>x.ticker!==sym):[...w,{ticker:sym,name}]);render()};
 
-// ═══ 검색 자동완성 (Debounce) ═══
+// ═══ 검색 인덱스 (한국어 별칭 + 랭킹) ═══
+const STOCKS=[
+ ["NVDA","NVIDIA",99,"엔비디아,엔비"],["TSLA","Tesla",98,"테슬라,테슬"],["AAPL","Apple",95,"애플"],
+ ["MSFT","Microsoft",88,"마이크로소프트,마소"],["AMZN","Amazon",86,"아마존"],["GOOGL","Alphabet (Google)",84,"구글,알파벳,구굴"],
+ ["META","Meta (Facebook)",83,"메타,페이스북,페북"],["AMD","AMD",78,"에이엠디"],["PLTR","Palantir",80,"팔란티어,팔란티르,팔란티"],
+ ["AVGO","Broadcom",72,"브로드컴"],["TSM","TSMC",70,"티에스엠씨,대만반도체,tsmc"],["NFLX","Netflix",74,"넷플릭스,넷플"],
+ ["COIN","Coinbase",70,"코인베이스"],["MSTR","Strategy (MicroStrategy)",68,"마이크로스트래티지,마스트,스트래티지"],["INTC","Intel",66,"인텔"],
+ ["MU","Micron",60,"마이크론"],["QCOM","Qualcomm",58,"퀄컴"],["ARM","Arm Holdings",66,"암,에이알엠,arm"],
+ ["SMCI","Super Micro",60,"슈퍼마이크로,슈마"],["ORCL","Oracle",58,"오라클"],["CRM","Salesforce",50,"세일즈포스"],
+ ["ADBE","Adobe",54,"어도비"],["UBER","Uber",60,"우버"],["ABNB","Airbnb",52,"에어비앤비"],["SHOP","Shopify",52,"쇼피파이"],
+ ["SOFI","SoFi",55,"소파이"],["HOOD","Robinhood",58,"로빈후드"],["PYPL","PayPal",52,"페이팔"],["DIS","Disney",55,"디즈니"],
+ ["SBUX","Starbucks",50,"스타벅스,스벅"],["KO","Coca-Cola",48,"코카콜라,코카"],["PEP","PepsiCo",44,"펩시"],["MCD","McDonald's",46,"맥도날드"],
+ ["NKE","Nike",48,"나이키"],["BA","Boeing",52,"보잉"],["F","Ford",44,"포드"],["GM","General Motors",42,"지엠,제너럴모터스"],
+ ["RIVN","Rivian",58,"리비안"],["LCID","Lucid",48,"루시드"],["NIO","NIO",50,"니오"],["LI","Li Auto",40,"리오토"],["XPEV","XPeng",40,"샤오펑"],
+ ["BABA","Alibaba",58,"알리바바"],["PDD","PDD (Pinduoduo)",50,"핀둬둬,테무"],["JD","JD.com",40,"징둥"],["BIDU","Baidu",42,"바이두"],
+ ["RKLB","Rocket Lab",60,"로켓랩"],["ASTS","AST SpaceMobile",45,"에이에스티에스"],["IONQ","IonQ",55,"아이온큐"],["RGTI","Rigetti",48,"리게티"],
+ ["QBTS","D-Wave Quantum",42,"디웨이브"],["SNOW","Snowflake",48,"스노우플레이크,스노우"],["CRWD","CrowdStrike",52,"크라우드스트라이크,크라우드"],
+ ["PANW","Palo Alto Networks",48,"팔로알토"],["NOW","ServiceNow",40,"서비스나우"],["MRVL","Marvell",46,"마벨"],["DELL","Dell",40,"델"],
+ ["LLY","Eli Lilly",58,"일라이릴리,릴리"],["NVO","Novo Nordisk",50,"노보노디스크,노보"],["MRNA","Moderna",44,"모더나"],["PFE","Pfizer",44,"화이자"],
+ ["UNH","UnitedHealth",40,"유나이티드헬스"],["JPM","JPMorgan",46,"제이피모건,jp모건"],["BAC","Bank of America",40,"뱅크오브아메리카,뱅오아"],
+ ["V","Visa",44,"비자"],["MA","Mastercard",42,"마스터카드"],["BRK.B","Berkshire Hathaway",50,"버크셔,버크셔해서웨이"],["WMT","Walmart",44,"월마트"],
+ ["COST","Costco",50,"코스트코,코스트"],["GE","GE Aerospace",40,"제너럴일렉트릭"],["XOM","Exxon Mobil",40,"엑슨모빌,엑슨"],["PLUG","Plug Power",40,"플러그파워"],
+ ["SPY","S&P 500 ETF",70,"에스앤피,스파이,sp500,s&p500"],["VOO","Vanguard S&P 500 ETF",60,"뱅가드,부"],["QQQ","Nasdaq 100 ETF",75,"나스닥,큐큐큐,나스닥100"],
+ ["SOXX","Semiconductor ETF",50,"반도체,필반"],["SMH","Semiconductor ETF",52,"반도체,에스엠에이치"],["SCHD","Dividend ETF",66,"슈드,배당,배당etf"],
+ ["JEPI","JEPI Income ETF",48,"제피"],["JEPQ","JEPQ Income ETF",46,"제피큐"],["DIA","Dow Jones ETF",40,"다우,다우존스"],["IWM","Russell 2000 ETF",40,"러셀,러셀2000"],
+ ["TQQQ","3x Nasdaq ETF",60,"티큐큐큐,삼배,3배나스닥"],["SQQQ","Inverse Nasdaq ETF",40,"인버스나스닥"],["ARKK","ARK Innovation ETF",46,"아크,아크이노베이션,캐시우드"],
+ ["GLD","Gold ETF",44,"금,골드"],["TLT","20+ Treasury ETF",42,"장기채,미국채"],["VTI","Total US Market ETF",40,"미국전체"],["IBIT","Bitcoin ETF",50,"비트코인,아이빗,비트코인etf"],
+ ["CPNG","Coupang",72,"쿠팡"],["ASML","ASML",60,"에이에스엠엘,반도체장비"],["SPOT","Spotify",48,"스포티파이"],["RDDT","Reddit",52,"레딧"],
+ ["APP","AppLovin",55,"앱러빈,애플러빈"],["ZM","Zoom",42,"줌,줌비디오"],["SNAP","Snap",42,"스냅,스냅챗"],["PINS","Pinterest",38,"핀터레스트"],
+ ["ROKU","Roku",40,"로쿠"],["XYZ","Block (Square)",44,"블록,스퀘어"],["AFRM","Affirm",42,"어펌"],["CVNA","Carvana",46,"카바나"],
+ ["DKNG","DraftKings",40,"드래프트킹스"],["DDOG","Datadog",44,"데이터독"],["NET","Cloudflare",48,"클라우드플레어,클플"],["ZS","Zscaler",38,"지스케일러"],
+ ["TTD","The Trade Desk",44,"트레이드데스크"],["ANET","Arista Networks",44,"아리스타"],["DUOL","Duolingo",42,"듀오링고"],["U","Unity",40,"유니티"],
+ ["HIMS","Hims & Hers",46,"힘스"],["GME","GameStop",46,"게임스탑"],["MARA","MARA Holdings",40,"마라"],["RIOT","Riot Platforms",38,"라이엇"],
+ ["CELH","Celsius",38,"셀시우스"],["OKLO","Oklo",48,"오클로"],["SMR","NuScale Power",44,"뉴스케일"],["VST","Vistra",44,"비스트라"],
+ ["CEG","Constellation Energy",46,"컨스텔레이션"],["ENPH","Enphase",36,"엔페이즈"],["FSLR","First Solar",40,"퍼스트솔라"],["LRCX","Lam Research",44,"램리서치"],
+ ["KLAC","KLA",40,"케이엘에이"],["AMAT","Applied Materials",46,"어플라이드머티어리얼즈,어플라이드"],["MELI","MercadoLibre",40,"메르카도리브레"],
+ ["SPACEX","SpaceX (비상장)",70,"스페이스엑스,스페이스x,스페이스,스페이스X"]
+].map(a=>({s:a[0],n:a[1],g:a[2],k:(a[3]||"").split(",").filter(Boolean)}));
+const TICKERSET=new Set(STOCKS.map(x=>x.s));
+function acLabel(e){return e.k&&e.k.length?(e.k[0]+" · "+e.n):e.n}
+function localSearch(q){
+  q=(q||"").trim();if(!q)return [];const ql=q.toLowerCase();const out=[];
+  for(const e of STOCKS){
+    const cands=[e.n.toLowerCase()].concat(e.k.map(k=>k.toLowerCase()));
+    let best=0;const sl=e.s.toLowerCase();
+    if(sl===ql)best=1000;else if(sl.startsWith(ql))best=Math.max(best,620);else if(sl.includes(ql))best=Math.max(best,160);
+    for(const c of cands){if(c===ql)best=Math.max(best,900);else if(c.startsWith(ql))best=Math.max(best,460);else if(c.includes(ql))best=Math.max(best,230);}
+    if(best>0)out.push({e,score:best+e.g/10,strong:best>=460});
+  }
+  out.sort((a,b)=>b.score-a.score);return out;
+}
+function resolveQuery(q){const r=localSearch(q);return (r.length&&r[0].strong)?r[0].e.s:null}
+function resolveExact(q){const ql=(q||"").trim().toLowerCase();if(!ql)return null;for(const e of STOCKS){if(e.s.toLowerCase()===ql||e.n.toLowerCase()===ql||e.k.some(k=>k.toLowerCase()===ql))return e.s}return null}
+
+// ═══ 검색 자동완성 (구글식 즉시 표시) ═══
 let acItems=[],acSel=-1,acTimer=null;
+function hlEsc(text,q){text=String(text||"");q=String(q||"");if(!q)return esc(text);const i=text.toLowerCase().indexOf(q.toLowerCase());if(i<0)return esc(text);return esc(text.slice(0,i))+'<b style="color:var(--steel)">'+esc(text.slice(i,i+q.length))+'</b>'+esc(text.slice(i+q.length))}
+function acLocalItems(q){return localSearch(q).slice(0,8).map(r=>({symbol:r.e.s,name:acLabel(r.e)}))}
+function showLocalAc(q){window._acQ=q;acItems=acLocalItems(q);acSel=-1;paintAc()}
+function suggestAc(){window._acQ="";const rec=getList("recent").slice(0,4).map(x=>({symbol:x.ticker,name:x.name||x.ticker,tag:"최근"}));const seen=new Set(rec.map(x=>x.symbol));const pop=STOCKS.slice().sort((a,b)=>b.g-a.g).filter(e=>!seen.has(e.s)&&e.s!=="SPACEX").slice(0,6).map(e=>({symbol:e.s,name:acLabel(e),tag:"인기"}));acItems=[...rec,...pop];acSel=-1;paintAc()}
 function bindSearch(){
   const inp=document.getElementById("tin");if(!inp)return;
-  inp.addEventListener("input",()=>{window._acMode="stock";state.symbol=inp.value.toUpperCase();clearTimeout(acTimer);const q=inp.value.trim();if(q.length<1){closeAc();return}acTimer=setTimeout(()=>doAutocomplete(q),260)});
+  inp.addEventListener("input",()=>{window._acMode="stock";state.symbol=inp.value.toUpperCase();clearTimeout(acTimer);const q=inp.value.trim();if(!q){suggestAc();return}showLocalAc(q);acTimer=setTimeout(()=>doAutocomplete(q),180)});
+  inp.addEventListener("focus",()=>{window._acMode="stock";const q=inp.value.trim();if(!q)suggestAc();else showLocalAc(q)});
   inp.addEventListener("keydown",e=>{
     const box=document.getElementById("acBox");
     if(box&&acItems.length){if(e.key==="ArrowDown"){e.preventDefault();acSel=(acSel+1)%acItems.length;paintAc()}else if(e.key==="ArrowUp"){e.preventDefault();acSel=(acSel-1+acItems.length)%acItems.length;paintAc()}else if(e.key==="Enter"){e.preventDefault();if(acSel>=0)loadStock(acItems[acSel].symbol);else loadStock();return}else if(e.key==="Escape")closeAc()}
@@ -661,22 +729,56 @@ function bindSearch(){
   });
 }
 async function doAutocomplete(q){
-  const ql=q.toLowerCase();
-  const extra=("spacex".startsWith(ql)||ql.includes("spac")||ql.includes("스페이스"))?[{symbol:"SPACEX",name:"SpaceX · 비상장"}]:[];
-  try{const r=await finApi("search",{query:q});acItems=[...extra,...(r.results||[]).filter(x=>x.symbol!=="SPACEX")];acSel=-1;paintAc()}
-  catch{acItems=extra;acSel=-1;paintAc()}
+  window._acQ=q;
+  const loc=acLocalItems(q);
+  const seen=new Set(loc.map(x=>x.symbol));
+  try{const r=await finApi("search",{query:q});
+    const el=document.getElementById(window._acMode==="compare"?"cmpIn":"tin");
+    if(el&&el.value.trim()!==q)return; // 입력이 바뀌었으면 무시
+    const srv=(r.results||[]).filter(x=>x&&x.symbol&&!seen.has(x.symbol));
+    acItems=[...loc,...srv].slice(0,12);if(acSel>=acItems.length)acSel=-1;paintAc();
+  }catch(e){/* 로컬 결과 유지 */}
 }
 function paintAc(){
   const wrap=document.getElementById("searchWrap");if(!wrap)return;
   let box=document.getElementById("acBox");
   if(!acItems.length){closeAc();return}
   if(!box){box=document.createElement("div");box.id="acBox";box.className="ac";wrap.appendChild(box)}
-  box.innerHTML=acItems.map((x,i)=>`<div class="ac-item ${i===acSel?"sel":""}" onclick="${window._acMode==='compare'?`addCompareTicker('${x.symbol}')`:`loadStock('${x.symbol}')`}"><b style="font-family:Inter;font-size:13px;min-width:52px">${esc(x.symbol)}</b><span style="font-size:13px;color:var(--sub)">${esc(x.name)}</span></div>`).join("");
+  const q=window._acQ||"";
+  box.innerHTML=acItems.map((x,i)=>`<div class="ac-item ${i===acSel?"sel":""}" onclick="${window._acMode==='compare'?`addCompareTicker('${x.symbol}')`:`loadStock('${x.symbol}')`}"><b style="font-family:Inter;font-size:13px;min-width:52px">${hlEsc(x.symbol,q)}</b><span style="font-size:13px;color:var(--sub);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${hlEsc(x.name,q)}</span>${x.tag?`<span style="font-size:10.5px;color:var(--faint);margin-left:auto;flex:0 0 auto">${esc(x.tag)}</span>`:""}</div>`).join("");
 }
 function closeAc(){const b=document.getElementById("acBox");if(b)b.remove();acItems=[];acSel=-1}
 window.closeAc=closeAc;
 
 // ═══ 종목 결과 ═══
+function earningsChart(list){
+  const rows=(list||[]).filter(e=>e&&(e.actual!=null||e.estimate!=null)).slice(0,6).reverse();
+  if(rows.length<2)return "";
+  const vals=[];rows.forEach(e=>{if(e.estimate!=null)vals.push(e.estimate);if(e.actual!=null)vals.push(e.actual)});
+  if(!vals.length)return "";
+  const maxAbs=Math.max.apply(null,vals.map(v=>Math.abs(v)))||1;
+  const hasNeg=vals.some(v=>v<0);
+  const n=rows.length,slot=64,W=n*slot,top=16,ph=92,H=top+ph+30;
+  const zeroY=hasNeg?top+ph/2:top+ph;
+  const scale=(hasNeg?ph/2:ph)-8;
+  const barW=17,gap=5;
+  const drawBar=(v,x,fill)=>{if(v==null)return "";const h=Math.max(1,Math.abs(v)/maxAbs*scale);const y=v>=0?zeroY-h:zeroY;return '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+barW+'" height="'+h.toFixed(1)+'" rx="2" style="fill:'+fill+'"/>';};
+  let bars="";
+  rows.forEach((e,i)=>{const cx=i*slot+slot/2;
+    const beat=(e.actual!=null&&e.estimate!=null)?e.actual>=e.estimate:((e.surprisePercent||0)>=0);
+    const actCol=beat?"var(--up)":"var(--down)";
+    bars+=drawBar(e.estimate,cx-barW-gap/2,"var(--line-d)");
+    bars+=drawBar(e.actual,cx+gap/2,actCol);
+    bars+='<text x="'+cx+'" y="'+(top+ph+15)+'" text-anchor="middle" font-size="10" font-family="Inter" style="fill:var(--faint)">'+esc(String(e.year||"").slice(2))+" Q"+esc(e.quarter)+'</text>';
+    if(e.actual!=null){const h=Math.abs(e.actual)/maxAbs*scale;const ly=e.actual>=0?zeroY-h-3:zeroY+h+11;bars+='<text x="'+(cx+gap/2+barW/2).toFixed(1)+'" y="'+ly.toFixed(1)+'" text-anchor="middle" font-size="9" font-family="Inter" style="fill:var(--sub)">'+fmt(e.actual,2)+'</text>';}
+  });
+  const zeroLine='<line x1="0" y1="'+zeroY+'" x2="'+W+'" y2="'+zeroY+'" style="stroke:var(--line);stroke-width:1"/>';
+  const legend='<g font-family="Inter" font-size="10">'+
+    '<rect x="0" y="'+(H-11)+'" width="10" height="10" rx="2" style="fill:var(--line-d)"/><text x="14" y="'+(H-2)+'" style="fill:var(--faint)">예상</text>'+
+    '<rect x="46" y="'+(H-11)+'" width="10" height="10" rx="2" style="fill:var(--up)"/><text x="60" y="'+(H-2)+'" style="fill:var(--faint)">상회</text>'+
+    '<rect x="92" y="'+(H-11)+'" width="10" height="10" rx="2" style="fill:var(--down)"/><text x="106" y="'+(H-2)+'" style="fill:var(--faint)">하회</text></g>';
+  return '<div style="overflow-x:auto;margin-bottom:14px"><svg viewBox="0 0 '+W+' '+(H+2)+'" width="100%" style="max-width:'+Math.max(340,W)+'px" role="img" aria-label="분기별 EPS 실제 대 예상 차트">'+zeroLine+bars+legend+'</svg></div>';
+}
 function renderStockResult(){
   const d=state.data;const q=d.quote;const cc=q.changePercent>=0?"var(--up)":"var(--down)";const wl=inWatch(d.symbol);const name=d.profile?.name||d.symbol;
   let t="";
@@ -705,7 +807,7 @@ function renderStockResult(){
   else if(state.tab==="news"){
     if(d.news===null)t=Array(4).fill('<div class="skel" style="height:56px;margin-bottom:10px"></div>').join("");
     else if(!d.news.length)t='<p style="font-size:14px;color:var(--sub)">최근 7일 뉴스를 찾지 못했어요.</p>';
-    else t=d.news.map((n,i)=>`<a class="newslink" href="${esc(n.url)}" target="_blank" rel="noreferrer" style="display:block;padding:13px 0;border-bottom:${i<d.news.length-1?"1px solid var(--line)":"none"}"><div style="font-size:14px;line-height:1.5;font-weight:500">${esc(n.title)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:5px;display:flex;gap:8px;align-items:center"><span style="font-weight:600;color:var(--steel)">${esc(n.source)}</span><span>·</span><span>${relTime(n.datetime)}</span><span style="margin-left:auto">원문 →</span></div></a>`).join("")+'<p style="font-size:11.5px;color:var(--faint);margin-top:14px">제목·출처·원문 링크만 제공 (저작권 준수). 요약은 [AI 분석] 탭에서.</p>';
+    else t='<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="chip '+(state.newsKo?"on":"")+'" onclick="setNewsKo('+(state.newsKo?"false":"true")+')">🇰🇷 번역</button></div>'+d.news.map((n,i)=>`<a class="newslink" href="${esc(n.url)}" target="_blank" rel="noreferrer" style="display:block;padding:13px 0;border-bottom:${i<d.news.length-1?"1px solid var(--line)":"none"}">${(state.newsKo&&n._ko)?`<div style="font-size:14px;line-height:1.5;font-weight:600">${esc(n._ko)}</div><div style="font-size:11px;color:var(--faint);margin-top:2px;line-height:1.4">${esc(n.title)}</div>`:`<div style="font-size:14px;line-height:1.5;font-weight:500">${esc(n.title)}</div>`}<div style="font-size:11.5px;color:var(--faint);margin-top:5px;display:flex;gap:8px;align-items:center"><span style="font-weight:600;color:var(--steel)">${esc(n.source)}</span><span>·</span><span>${relTime(n.datetime)}</span><span style="margin-left:auto">원문 →</span></div></a>`).join("")+'<p style="font-size:11.5px;color:var(--faint);margin-top:14px">제목·출처·원문 링크만 제공 (저작권 준수). 요약은 [AI 분석] 탭에서.</p>';
   }
   else if(state.tab==="filings"){
     if(d.filings===null)t=Array(3).fill('<div class="skel" style="height:48px;margin-bottom:10px"></div>').join("");
@@ -730,7 +832,7 @@ function renderStockResult(){
   else if(state.tab==="earnings"){
     if(d.earnings===null)t=Array(3).fill('<div class="skel" style="height:44px;margin-bottom:10px"></div>').join("");
     else if(!d.earnings.length)t='<p style="font-size:14px;color:var(--sub)">실적 서프라이즈 데이터가 없어요.</p>';
-    else t='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--faint);font-size:11.5px"><th style="text-align:left;padding:8px 6px">분기</th><th style="text-align:right;padding:8px 6px">예상 EPS</th><th style="text-align:right;padding:8px 6px">실제 EPS</th><th style="text-align:right;padding:8px 6px">서프라이즈</th></tr></thead><tbody>'+d.earnings.map(e=>{const up=(e.surprisePercent??0)>=0;const col=up?"var(--up)":"var(--down)";return `<tr style="border-top:1px solid var(--line);font-family:Inter"><td style="text-align:left;padding:10px 6px">${esc(e.year)} Q${esc(e.quarter)}</td><td style="text-align:right;padding:10px 6px">${e.estimate!=null?fmt(e.estimate,2):"—"}</td><td style="text-align:right;padding:10px 6px;font-weight:700">${e.actual!=null?fmt(e.actual,2):"—"}</td><td style="text-align:right;padding:10px 6px;color:${col};font-weight:700">${e.surprisePercent!=null?(up?"+":"")+fmt(e.surprisePercent,1)+"%":"—"}</td></tr>`;}).join("")+'</tbody></table></div><p style="font-size:11.5px;color:var(--faint);margin-top:12px">Finnhub 최근 분기 EPS 실제 vs 예상. 양수 서프라이즈는 예상 상회를 뜻해요.</p>';
+    else t=earningsChart(d.earnings)+'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--faint);font-size:11.5px"><th style="text-align:left;padding:8px 6px">분기</th><th style="text-align:right;padding:8px 6px">예상 EPS</th><th style="text-align:right;padding:8px 6px">실제 EPS</th><th style="text-align:right;padding:8px 6px">서프라이즈</th></tr></thead><tbody>'+d.earnings.map(e=>{const up=(e.surprisePercent??0)>=0;const col=up?"var(--up)":"var(--down)";return `<tr style="border-top:1px solid var(--line);font-family:Inter"><td style="text-align:left;padding:10px 6px">${esc(e.year)} Q${esc(e.quarter)}</td><td style="text-align:right;padding:10px 6px">${e.estimate!=null?fmt(e.estimate,2):"—"}</td><td style="text-align:right;padding:10px 6px;font-weight:700">${e.actual!=null?fmt(e.actual,2):"—"}</td><td style="text-align:right;padding:10px 6px;color:${col};font-weight:700">${e.surprisePercent!=null?(up?"+":"")+fmt(e.surprisePercent,1)+"%":"—"}</td></tr>`;}).join("")+'</tbody></table></div><p style="font-size:11.5px;color:var(--faint);margin-top:12px">Finnhub 최근 분기 EPS 실제 vs 예상. 양수 서프라이즈는 예상 상회를 뜻해요.</p>';
   }
   else if(state.tab==="ai")t=renderAiTab(d);
   else if(state.tab==="discuss")t=renderDiscuss(d.symbol);
@@ -741,7 +843,7 @@ function renderStockResult(){
       <div style="text-align:right"><div style="font-size:27px;font-weight:700;font-family:Inter">$${fmt(q.price)}</div>${window._usdkrw&&q.price!=null?`<div style="font-size:11.5px;color:var(--faint);font-family:Inter;margin-top:1px">≈ ₩${fmt(q.price*window._usdkrw,0)}</div>`:""}<div style="font-size:15px;color:${cc};font-weight:700;font-family:Inter">${q.changePercent>=0?"▲":"▼"} ${fmt(Math.abs(q.changePercent))}%</div>
       <button onclick="toggleWatch('${d.symbol}','${esc(name)}')" style="margin-top:8px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px;border:1px solid ${wl?"var(--steel)":"var(--line)"};background:${wl?"var(--soft)":"var(--bg)"};color:${wl?"var(--steel)":"var(--sub)"}">${wl?"★ 관심종목":"☆ 관심 추가"}</button> <button onclick="shareStock('${d.symbol}')" style="margin-top:8px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--sub)">🔗 공유</button> <button onclick="paperTradeFrom('${d.symbol}')" style="margin-top:8px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px;border:1px solid var(--steel);background:var(--bg);color:var(--steel)">🎮 모의 매수</button></div>
     </div>
-    <div style="display:flex;gap:2px;padding:0 14px;border-bottom:1px solid var(--line);overflow-x:auto">${TABS.map(x=>`<button class="tab ${state.tab===x[0]?"on":""}" onclick="state.tab='${x[0]}';render()">${x[1]}</button>`).join("")}</div>
+    <div style="display:flex;gap:2px;padding:0 14px;border-bottom:1px solid var(--line);overflow-x:auto">${TABS.map(x=>`<button class="tab ${state.tab===x[0]?"on":""}" onclick="stab('${x[0]}')">${x[1]}</button>`).join("")}</div>
     <div style="padding:22px 26px">${t}</div>
     ${!isPro()?`<div style="padding:0 26px 20px">${adUnit()}</div>`:""}
   </div>`;
@@ -1335,27 +1437,44 @@ function renderNews(){
   <div style="display:flex;gap:6px;flex-wrap:wrap;overflow-x:auto;margin-bottom:16px">${cats.map(c=>`<button class="chip ${cat===c?"on":""}" onclick="setNewsCat('${c}')">${c}</button>`).join("")}</div>
   ${newsSentBanner()}${body}`;
 }
-window.setNewsCat=(c)=>{state.newsCat=c;state.newsShow=12;renderNews()};
+window.setNewsCat=(c)=>{state.newsCat=c;state.newsShow=12;renderNews();autoTransNews()};
 window.setNewsCountry=(v)=>{state.newsCountry=v;state.newsWatch=false;state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;renderNews();loadNews(true)};
 window.setNewsWatch=(on)=>{state.newsWatch=(on===true||on==="true");if(state.newsWatch)state.newsCountry="";state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;renderNews();loadNews(true)};
-window.toggleNewsKo=async()=>{
-  state.newsKo=!state.newsKo;renderNews();
-  if(!state.newsKo){toast("영어 원문 보기");return}
-  const all=window._news||[];const cat=state.newsCat||"전체";const show=state.newsShow||12;
-  if(!all.length){toast("뉴스를 불러오는 중이에요. 잠시 후 다시 눌러주세요");return}
-  const list=(cat==="전체"?all:all.filter(x=>x.category===cat)).slice(0,show).filter(x=>!x._ko);
-  if(!list.length){toast("이미 번역된 뉴스예요");return}
-  toast("한국어 번역 중…");
-  try{
-    const r=await aiApi("translate_news",{titles:list.map(x=>x.title)});
-    if(r&&r.items&&r.items.length){list.forEach((x,i)=>{if(r.items[i])x._ko=r.items[i]});renderNews();toast("번역 완료 ✓")}
-    else{toast("번역을 불러오지 못했어요. 잠시 후 다시 시도해 주세요")}
-  }catch(e){toast("번역 오류 · 잠시 후 다시 시도해 주세요")}
+async function translateTitles(items){
+  const list=(items||[]).filter(x=>x&&x.title&&!x._ko);
+  if(!list.length)return false;
+  try{const r=await aiApi("translate_news",{titles:list.map(x=>x.title)});
+    if(r&&r.items&&r.items.length){list.forEach((x,i)=>{if(r.items[i])x._ko=r.items[i]});return true}}catch(e){}
+  return false;
+}
+async function autoTransNews(withToast){
+  if(!state.newsKo||window._koBusy)return;
+  const all=window._news||[];if(!all.length){if(withToast)toast("뉴스를 불러오는 중이에요");return}
+  const cat=state.newsCat||"전체";const show=state.newsShow||12;
+  const list=(cat==="전체"?all:all.filter(x=>x.category===cat)).slice(0,show);
+  if(withToast&&list.some(x=>!x._ko))toast("한국어 번역 중…");
+  window._koBusy=true;const changed=await translateTitles(list);window._koBusy=false;
+  if(changed&&state.view==="news")renderNews();
+  if(withToast)toast(changed?"번역 완료 ✓":"이미 번역됨");
+}
+async function autoTransStock(withToast){
+  if(!state.newsKo||window._koBusyS)return;
+  const d=state.data;if(!d||!d.news||!d.news.length){if(withToast)toast("뉴스를 불러오는 중이에요");return}
+  if(withToast&&d.news.some(x=>!x._ko))toast("한국어 번역 중…");
+  window._koBusyS=true;const changed=await translateTitles(d.news.slice(0,20));window._koBusyS=false;
+  if(changed&&state.view==="stock"&&state.tab==="news")render();
+  if(withToast)toast(changed?"번역 완료 ✓":"이미 번역됨");
+}
+window.setNewsKo=function(on){on=!!on;state.newsKo=on;try{localStorage.setItem("newsKo",on?"1":"0")}catch(e){}
+  if(state.view==="news"){renderNews();if(on)autoTransNews(true);else toast("영어 원문 보기")}
+  else{render();if(on)autoTransStock(true);else toast("영어 원문 보기")}
 };
-window.newsMore=()=>{state.newsShow=(state.newsShow||12)+12;renderNews()};
+window.toggleNewsKo=()=>setNewsKo(!state.newsKo);
+window.stab=function(t){state.tab=t;render();if(t==="news")autoTransStock()};
+window.newsMore=()=>{state.newsShow=(state.newsShow||12)+12;renderNews();autoTransNews()};
 window.aiNewsSentiment=async()=>{const all=window._news||[];const cat=state.newsCat||"전체";const show=state.newsShow||12;if(!all.length){toast("뉴스를 불러오는 중이에요. 잠시 후 다시 눌러주세요");return}const list=(cat==="전체"?all:all.filter(x=>x.category===cat)).slice(0,show);toast("NVIDIA 감성 분석 중…");try{const r=await aiApi("news_sentiment",{titles:list.map(x=>x.title)});if(r.aiUnavailable||!r.items){toast("감성 분석을 불러오지 못했어요");return}list.forEach((x,i)=>{if(r.items[i]){x._sent=r.items[i].sentiment;x._impact=r.items[i].impact}});window._newsSent={overall:r.overall,sentiment:r.sentiment,score:r.score,keywords:r.keywords||[],provider:r._provider};renderNews();toast("감성 분석 완료 ✓")}catch(e){toast("감성 분석 오류 · 잠시 후 다시 시도해 주세요")}};
 window.aiNews=async(idx)=>{const it=(window._news||[])[idx];if(!it)return;it._ai="loading";const el=document.getElementById("nai_"+idx);if(el)el.innerHTML='<div class="skel" style="height:30px"></div>';const r=await aiApi("news_summary",{news:[it.title]});it._ai=(r.aiUnavailable||!r.summary)?{err:true}:{summary:r.summary};const el2=document.getElementById("nai_"+idx);if(el2)el2.innerHTML=newsAiArea(it,idx)};
-async function loadNews(fresh){try{let d;if(state.newsWatch){const w=getList("watchlist").map(x=>x.ticker);if(!w.length){window._news=[];if(state.view==="news")renderNews();return}const ck="watch_"+w.slice().sort().join(",");d=(!fresh&&cGet(ck))||await finApi("watch_news",{query:w.join(",")});cSet(ck,d)}else if(state.newsCountry){const ck="world_"+state.newsCountry;d=(!fresh&&cGet(ck))||await finApi("worldnews",{country:state.newsCountry});cSet(ck,d)}else{d=(!fresh&&cGet("news_center"))||await finApi("market_news");cSet("news_center",d)}const fresh2=(d.news||[]);const merged=fresh2.map(nw=>{const old=(window._news||[]).find(o=>o.url===nw.url);return old?{...nw,_ai:old._ai,_sent:old._sent,_impact:old._impact}:nw});window._news=merged}catch{window._news=window._news||[]}if(state.view==="news")renderNews()}
+async function loadNews(fresh){try{let d;if(state.newsWatch){const w=getList("watchlist").map(x=>x.ticker);if(!w.length){window._news=[];if(state.view==="news")renderNews();return}const ck="watch_"+w.slice().sort().join(",");d=(!fresh&&cGet(ck))||await finApi("watch_news",{query:w.join(",")});cSet(ck,d)}else if(state.newsCountry){const ck="world_"+state.newsCountry;d=(!fresh&&cGet(ck))||await finApi("worldnews",{country:state.newsCountry});cSet(ck,d)}else{d=(!fresh&&cGet("news_center"))||await finApi("market_news");cSet("news_center",d)}const fresh2=(d.news||[]);const merged=fresh2.map(nw=>{const old=(window._news||[]).find(o=>o.url===nw.url);return old?{...nw,_ai:old._ai,_sent:old._sent,_impact:old._impact}:nw});window._news=merged}catch{window._news=window._news||[]}if(state.view==="news"){renderNews();autoTransNews()}}
 function startNewsPoll(){if(window._newsPoll)return;window._newsPoll=setInterval(()=>{if(state.view==="news"&&!document.hidden)loadNews(true)},90000)}
 function stopNewsPoll(){if(window._newsPoll){clearInterval(window._newsPoll);window._newsPoll=null}}
 
@@ -1382,7 +1501,13 @@ async function checkAlerts(){
 }
 function startAlertPoll(){if(window._alertPoll)return;checkAlerts();window._alertPoll=setInterval(checkAlerts,60000)}
 function stopAlertPoll(){if(window._alertPoll){clearInterval(window._alertPoll);window._alertPoll=null}}
-window.shareStock=(sym)=>{const url=location.origin+"/#stock/"+sym;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(()=>toast("링크 복사됨 · "+url)).catch(()=>toast(url))}else toast(url)};
+window.shareStock=async(sym)=>{
+  const url=location.origin+"/#stock/"+sym;
+  let txt=sym+" · ASTRO IRON에서 실시간 시세·AI 분석 보기";
+  try{const d=state.data;if(d&&d.symbol===sym&&d.quote&&d.quote.price!=null){const nm=(d.profile&&d.profile.name)||sym;const c=d.quote.changePercent||0;txt=nm+" ("+sym+") $"+fmt(d.quote.price)+" "+(c>=0?"▲":"▼")+" "+fmt(Math.abs(c))+"% · ASTRO IRON";}}catch(e){}
+  if(navigator.share){try{await navigator.share({title:"ASTRO IRON · "+sym,text:txt,url:url});try{trackEvent("share_stock",{ticker:sym})}catch(_){}return}catch(e){if(e&&e.name==="AbortError")return}}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(()=>toast("링크 복사됨 · "+url)).catch(()=>toast(url))}else toast(url);
+};
 function renderAlerts(){
   const list=getList("alerts");const active=list.filter(a=>!a.done);const done=list.filter(a=>a.done);
   const needPerm=window.Notification&&Notification.permission!=="granted";const denied=window.Notification&&Notification.permission==="denied";
@@ -1430,7 +1555,7 @@ window.addCompare=()=>{const el=document.getElementById("cmpIn");let t=(el&&el.v
 window.delCompare=(t)=>{setList("compare",getList("compare").filter(x=>x!==t));renderCompare()};
 window.exportPortfolioCSV=()=>{const p=getList("portfolio");if(!p.length)return;const rows=[["티커","수량","평단(USD)","현재가(USD)","평가금액(USD)","손익(USD)","수익률(%)"]];p.forEach(h=>{const q=pQ[h.ticker];const val=(q?q.price:h.price)*h.qty;const pnl=q?(q.price-h.price)*h.qty:"";const pct=q?((q.price-h.price)/h.price*100).toFixed(2):"";rows.push([h.ticker,h.qty,h.price,q?q.price:"",val.toFixed(2),pnl===""?"":pnl.toFixed(2),pct])});const csv="\ufeff"+rows.map(r=>r.join(",")).join("\r\n");const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="astroiron_portfolio.csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)};
 window.addCompareTicker=(t)=>{t=(t||"").toUpperCase();const list=getList("compare");if(!/^[A-Z0-9.]{1,6}$/.test(t)||list.includes(t)||list.length>=3){closeAc();return}list.push(t);setList("compare",list);closeAc();renderCompare()};
-function bindCompareSearch(){const inp=document.getElementById("cmpIn");if(!inp)return;inp.addEventListener("input",()=>{window._acMode="compare";clearTimeout(acTimer);const q=inp.value.trim();if(q.length<1){closeAc();return}acTimer=setTimeout(()=>doAutocomplete(q),260)});inp.addEventListener("keydown",e=>{if(e.key==="Enter"){if(acSel>=0&&acItems[acSel]){addCompareTicker(acItems[acSel].symbol)}else addCompare()}else if(e.key==="ArrowDown"){acSel=Math.min(acSel+1,acItems.length-1);paintAc()}else if(e.key==="ArrowUp"){acSel=Math.max(acSel-1,0);paintAc()}else if(e.key==="Escape")closeAc()})}
+function bindCompareSearch(){const inp=document.getElementById("cmpIn");if(!inp)return;inp.addEventListener("input",()=>{window._acMode="compare";clearTimeout(acTimer);const q=inp.value.trim();if(!q){closeAc();return}showLocalAc(q);acTimer=setTimeout(()=>doAutocomplete(q),180)});inp.addEventListener("focus",()=>{window._acMode="compare";const q=inp.value.trim();if(q)showLocalAc(q)});inp.addEventListener("keydown",e=>{if(e.key==="Enter"){if(acSel>=0&&acItems[acSel]){addCompareTicker(acItems[acSel].symbol)}else addCompare()}else if(e.key==="ArrowDown"){acSel=Math.min(acSel+1,acItems.length-1);paintAc()}else if(e.key==="ArrowUp"){acSel=Math.max(acSel-1,0);paintAc()}else if(e.key==="Escape")closeAc()})}
 
 // ═══ 라우터 ═══
 // ═══ 뷰: 토론방 (실시간 채팅 · 닉네임 기억 · 토스풍) ═══
@@ -2068,7 +2193,7 @@ function render(){
   else if(state.view==="cal")renderMyCal();
   else if(state.view==="compare")renderCompare();
   else if(state.view==="alerts")renderAlerts();
-  else if(state.view==="news"){renderNews();if(!window._newsLoaded){window._newsLoaded=true;loadNews()}startNewsPoll();}
+  else if(state.view==="news"){renderNews();autoTransNews();if(!window._newsLoaded){window._newsLoaded=true;loadNews()}startNewsPoll();}
   {const ab=document.getElementById("aboutSection");if(ab)ab.style.display=(state.view==="home"?"block":"none")}
   setNavH();syncHash();window._rendered=true;
 }

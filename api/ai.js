@@ -258,10 +258,10 @@ ONLY raw JSON, 한국어: {"summary":"3문장 시장 요약"}`;
 ONLY raw JSON, 한국어: {"tone":"positive|neutral|negative","headline":"관심종목 전반 한줄 요약(등락률 근거)","mover":"오늘 눈에 띄는 종목 1~2개와 이유 1문장","watch":"오늘 지켜볼 포인트 1문장(중립)"}`;
       maxTokens = 500;
     } else if (task === "translate_news") {
-      prompt = `다음 영어 뉴스 제목들을 자연스러운 한국어로 번역하세요. 회사명·티커·고유명사는 그대로 두고 의미를 정확히 옮기세요.
+      prompt = `다음 영어 뉴스 제목들을 한국어로 번역하세요. 회사명·티커·인명·지명 등 고유명사와 숫자·단위는 그대로 두고, 직역투가 아니라 한국 경제뉴스 헤드라인처럼 간결하고 자연스럽게 옮기세요. 과장·의역·추측 금지.
 제목 목록(JSON): ${ctxStr}
-반드시 입력과 동일한 개수·순서로, ONLY raw JSON: {"items":["한국어번역1","한국어번역2"]}`;
-      maxTokens = 1300;
+반드시 입력과 동일한 개수와 순서로, 각 항목은 한국어 한 줄. ONLY raw JSON: {"items":["번역1","번역2"]}`;
+      maxTokens = 1500;
     } else if (task === "chat") {
       const history = Array.isArray(body.history) ? body.history.slice(-6).map((m) => (m.role === "user" ? "사용자" : "AI") + ": " + String(m.text || "").slice(0, 300)).join("\n") : "";
       prompt = `당신은 투자 정보 도우미입니다. 참고 데이터와 이전 대화 맥락으로 질문에 답하세요.
