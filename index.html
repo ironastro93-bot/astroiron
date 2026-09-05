@@ -1031,20 +1031,27 @@ function magNews(news){
 function dashSection(title,id,note){return `<div class="card" style="margin-bottom:16px"><div style="padding:14px 20px;border-bottom:1px solid var(--line)"><h2 style="font-size:14.5px">${title}</h2>${note?`<div style="font-size:11px;color:var(--faint);margin-top:2px">${note}</div>`:""}</div><div id="${id}"><div style="padding:16px 20px;display:flex;flex-wrap:wrap;gap:10px">${Array(4).fill('<div class="skel" style="height:56px;flex:1 1 150px"></div>').join("")}</div></div></div>`}
 
 const ECON_EVENTS=[
- {d:"2026-07-14",t:"CPI 소비자물가 (6월)",c:"물가",note:"인플레이션 방향 · 금리 기대 좌우"},
- {d:"2026-07-29",t:"FOMC 기준금리 결정",c:"통화정책",note:"연준 금리 결정 · 시장 최대 변수"},
- {d:"2026-07-31",t:"PCE 물가지수 (6월)",c:"물가",note:"연준이 선호하는 물가지표"},
- {d:"2026-08-07",t:"고용보고서 (비농업)",c:"고용",note:"NFP·실업률 · 노동시장 강도"},
- {d:"2026-08-12",t:"CPI 소비자물가 (7월)",c:"물가",note:"인플레이션 추세 점검"},
- {d:"2026-08-28",t:"PCE 물가지수 (7월)",c:"물가",note:"연준 선호 물가지표"},
- {d:"2026-09-04",t:"고용보고서 (비농업)",c:"고용",note:"9월 FOMC 직전 고용 신호"},
- {d:"2026-09-11",t:"CPI 소비자물가 (8월)",c:"물가",note:"FOMC 직전 물가 확인"},
- {d:"2026-09-16",t:"FOMC 기준금리 결정",c:"통화정책",note:"금리·경제전망(SEP) 발표"},
- {d:"2026-10-02",t:"고용보고서 (비농업)",c:"고용",note:"4분기 첫 고용 지표"},
- {d:"2026-10-28",t:"FOMC 기준금리 결정",c:"통화정책",note:"연준 통화정책 회의"},
- {d:"2026-11-06",t:"고용보고서 (비농업)",c:"고용",note:"노동시장 모멘텀"},
- {d:"2026-12-04",t:"고용보고서 (비농업)",c:"고용",note:"연말 고용 점검"},
- {d:"2026-12-09",t:"FOMC 기준금리 결정",c:"통화정책",note:"연내 마지막 금리 결정"}
+ {d:"2026-09-10",t:"🇪🇺 ECB 기준금리 결정",c:"통화정책",note:"유럽중앙은행 · 유로존 통화정책"},
+ {d:"2026-09-11",t:"🇺🇸 CPI 소비자물가 (8월)",c:"물가",note:"FOMC 직전 물가 확인"},
+ {d:"2026-09-16",t:"🇺🇸 FOMC 기준금리 결정",c:"통화정책",note:"연준 금리·경제전망(SEP)"},
+ {d:"2026-09-17",t:"🇬🇧 BoE 기준금리 결정",c:"통화정책",note:"영란은행 통화정책"},
+ {d:"2026-09-18",t:"🇯🇵 BoJ 금융정책결정회의",c:"통화정책",note:"일본은행 · 엔화·닛케이 영향"},
+ {d:"2026-10-02",t:"🇺🇸 고용보고서 (비농업)",c:"고용",note:"NFP·실업률"},
+ {d:"2026-10-20",t:"🇨🇳 PBoC 대출우대금리(LPR)",c:"통화정책",note:"중국 인민은행 금리 고시"},
+ {d:"2026-10-22",t:"🇰🇷 한국은행 기준금리 결정",c:"통화정책",note:"금통위 · 원화·코스피 영향"},
+ {d:"2026-10-28",t:"🇺🇸 FOMC 기준금리 결정",c:"통화정책",note:"연준 통화정책 회의"},
+ {d:"2026-10-29",t:"🇪🇺 ECB 기준금리 결정",c:"통화정책",note:"유럽중앙은행 통화정책"},
+ {d:"2026-10-30",t:"🇯🇵 BoJ 금융정책결정회의",c:"통화정책",note:"일본은행 · 전망 리포트"},
+ {d:"2026-11-05",t:"🇬🇧 BoE 기준금리 결정",c:"통화정책",note:"영란은행 · 통화정책보고서"},
+ {d:"2026-11-06",t:"🇺🇸 고용보고서 (비농업)",c:"고용",note:"노동시장 모멘텀"},
+ {d:"2026-11-20",t:"🇨🇳 PBoC 대출우대금리(LPR)",c:"통화정책",note:"중국 인민은행 금리 고시"},
+ {d:"2026-11-26",t:"🇰🇷 한국은행 기준금리 결정",c:"통화정책",note:"금통위 · 올해 마지막 회의"},
+ {d:"2026-12-04",t:"🇺🇸 고용보고서 (비농업)",c:"고용",note:"연말 고용 점검"},
+ {d:"2026-12-09",t:"🇺🇸 FOMC 기준금리 결정",c:"통화정책",note:"연내 마지막 금리 결정"},
+ {d:"2026-12-17",t:"🇪🇺 ECB 기준금리 결정",c:"통화정책",note:"유럽중앙은행 · 연말 결정"},
+ {d:"2026-12-17",t:"🇬🇧 BoE 기준금리 결정",c:"통화정책",note:"영란은행 · 연말 결정"},
+ {d:"2026-12-18",t:"🇯🇵 BoJ 금융정책결정회의",c:"통화정책",note:"일본은행 · 연말 회의"},
+ {d:"2026-12-21",t:"🇨🇳 PBoC 대출우대금리(LPR)",c:"통화정책",note:"중국 인민은행 금리 고시"}
 ];
 function econDday(ds){const now=new Date();now.setHours(0,0,0,0);const d=new Date(ds+"T00:00:00");return Math.round((d-now)/86400000)}
 function renderEconCal(){
@@ -1070,7 +1077,7 @@ function renderHome(){
   <div id="pulseStatus" onclick="pollHome()" title="지금 새로고침" style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--faint);margin:-6px 0 14px;cursor:pointer"><span class="live-dot" style="background:var(--faint)"></span> 실시간 연결 준비 중…</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
     <button onclick="switchView('news')" style="text-align:left;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px 16px;cursor:pointer;box-shadow:0 3px 12px rgba(20,30,60,.06);transition:.15s"><div style="font-size:22px;line-height:1">📰</div><div style="font-weight:800;font-size:15px;margin-top:6px">뉴스</div><div style="font-size:11.5px;color:var(--faint);margin-top:2px">미국 증시 · 나라별 정치·경제</div></button>
-    <button onclick="switchView('cal')" style="text-align:left;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px 16px;cursor:pointer;box-shadow:0 3px 12px rgba(20,30,60,.06);transition:.15s"><div style="font-size:22px;line-height:1">📅</div><div style="font-weight:800;font-size:15px;margin-top:6px">캘린더</div><div style="font-size:11.5px;color:var(--faint);margin-top:2px">FOMC·CPI·실적 + 내 일정</div></button>
+    <button onclick="switchView('cal')" style="text-align:left;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px 16px;cursor:pointer;box-shadow:0 3px 12px rgba(20,30,60,.06);transition:.15s"><div style="font-size:22px;line-height:1">📅</div><div style="font-weight:800;font-size:15px;margin-top:6px">캘린더</div><div style="font-size:11.5px;color:var(--faint);margin-top:2px">전세계 중앙은행·지표·실적 + 내 일정</div></button>
   </div>
   <div class="card" style="margin-bottom:16px;border:none;background:linear-gradient(135deg,#2F6BFF,#4F46E5);color:#fff;box-shadow:0 10px 30px rgba(47,107,255,.28)"><div style="padding:18px 20px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div style="font-size:11px;letter-spacing:.12em;opacity:.85;text-transform:uppercase">오늘의 시장 분위기</div><div id="mktSentiment" style="font-size:18px;font-weight:800;margin-top:4px">AI 시장 점수 계산 중…</div></div><div id="mktScore" style="min-width:56px;height:56px;padding:0 6px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;font-family:'Inter',sans-serif">–</div></div>
@@ -1771,7 +1778,7 @@ function calUpcoming(){
   (typeof ECON_EVENTS!=="undefined"?ECON_EVENTS:[]).forEach(function(e){if(e.d>=todayStr)items.push({d:e.d,t:e.t,kind:"econ"})});
   var em=window._earnCal||{};Object.keys(em).forEach(function(d){if(d>=todayStr)(em[d]||[]).forEach(function(tk){items.push({d:d,t:tk+" 실적 발표",kind:"earn",tk:tk})})});
   getList("mycal").forEach(function(e){if(e.d>=todayStr)items.push({d:e.d,t:e.title,kind:"mine"})});
-  items.sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0});items=items.slice(0,6);
+  items.sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0});items=items.slice(0,10);
   if(!items.length)return "";
   var col={econ:"#3B6FE0",earn:"var(--up)",mine:"var(--steel)"};
   var rows=items.map(function(e){var dd=econDday(e.d);var dtxt=dd===0?"오늘":dd===1?"내일":"D-"+dd;var click=e.kind==="earn"?' onclick="loadStock(\''+e.tk+'\')" style="cursor:pointer"':'';return '<div'+click+' style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-top:1px solid var(--line)"><span style="width:8px;height:8px;border-radius:2px;background:'+col[e.kind]+';flex:0 0 auto"></span><span style="flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(e.t)+'</span><span style="font-size:11.5px;font-weight:700;color:var(--faint);white-space:nowrap">'+dtxt+' · '+e.d.slice(5).replace("-","/")+'</span></div>';}).join("");
@@ -1809,7 +1816,7 @@ function renderMyCal(){
       ((o.econ.length+o.mine.length+(o.earn?o.earn.length:0))===0?'<div style="font-size:12.5px;color:var(--faint);padding:6px 0">등록된 일정이 없어요.</div>':"")+
       '</div><div style="padding:8px 18px 16px;border-top:1px solid var(--line)"><div style="display:flex;gap:8px;margin:10px 0 8px"><input id="calT" type="time" style="padding:8px 10px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><input id="calTitle" maxlength="60" placeholder="일정 제목" style="flex:1;min-width:0;padding:9px 12px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/></div><input id="calNote" maxlength="200" placeholder="메모 (선택)" style="width:100%;padding:9px 12px;margin-bottom:8px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><button class="btn-sm" onclick="addMyCal()">이 날짜에 일정 추가</button></div></div>';
   }
-  app.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><button class="btn-g" style="font-size:20px;padding:2px 12px" onclick="calNav(-1)">‹</button><h1 style="margin:0;font-size:20px">'+y+'. '+(m+1)+'.</h1><button class="btn-g" style="font-size:20px;padding:2px 12px" onclick="calNav(1)">›</button></div><p class="lede" style="margin-bottom:12px">파란=경제일정, <span style="color:var(--up);font-weight:700">초록=관심종목 실적</span>, 회색=내 일정. 날짜를 눌러 개인 일정을 추가하세요.</p><div class="calc-grid calc-head">'+["일","월","화","수","목","금","토"].map((w,i)=>'<div class="calc-wd" style="'+(i===0?'color:var(--up)':i===6?'color:#3B6FE0':'')+'">'+w+'</div>').join("")+'</div><div class="calc-grid">'+cells+'</div>'+calUpcoming()+panel;var _ek=y+'|'+m+'|'+getList('watchlist').length;if(window._earnCalKey!==_ek){window._earnCalKey=_ek;setTimeout(loadEarningsCal,20)}
+  app.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><button class="btn-g" style="font-size:20px;padding:2px 12px" onclick="calNav(-1)">‹</button><h1 style="margin:0;font-size:20px">'+y+'. '+(m+1)+'.</h1><button class="btn-g" style="font-size:20px;padding:2px 12px" onclick="calNav(1)">›</button></div><p class="lede" style="margin-bottom:12px">파란=전세계 경제일정(🇺🇸미국·🇪🇺유럽·🇯🇵일본·🇰🇷한국·🇨🇳중국·🇬🇧영국), <span style="color:var(--up);font-weight:700">초록=관심종목 실적</span>, 회색=내 일정. 날짜를 눌러 개인 일정을 추가하세요.</p><div class="calc-grid calc-head">'+["일","월","화","수","목","금","토"].map((w,i)=>'<div class="calc-wd" style="'+(i===0?'color:var(--up)':i===6?'color:#3B6FE0':'')+'">'+w+'</div>').join("")+'</div><div class="calc-grid">'+cells+'</div>'+calUpcoming()+panel;var _ek=y+'|'+m+'|'+getList('watchlist').length;if(window._earnCalKey!==_ek){window._earnCalKey=_ek;setTimeout(loadEarningsCal,20)}
 }
 window.toggleHomeMore=()=>{state.homeMore=!state.homeMore;render()};
 window.calNav=(d)=>{let y=window._calYM.y,m=window._calYM.m+d;if(m<0){m=11;y--}if(m>11){m=0;y++}window._calYM={y,m};render()};
