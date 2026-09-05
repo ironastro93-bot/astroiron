@@ -103,11 +103,12 @@
   .ac{position:absolute;top:52px;left:0;right:0;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:20;overflow:hidden;max-width:520px}
   .ac-item{padding:11px 16px;display:flex;gap:10px;align-items:center;cursor:pointer;border-bottom:1px solid var(--line)}
   .ac-item:hover,.ac-item.sel{background:var(--soft)}
-  .wmap{position:relative;width:100%;padding-top:52%;background:radial-gradient(120% 120% at 50% 0%,#0e2748,#081a33);border-radius:16px;overflow:hidden;border:1px solid var(--line);box-shadow:inset 0 2px 20px rgba(0,0,0,.35)}
-  .wmap>svg{position:absolute;inset:0;width:100%;height:100%}
-  .wpin{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);cursor:pointer;padding:0;transition:transform .12s,background .12s;-webkit-tap-highlight-color:transparent}
-  .wpin:hover,.wpin:focus{transform:translate(-50%,-50%) scale(1.3);background:var(--steel);border-color:#fff;z-index:5;outline:none}
-  @media(max-width:640px){.wpin{width:22px;height:22px;font-size:13px}}
+  .worldwrap{position:relative;width:100%;background:radial-gradient(130% 140% at 50% -10%,#123056,#07152b);border-radius:16px;overflow:hidden;border:1px solid var(--line);box-shadow:inset 0 2px 22px rgba(0,0,0,.4)}
+  .worldwrap svg{display:block;width:100%;height:auto}
+  .wland{fill:#2a4a74;stroke:#0b1f3a;stroke-width:.5;vector-effect:non-scaling-stroke}
+  .wc{fill:#3E74DE;stroke:#0b1f3a;stroke-width:.5;cursor:pointer;transition:fill .12s;vector-effect:non-scaling-stroke}
+  .wc:hover,.wc:focus{fill:#8FB6FF;outline:none}
+  .wc.on{fill:#E5484D}
   .chip{padding:5px 12px;font-size:12.5px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--sub);cursor:pointer}
   .chip.on{background:var(--charcoal);color:var(--bg);border-color:var(--charcoal);font-weight:700}
   .adbox{border:1px dashed var(--line-d);border-radius:12px;padding:14px;text-align:center;font-size:12px;color:var(--faint);background:var(--soft)}
@@ -316,7 +317,7 @@
       <button id="quotaBtn"></button>
     </div>
   </div>
-  <div class="viewnav" id="viewnav" role="tablist" aria-label="주요 메뉴"><button class="vitem on" role="tab" aria-selected="true" onclick="switchView('home')">홈</button><button class="vitem" role="tab" aria-selected="false" onclick="switchView('news')">뉴스</button><button class="vitem" role="tab" aria-selected="false" onclick="switchView('cal')">캘린더</button><button class="vitem" role="tab" aria-selected="false" onclick="switchView('watchlist')">내 종목</button><button class="vitem" role="tab" aria-selected="false" onclick="switchView('board')">토론방</button></div>
+  <div class="viewnav" id="viewnav" role="tablist" aria-label="주요 메뉴"><button class="vitem on" role="tab" aria-selected="true" onclick="switchView('home')">홈</button><button class="vitem" role="tab" aria-selected="false" onclick="switchView('news')">뉴스</button><button class="vitem" role="tab" aria-selected="false" onclick="switchView('map')">지도</button><button class="vitem" role="tab" aria-selected="false" onclick="switchView('cal')">캘린더</button><button class="vitem" role="tab" aria-selected="false" onclick="switchView('board')">토론방</button></div>
 </nav>
 
 <div class="wrap">
@@ -1424,16 +1425,37 @@ const WORLD_GEO=[
  ["SG","싱가포르","🇸🇬",1.3,103.8],["MY","말레이시아","🇲🇾",4,102],["TH","태국","🇹🇭",15,101],["VN","베트남","🇻🇳",16,108],
  ["PH","필리핀","🇵🇭",13,122],["ID","인도네시아","🇮🇩",-2,118],["AU","호주","🇦🇺",-25,134]
 ];
-function worldMapPanel(){
-  const grat=(()=>{let s="";for(let x=30;x<360;x+=30)s+='<line x1="'+x+'" y1="0" x2="'+x+'" y2="180" stroke="rgba(255,255,255,.07)" stroke-width="0.5"/>';for(let y=30;y<180;y+=30)s+='<line x1="0" y1="'+y+'" x2="360" y2="'+y+'" stroke="rgba(255,255,255,.07)" stroke-width="0.5"/>';return s})();
-  const conts=[["북미",80,45],["남미",120,108],["유럽",192,38],["아프리카",202,88],["아시아",272,46],["오세아니아",322,120]]
-    .map(c=>'<text x="'+c[1]+'" y="'+c[2]+'" text-anchor="middle" font-size="7" fill="rgba(255,255,255,.22)" font-weight="700">'+c[0]+'</text>').join("");
-  const svg='<svg viewBox="0 0 360 180" preserveAspectRatio="none" aria-hidden="true">'+grat+conts+'</svg>';
-  const pins=WORLD_GEO.map(g=>{const x=((g[4]+180)/360*100).toFixed(1),y=((90-g[3])/180*100).toFixed(1);const on=state.newsCountry===g[0];return '<button class="wpin" style="left:'+x+'%;top:'+y+'%;'+(on?'background:var(--steel);border-color:#fff;transform:translate(-50%,-50%) scale(1.25)':'')+'" title="'+esc(g[1])+'" aria-label="'+esc(g[1])+' 뉴스" onclick="openCountry(\''+g[0]+'\')">'+g[2]+'</button>'}).join("");
-  return '<div style="margin-bottom:14px"><div class="wmap">'+svg+pins+'</div><div style="font-size:11px;color:var(--faint);margin-top:6px;text-align:center">지도에서 나라를 눌러 그 나라 소식을 확인하세요 · 국기를 탭</div><div id="worldBrief" style="margin-top:14px"></div></div>';
+function renderMap(){
+  document.getElementById("app").innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><h1 style="margin:0">세계 뉴스 지도</h1><span class="live"><span class="live-dot"></span>LIVE</span></div>
+  <p class="lede" style="margin-bottom:12px">지도에서 나라를 누르면 그 나라의 오늘 정치·경제 뉴스를 보여드려요. <b style="color:var(--steel)">밝게 표시된 나라</b>를 탭하세요.</p>
+  <div class="worldwrap" id="worldMapBox"><div style="padding:64px 20px;text-align:center;color:rgba(255,255,255,.6);font-size:13px">세계 지도를 불러오는 중…</div></div>
+  <div id="worldBrief" style="margin-top:16px"></div>`;
+  ensureWorldMap();
 }
-window.setWorldMap=function(on){state.worldMap=!!on;renderNews();if(on){try{loadWorldBrief()}catch(e){}}};
-window.openCountry=function(code){state.worldMap=false;setNewsCountry(code);try{window.scrollTo({top:0,behavior:"smooth"})}catch(e){}};
+function ensureWorldMap(){
+  if(window.WORLD_PATHS){paintWorldMap();try{loadWorldBrief()}catch(e){}return}
+  if(window._wmLoading)return;
+  window._wmLoading=true;
+  const s=document.createElement("script");s.src="worldmap.js";s.async=true;
+  s.onload=()=>{window._wmLoading=false;if(state.view==="map"){paintWorldMap();try{loadWorldBrief()}catch(e){}}};
+  s.onerror=()=>{window._wmLoading=false;const b=document.getElementById("worldMapBox");if(b)b.innerHTML='<div style="padding:50px 20px;text-align:center;color:rgba(255,255,255,.7);font-size:13px">지도를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</div>'};
+  document.body.appendChild(s);
+}
+function paintWorldMap(){
+  const box=document.getElementById("worldMapBox");if(!box||!window.WORLD_PATHS)return;
+  const sup={},supSet=new Set();WORLD_GEO.forEach(g=>{sup[g[0]]={ko:g[1],lat:g[3],lon:g[4]};supSet.add(g[0])});
+  const paths=window.WORLD_PATHS.map(c=>{
+    const a2=c.a2,ok=a2&&supSet.has(a2),nm=ok?sup[a2].ko:(c.n||"");
+    if(ok)return '<path d="'+c.d+'" class="wc'+(state.newsCountry===a2?' on':'')+'" tabindex="0" role="button" aria-label="'+esc(nm)+' 뉴스" onclick="openCountry(\''+a2+'\')" onkeydown="if(event.key===\'Enter\')openCountry(\''+a2+'\')"><title>'+esc(nm)+'</title></path>';
+    return '<path d="'+c.d+'" class="wland"><title>'+esc(nm)+'</title></path>';
+  }).join("");
+  const dots=WORLD_GEO.filter(g=>!window.WORLD_PATHS.some(c=>c.a2===g[0])).map(g=>{
+    const x=((g[4]+180)/360*1000).toFixed(1),y=((90-g[3])/180*500).toFixed(1);
+    return '<circle cx="'+x+'" cy="'+y+'" r="4.5" class="wc'+(state.newsCountry===g[0]?' on':'')+'" tabindex="0" role="button" aria-label="'+esc(g[1])+' 뉴스" onclick="openCountry(\''+g[0]+'\')" onkeydown="if(event.key===\'Enter\')openCountry(\''+g[0]+'\')"><title>'+esc(g[1])+'</title></circle>';
+  }).join("");
+  box.innerHTML='<svg viewBox="0 0 1000 500" role="img" aria-label="세계 지도">'+paths+dots+'</svg>';
+}
+window.openCountry=function(code){state.view="news";state.newsWatch=false;state.newsCountry=code;state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;render();loadNews(true);try{window.scrollTo({top:0,behavior:"smooth"})}catch(e){}};
 function worldBriefCard(code,ko,flag,items){
   if(!items||!items.length)return '';
   const rows=items.slice(0,3).map(it=>'<a href="'+esc(it.url)+'" target="_blank" rel="noreferrer" class="newslink" style="display:block;font-size:12.5px;line-height:1.5;padding:5px 0;border-top:1px solid var(--line)">'+esc((state.newsKo&&it._ko)?it._ko:it.title)+' <span style="color:var(--faint);font-size:10.5px">· '+esc(it.source||"")+'</span></a>').join("");
@@ -1474,10 +1496,10 @@ function renderNews(){
   <p class="lede" style="margin-bottom:12px">${watch?"내 관심종목 관련 뉴스만 모아서. 제목·출처·원문 링크만 표시합니다.":world?"선택한 나라의 정치·경제 뉴스를 실시간으로. 제목·출처·원문 링크만 표시합니다.":"미국 증시 헤드라인과 글로벌 뉴스. 제목·출처·원문 링크만 표시하고, 요약·감성 분석은 AI가 생성합니다."}</p>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px">
     <select aria-label="나라 선택" onchange="setNewsCountry(this.value)" style="flex:1;min-width:0;max-width:230px;padding:9px 12px;font-size:13.5px;font-weight:700;border-radius:10px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink);cursor:pointer">${newsCountryOpts()}</select>
-    <div style="display:flex;gap:6px"><button class="chip ${state.worldMap?"on":""}" style="white-space:nowrap" onclick="setWorldMap(${state.worldMap?"false":"true"})">🗺️ 지도</button><button class="chip ${watch?"on":""}" style="white-space:nowrap" onclick="setNewsWatch(${watch?"false":"true"})">⭐ 관심종목</button><button class="chip" style="white-space:nowrap" onclick="aiNewsSentiment()">✨ 감성분석</button><button class="chip ${state.newsKo?"on":""}" style="white-space:nowrap" onclick="toggleNewsKo()">🇰🇷 번역</button></div>
+    <div style="display:flex;gap:6px"><button class="chip ${watch?"on":""}" style="white-space:nowrap" onclick="setNewsWatch(${watch?"false":"true"})">⭐ 관심종목</button><button class="chip" style="white-space:nowrap" onclick="aiNewsSentiment()">✨ 감성분석</button><button class="chip ${state.newsKo?"on":""}" style="white-space:nowrap" onclick="toggleNewsKo()">🇰🇷 번역</button></div>
   </div>
-  ${state.worldMap?worldMapPanel():`<div style="display:flex;gap:6px;flex-wrap:wrap;overflow-x:auto;margin-bottom:16px">${cats.map(c=>`<button class="chip ${cat===c?"on":""}" onclick="setNewsCat('${c}')">${c}</button>`).join("")}</div>
-  ${newsSentBanner()}${body}`}`;
+  <div style="display:flex;gap:6px;flex-wrap:wrap;overflow-x:auto;margin-bottom:16px">${cats.map(c=>`<button class="chip ${cat===c?"on":""}" onclick="setNewsCat('${c}')">${c}</button>`).join("")}</div>
+  ${newsSentBanner()}${body}`;
 }
 window.setNewsCat=(c)=>{state.newsCat=c;state.newsShow=12;renderNews();autoTransNews()};
 window.setNewsCountry=(v)=>{state.newsCountry=v;state.newsWatch=false;state.worldMap=false;state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;renderNews();loadNews(true)};
@@ -1568,7 +1590,7 @@ function renderAlerts(){
 // 딥링크(해시 라우팅)
 let _hashGuard=false;
 function syncHash(){let h="";if(state.view==="stock"&&state.symbol)h="stock/"+state.symbol;else if(state.view&&state.view!=="home")h=state.view;const nh=h?("#"+h):(location.pathname);if(h){if(location.hash!=="#"+h){_hashGuard=true;location.hash=h;setTimeout(()=>_hashGuard=false,60)}}else if(location.hash){_hashGuard=true;history.replaceState(null,"",location.pathname+location.search);setTimeout(()=>_hashGuard=false,60)}}
-function routeFromHash(){const h=decodeURIComponent((location.hash||"").replace(/^#/,"")).trim();if(!h){switchView("home");return}if(h.toLowerCase().startsWith("stock/")){const sym=h.slice(6).toUpperCase();if(sym){loadStock(sym);return}}const vs=["home","market","watchlist","portfolio","paper","calc","alerts","board","cal","compare","news"];if(vs.includes(h)){switchView(h);return}loadStock(h.toUpperCase())}
+function routeFromHash(){const h=decodeURIComponent((location.hash||"").replace(/^#/,"")).trim();if(!h){switchView("home");return}if(h.toLowerCase().startsWith("stock/")){const sym=h.slice(6).toUpperCase();if(sym){loadStock(sym);return}}const vs=["home","market","watchlist","portfolio","paper","calc","alerts","board","cal","compare","news","map"];if(vs.includes(h)){switchView(h);return}loadStock(h.toUpperCase())}
 window.routeFromHash=routeFromHash;
 
 // ═══ 종목 비교 ═══
@@ -2226,7 +2248,7 @@ function ppInjectCSS(){
 function render(){
   if(state.view!=="home")stopHomePoll();
   if(state.view!=="news")stopNewsPoll();
-  const views=[["home","홈"],["news","뉴스"],["cal","캘린더"],["watchlist","내 종목"],["board","토론방"]];
+  const views=[["home","홈"],["news","뉴스"],["map","지도"],["cal","캘린더"],["board","토론방"]];
   document.getElementById("viewnav").innerHTML=views.map(v=>{let c="";if(v[0]==="watchlist"&&getList("watchlist").length)c=` (${getList("watchlist").length})`;if(v[0]==="alerts"){const n=getList("alerts").filter(a=>!a.done).length;if(n)c=` (${n})`}return `<button class="vitem ${state.view===v[0]?"on":""}" role="tab" aria-selected="${state.view===v[0]?"true":"false"}" onclick="switchView('${v[0]}')">${v[1]}${c}</button>`}).join("");
   {const bd=document.getElementById("bellDot");if(bd){const n=getList("alerts").filter(a=>!a.done).length;if(n){bd.textContent=n>9?"9+":String(n);bd.style.display="block"}else bd.style.display="none"}}
   const q=document.getElementById("quotaBtn");if(isPro()){q.textContent="PRO";q.className="pro"}else{var _n=Math.max(0,FREE-getUsage());q.textContent=(window.innerWidth<=640?(_n+"회 · PRO"):("오늘 "+_n+"회 · Premium"));q.className=""}
@@ -2239,6 +2261,7 @@ function render(){
   else if(state.view==="calc")renderCalc();
   else if(state.view==="board"){renderBoard();try{if(!_fb.ready)initFirebase()}catch(e){}}
   else if(state.view==="cal")renderMyCal();
+  else if(state.view==="map")renderMap();
   else if(state.view==="compare")renderCompare();
   else if(state.view==="alerts")renderAlerts();
   else if(state.view==="news"){renderNews();autoTransNews();if(!window._newsLoaded){window._newsLoaded=true;loadNews()}startNewsPoll();}
