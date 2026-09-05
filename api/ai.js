@@ -21,6 +21,7 @@ let goodModel = null;
 let discovered = null;
 let lastProvider = null;
 const TIMEOUT = 45000;
+const NV_TIMEOUT = 12000; // NVIDIA는 빨리 폴백하도록 짧게
 
 // ── 남용 방지: IP당 분당 요청 제한 ──
 const _rl = new Map();
@@ -107,7 +108,7 @@ async function anthropicProvider(prompt, maxTokens) {
 // Provider: NVIDIA NIM (OpenAI 호환) → 성공 시 text, 실패 시 throw {code,msg}
 async function nvidiaProvider(prompt, maxTokens) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), TIMEOUT);
+  const timer = setTimeout(() => ctrl.abort(), NV_TIMEOUT);
   try {
     const r = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
       method: "POST", signal: ctrl.signal,
@@ -127,6 +128,13 @@ async function nvidiaProvider(prompt, maxTokens) {
     if (e && e.code) throw e;
     throw { code: 502, msg: String(e && e.message || e) };
   } finally { clearTimeout(timer); }
+}
+
+// NVIDIA 상태 진단(무료 키/모델 점검용) — GET /api/ai?diag=1
+async function nvidiaProbe() {
+  if (!NVIDIA_KEY) return { ok: false, msg: "NVIDIA_API_KEY 미설정" };
+  try { const t = await nvidiaProvider("Reply with the single word: OK", 5); return { ok: true, model: NVIDIA_MODEL, sample: String(t).slice(0, 40) }; }
+  catch (e) { return { ok: false, model: NVIDIA_MODEL, code: e && e.code, msg: String((e && e.msg) || e).slice(0, 220) }; }
 }
 
 // ── Provider 레지스트리(확장 지점: openai/gemini 등 여기에 추가) ──
@@ -177,9 +185,11 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       const order = providerOrder();
+      const wantDiag = !!(req.query && (req.query.diag || req.query.test)) || (typeof req.url === "string" && /[?&](diag|test)=/.test(req.url));
       return res.status(200).json({
         ok: true, providerOrder: order, primary: order[0] || null, activeProvider: lastProvider,
         nvidia: !!NVIDIA_KEY, anthropic: !!KEY, nvidiaModel: NVIDIA_KEY ? NVIDIA_MODEL : null,
+        nvidiaTest: wantDiag ? await nvidiaProbe() : undefined,
         availableModels: KEY ? await listModels() : [], activeModel: goodModel,
         cacheSize: _cache.size, env: process.env.VERCEL_ENV || "unknown",
       });

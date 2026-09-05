@@ -103,6 +103,11 @@
   .ac{position:absolute;top:52px;left:0;right:0;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:20;overflow:hidden;max-width:520px}
   .ac-item{padding:11px 16px;display:flex;gap:10px;align-items:center;cursor:pointer;border-bottom:1px solid var(--line)}
   .ac-item:hover,.ac-item.sel{background:var(--soft)}
+  .wmap{position:relative;width:100%;padding-top:52%;background:radial-gradient(120% 120% at 50% 0%,#0e2748,#081a33);border-radius:16px;overflow:hidden;border:1px solid var(--line);box-shadow:inset 0 2px 20px rgba(0,0,0,.35)}
+  .wmap>svg{position:absolute;inset:0;width:100%;height:100%}
+  .wpin{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);cursor:pointer;padding:0;transition:transform .12s,background .12s;-webkit-tap-highlight-color:transparent}
+  .wpin:hover,.wpin:focus{transform:translate(-50%,-50%) scale(1.3);background:var(--steel);border-color:#fff;z-index:5;outline:none}
+  @media(max-width:640px){.wpin{width:22px;height:22px;font-size:13px}}
   .chip{padding:5px 12px;font-size:12.5px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--sub);cursor:pointer}
   .chip.on{background:var(--charcoal);color:var(--bg);border-color:var(--charcoal);font-weight:700}
   .adbox{border:1px dashed var(--line-d);border-radius:12px;padding:14px;text-align:center;font-size:12px;color:var(--faint);background:var(--soft)}
@@ -1407,7 +1412,44 @@ function newsCard(it,idx,big){
   const bodyHtml=big?inner:`<div style="display:flex;gap:12px;align-items:flex-start">${thumb}<div style="flex:1;min-width:0">${inner}</div></div>`;
   return `<div class="card" style="margin-bottom:12px${big?";border-left:4px solid var(--steel)":""}"><div style="padding:${big?"18px 20px":"14px 18px"}">${big?'<div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--steel);margin-bottom:6px">TOP NEWS</div>':""}${bodyHtml}${rel?`<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${rel}</div>`:""}<div id="nai_${idx}" style="margin-top:10px">${newsAiArea(it,idx)}</div></div></div>`;
 }
-const NEWS_COUNTRIES=[["","🌐 미국 증시 (전체)"],["US","🇺🇸 미국"],["KR","🇰🇷 한국"],["JP","🇯🇵 일본"],["CN","🇨🇳 중국"],["GB","🇬🇧 영국"],["DE","🇩🇪 독일"],["FR","🇫🇷 프랑스"],["IN","🇮🇳 인도"],["TW","🇹🇼 대만"],["CA","🇨🇦 캐나다"],["AU","🇦🇺 호주"],["BR","🇧🇷 브라질"]];
+const NEWS_COUNTRIES=[["","🌐 미국 증시 (전체)"],["US","🇺🇸 미국"],["KR","🇰🇷 한국"],["JP","🇯🇵 일본"],["CN","🇨🇳 중국"],["GB","🇬🇧 영국"],["DE","🇩🇪 독일"],["FR","🇫🇷 프랑스"],["IN","🇮🇳 인도"],["TW","🇹🇼 대만"],["CA","🇨🇦 캐나다"],["AU","🇦🇺 호주"],["BR","🇧🇷 브라질"],["MX","🇲🇽 멕시코"],["IT","🇮🇹 이탈리아"],["ES","🇪🇸 스페인"],["NL","🇳🇱 네덜란드"],["SE","🇸🇪 스웨덴"],["CH","🇨🇭 스위스"],["PL","🇵🇱 폴란드"],["RU","🇷🇺 러시아"],["TR","🇹🇷 튀르키예"],["SA","🇸🇦 사우디"],["AE","🇦🇪 UAE"],["ZA","🇿🇦 남아공"],["HK","🇭🇰 홍콩"],["SG","🇸🇬 싱가포르"],["VN","🇻🇳 베트남"],["ID","🇮🇩 인도네시아"],["TH","🇹🇭 태국"],["MY","🇲🇾 말레이시아"],["PH","🇵🇭 필리핀"]];
+// 세계 지도용 좌표(위도,경도) + 국기 — 등거리 투영 x%=(lon+180)/360, y%=(90-lat)/180
+const WORLD_GEO=[
+ ["US","미국","🇺🇸",38,-97],["CA","캐나다","🇨🇦",56,-106],["MX","멕시코","🇲🇽",23,-102],["BR","브라질","🇧🇷",-10,-52],
+ ["GB","영국","🇬🇧",54,-2],["FR","프랑스","🇫🇷",47,2],["ES","스페인","🇪🇸",40,-4],["DE","독일","🇩🇪",51,10],
+ ["NL","네덜란드","🇳🇱",52,5.5],["CH","스위스","🇨🇭",46.8,8.2],["IT","이탈리아","🇮🇹",42,13],["SE","스웨덴","🇸🇪",62,15],
+ ["PL","폴란드","🇵🇱",52,19],["TR","튀르키예","🇹🇷",39,35],["RU","러시아","🇷🇺",61,90],["SA","사우디","🇸🇦",24,45],
+ ["AE","UAE","🇦🇪",24,54],["ZA","남아공","🇿🇦",-29,24],["IN","인도","🇮🇳",22,79],["CN","중국","🇨🇳",35,105],
+ ["HK","홍콩","🇭🇰",22.3,114],["TW","대만","🇹🇼",23.7,121],["KR","한국","🇰🇷",36.5,128],["JP","일본","🇯🇵",36,138],
+ ["SG","싱가포르","🇸🇬",1.3,103.8],["MY","말레이시아","🇲🇾",4,102],["TH","태국","🇹🇭",15,101],["VN","베트남","🇻🇳",16,108],
+ ["PH","필리핀","🇵🇭",13,122],["ID","인도네시아","🇮🇩",-2,118],["AU","호주","🇦🇺",-25,134]
+];
+function worldMapPanel(){
+  const grat=(()=>{let s="";for(let x=30;x<360;x+=30)s+='<line x1="'+x+'" y1="0" x2="'+x+'" y2="180" stroke="rgba(255,255,255,.07)" stroke-width="0.5"/>';for(let y=30;y<180;y+=30)s+='<line x1="0" y1="'+y+'" x2="360" y2="'+y+'" stroke="rgba(255,255,255,.07)" stroke-width="0.5"/>';return s})();
+  const conts=[["북미",80,45],["남미",120,108],["유럽",192,38],["아프리카",202,88],["아시아",272,46],["오세아니아",322,120]]
+    .map(c=>'<text x="'+c[1]+'" y="'+c[2]+'" text-anchor="middle" font-size="7" fill="rgba(255,255,255,.22)" font-weight="700">'+c[0]+'</text>').join("");
+  const svg='<svg viewBox="0 0 360 180" preserveAspectRatio="none" aria-hidden="true">'+grat+conts+'</svg>';
+  const pins=WORLD_GEO.map(g=>{const x=((g[4]+180)/360*100).toFixed(1),y=((90-g[3])/180*100).toFixed(1);const on=state.newsCountry===g[0];return '<button class="wpin" style="left:'+x+'%;top:'+y+'%;'+(on?'background:var(--steel);border-color:#fff;transform:translate(-50%,-50%) scale(1.25)':'')+'" title="'+esc(g[1])+'" aria-label="'+esc(g[1])+' 뉴스" onclick="openCountry(\''+g[0]+'\')">'+g[2]+'</button>'}).join("");
+  return '<div style="margin-bottom:14px"><div class="wmap">'+svg+pins+'</div><div style="font-size:11px;color:var(--faint);margin-top:6px;text-align:center">지도에서 나라를 눌러 그 나라 소식을 확인하세요 · 국기를 탭</div><div id="worldBrief" style="margin-top:14px"></div></div>';
+}
+window.setWorldMap=function(on){state.worldMap=!!on;renderNews();if(on){try{loadWorldBrief()}catch(e){}}};
+window.openCountry=function(code){state.worldMap=false;setNewsCountry(code);try{window.scrollTo({top:0,behavior:"smooth"})}catch(e){}};
+function worldBriefCard(code,ko,flag,items){
+  if(!items||!items.length)return '';
+  const rows=items.slice(0,3).map(it=>'<a href="'+esc(it.url)+'" target="_blank" rel="noreferrer" class="newslink" style="display:block;font-size:12.5px;line-height:1.5;padding:5px 0;border-top:1px solid var(--line)">'+esc((state.newsKo&&it._ko)?it._ko:it.title)+' <span style="color:var(--faint);font-size:10.5px">· '+esc(it.source||"")+'</span></a>').join("");
+  return '<div class="card" style="margin-bottom:10px"><div style="padding:12px 16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><div style="font-weight:800;font-size:13.5px">'+flag+' '+esc(ko)+'</div><button class="btn-g" style="font-size:11px" onclick="openCountry(\''+code+'\')">전체 →</button></div>'+rows+'</div></div>';
+}
+async function loadWorldBrief(){
+  const box=document.getElementById("worldBrief");if(!box)return;
+  const codes=[["US","미국","🇺🇸"],["KR","한국","🇰🇷"],["JP","일본","🇯🇵"],["CN","중국","🇨🇳"],["GB","영국","🇬🇧"],["IN","인도","🇮🇳"]];
+  box.innerHTML='<div style="font-size:13px;font-weight:800;margin-bottom:8px">🗞️ 오늘의 세계 브리핑</div>'+Array(3).fill('<div class="skel" style="height:52px;margin-bottom:10px"></div>').join("");
+  const results=await Promise.all(codes.map(async c=>{try{const ck="world_"+c[0];let d=cGet(ck);if(!d){d=await finApi("worldnews",{country:c[0]});cSet(ck,d)}return {c,items:(d.news||[]).slice(0,3)}}catch(e){return {c,items:[]}}}));
+  const all=results.flatMap(r=>r.items);
+  if(state.newsKo){try{await translateTitles(all)}catch(e){}}
+  const cur=document.getElementById("worldBrief");if(!cur)return;
+  cur.innerHTML='<div style="font-size:13px;font-weight:800;margin-bottom:8px">🗞️ 오늘의 세계 브리핑'+(state.newsKo?' <span style="font-size:10px;color:var(--faint);font-weight:500">· 한국어</span>':'')+'</div>'+results.map(r=>worldBriefCard(r.c[0],r.c[1],r.c[2],r.items)).join("");
+}
+
 function newsCountryOpts(){var cur=state.newsCountry||"";return NEWS_COUNTRIES.map(function(o){return '<option value="'+o[0]+'"'+(o[0]===cur?" selected":"")+'>'+o[1]+'</option>'}).join("")}
 function renderNews(){
   const world=!!state.newsCountry;const watch=!!state.newsWatch;
@@ -1432,14 +1474,14 @@ function renderNews(){
   <p class="lede" style="margin-bottom:12px">${watch?"내 관심종목 관련 뉴스만 모아서. 제목·출처·원문 링크만 표시합니다.":world?"선택한 나라의 정치·경제 뉴스를 실시간으로. 제목·출처·원문 링크만 표시합니다.":"미국 증시 헤드라인과 글로벌 뉴스. 제목·출처·원문 링크만 표시하고, 요약·감성 분석은 AI가 생성합니다."}</p>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px">
     <select aria-label="나라 선택" onchange="setNewsCountry(this.value)" style="flex:1;min-width:0;max-width:230px;padding:9px 12px;font-size:13.5px;font-weight:700;border-radius:10px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink);cursor:pointer">${newsCountryOpts()}</select>
-    <div style="display:flex;gap:6px"><button class="chip ${watch?"on":""}" style="white-space:nowrap" onclick="setNewsWatch(${watch?"false":"true"})">⭐ 관심종목</button><button class="chip" style="white-space:nowrap" onclick="aiNewsSentiment()">✨ 감성분석</button><button class="chip ${state.newsKo?"on":""}" style="white-space:nowrap" onclick="toggleNewsKo()">🇰🇷 번역</button></div>
+    <div style="display:flex;gap:6px"><button class="chip ${state.worldMap?"on":""}" style="white-space:nowrap" onclick="setWorldMap(${state.worldMap?"false":"true"})">🗺️ 지도</button><button class="chip ${watch?"on":""}" style="white-space:nowrap" onclick="setNewsWatch(${watch?"false":"true"})">⭐ 관심종목</button><button class="chip" style="white-space:nowrap" onclick="aiNewsSentiment()">✨ 감성분석</button><button class="chip ${state.newsKo?"on":""}" style="white-space:nowrap" onclick="toggleNewsKo()">🇰🇷 번역</button></div>
   </div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;overflow-x:auto;margin-bottom:16px">${cats.map(c=>`<button class="chip ${cat===c?"on":""}" onclick="setNewsCat('${c}')">${c}</button>`).join("")}</div>
-  ${newsSentBanner()}${body}`;
+  ${state.worldMap?worldMapPanel():`<div style="display:flex;gap:6px;flex-wrap:wrap;overflow-x:auto;margin-bottom:16px">${cats.map(c=>`<button class="chip ${cat===c?"on":""}" onclick="setNewsCat('${c}')">${c}</button>`).join("")}</div>
+  ${newsSentBanner()}${body}`}`;
 }
 window.setNewsCat=(c)=>{state.newsCat=c;state.newsShow=12;renderNews();autoTransNews()};
-window.setNewsCountry=(v)=>{state.newsCountry=v;state.newsWatch=false;state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;renderNews();loadNews(true)};
-window.setNewsWatch=(on)=>{state.newsWatch=(on===true||on==="true");if(state.newsWatch)state.newsCountry="";state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;renderNews();loadNews(true)};
+window.setNewsCountry=(v)=>{state.newsCountry=v;state.newsWatch=false;state.worldMap=false;state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;renderNews();loadNews(true)};
+window.setNewsWatch=(on)=>{state.newsWatch=(on===true||on==="true");if(state.newsWatch){state.newsCountry="";state.worldMap=false}state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;renderNews();loadNews(true)};
 async function translateTitles(items){
   const list=(items||[]).filter(x=>x&&x.title&&!x._ko);
   if(!list.length)return false;
@@ -1447,23 +1489,29 @@ async function translateTitles(items){
     if(r&&r.items&&r.items.length){list.forEach((x,i)=>{if(r.items[i])x._ko=r.items[i]});return true}}catch(e){}
   return false;
 }
-async function autoTransNews(withToast){
+async function autoTransNews(withToast,_retry){
   if(!state.newsKo||window._koBusy)return;
   const all=window._news||[];if(!all.length){if(withToast)toast("뉴스를 불러오는 중이에요");return}
   const cat=state.newsCat||"전체";const show=state.newsShow||12;
   const list=(cat==="전체"?all:all.filter(x=>x.category===cat)).slice(0,show);
-  if(withToast&&list.some(x=>!x._ko))toast("한국어 번역 중…");
-  window._koBusy=true;const changed=await translateTitles(list);window._koBusy=false;
+  if(!list.some(x=>x&&x.title&&!x._ko)){if(withToast)toast("이미 번역됨");return}
+  if(withToast)toast("한국어 번역 중…");
+  window._koBusy=true;let changed=false;
+  try{changed=await translateTitles(list)}finally{window._koBusy=false}
   if(changed&&state.view==="news")renderNews();
-  if(withToast)toast(changed?"번역 완료 ✓":"이미 번역됨");
+  if(!changed&&!_retry){setTimeout(()=>autoTransNews(withToast,true),1200);return}
+  if(withToast)toast(changed?"번역 완료 ✓":"번역이 잠시 지연되고 있어요. 다시 시도해 주세요");
 }
-async function autoTransStock(withToast){
+async function autoTransStock(withToast,_retry){
   if(!state.newsKo||window._koBusyS)return;
   const d=state.data;if(!d||!d.news||!d.news.length){if(withToast)toast("뉴스를 불러오는 중이에요");return}
-  if(withToast&&d.news.some(x=>!x._ko))toast("한국어 번역 중…");
-  window._koBusyS=true;const changed=await translateTitles(d.news.slice(0,20));window._koBusyS=false;
+  if(!d.news.some(x=>x&&x.title&&!x._ko)){if(withToast)toast("이미 번역됨");return}
+  if(withToast)toast("한국어 번역 중…");
+  window._koBusyS=true;let changed=false;
+  try{changed=await translateTitles(d.news.slice(0,20))}finally{window._koBusyS=false}
   if(changed&&state.view==="stock"&&state.tab==="news")render();
-  if(withToast)toast(changed?"번역 완료 ✓":"이미 번역됨");
+  if(!changed&&!_retry){setTimeout(()=>autoTransStock(withToast,true),1200);return}
+  if(withToast)toast(changed?"번역 완료 ✓":"번역이 잠시 지연되고 있어요. 다시 시도해 주세요");
 }
 window.setNewsKo=function(on){on=!!on;state.newsKo=on;try{localStorage.setItem("newsKo",on?"1":"0")}catch(e){}
   if(state.view==="news"){renderNews();if(on)autoTransNews(true);else toast("영어 원문 보기")}

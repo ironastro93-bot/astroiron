@@ -31,7 +31,12 @@ const GNEWS_ED = {
   US:["en-US","US","US:en"], KR:["ko","KR","KR:ko"], JP:["ja","JP","JP:ja"],
   CN:["zh-CN","CN","CN:zh-Hans"], GB:["en-GB","GB","GB:en"], DE:["de","DE","DE:de"],
   FR:["fr","FR","FR:fr"], IN:["en-IN","IN","IN:en"], TW:["zh-TW","TW","TW:zh-Hant"],
-  CA:["en-CA","CA","CA:en"], AU:["en-AU","AU","AU:en"], BR:["pt-BR","BR","BR:pt-419"]
+  CA:["en-CA","CA","CA:en"], AU:["en-AU","AU","AU:en"], BR:["pt-BR","BR","BR:pt-419"],
+  MX:["es-419","MX","MX:es-419"], IT:["it","IT","IT:it"], ES:["es","ES","ES:es"],
+  NL:["nl","NL","NL:nl"], SE:["sv","SE","SE:sv"], CH:["de","CH","CH:de"], PL:["pl","PL","PL:pl"],
+  RU:["ru","RU","RU:ru"], TR:["tr","TR","TR:tr"], SA:["ar","SA","SA:ar"], AE:["ar","AE","AE:ar"],
+  ZA:["en-ZA","ZA","ZA:en"], HK:["zh-HK","HK","HK:zh-Hant"], SG:["en-SG","SG","SG:en"],
+  VN:["vi","VN","VN:vi"], ID:["id","ID","ID:id"], TH:["th","TH","TH:th"], MY:["en-MY","MY","MY:en"], PH:["en-PH","PH","PH:en"]
 };
 async function fetchText(url) {
   const t = withTimeout();
