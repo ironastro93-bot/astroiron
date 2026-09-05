@@ -1464,7 +1464,7 @@ function paintWorldMap(){
   for(let lat=-60;lat<=60;lat+=30){const y=((90-lat)/180*1000).toFixed(0);grid+='<line class="wgrid" x1="0" y1="'+y+'" x2="2000" y2="'+y+'"/>';}
   const paths=window.WORLD_PATHS.map(c=>{
     const a2=c.a2,ok=a2&&supSet.has(a2),nm=ok?ko[a2]:(c.n||"");
-    if(ok)return '<path d="'+c.d+'" class="wc'+(state.newsCountry===a2?' on':'')+'" tabindex="0" role="button" data-ko="'+esc(nm)+'" aria-label="'+esc(nm)+' 뉴스" onclick="wCountryClick(\''+a2+'\')" onkeydown="if(event.key===\'Enter\')openCountry(\''+a2+'\')"><title>'+esc(nm)+'</title></path>';
+    if(ok)return '<path d="'+c.d+'" class="wc'+(state.newsCountry===a2?' on':'')+'" tabindex="0" role="button" data-c="'+a2+'" data-ko="'+esc(nm)+'" aria-label="'+esc(nm)+' 뉴스" onkeydown="if(event.key===\'Enter\')openCountry(\''+a2+'\')"><title>'+esc(nm)+'</title></path>';
     return '<path d="'+c.d+'" class="wland"/>';
   }).join("");
   const svg='<svg id="wsvg" viewBox="0 0 2000 1000" role="img" aria-label="세계 지도"><defs><filter id="wglow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#5ab0ff" flood-opacity="0.75"/></filter></defs><g>'+grid+'</g><g id="wg">'+paths+'</g></svg>';
@@ -1484,10 +1484,11 @@ function bindMapGestures(){
   const toVB=(cxp,cyp)=>{const r=svg.getBoundingClientRect();return [(cxp-r.left)/(r.width||1)*2000,(cyp-r.top)/(r.height||1)*1000]};
   svg.addEventListener("wheel",e=>{e.preventDefault();const p=toVB(e.clientX,e.clientY);wZoom(e.deltaY<0?1.2:1/1.2,p[0],p[1])},{passive:false});
   let drag=false,lx=0,ly=0;window._wmMoved=false;
-  svg.addEventListener("pointerdown",e=>{drag=true;window._wmMoved=false;lx=e.clientX;ly=e.clientY;try{svg.setPointerCapture(e.pointerId)}catch(_){}svg.classList.add("grab")});
-  svg.addEventListener("pointermove",e=>{if(!drag)return;const dx=e.clientX-lx,dy=e.clientY-ly;if(Math.abs(dx)+Math.abs(dy)>4)window._wmMoved=true;const r=svg.getBoundingClientRect();_map.x+=dx/(r.width||1)*2000;_map.y+=dy/(r.height||1)*1000;lx=e.clientX;ly=e.clientY;wClamp();wApply()});
-  const up=()=>{drag=false;svg.classList.remove("grab");setTimeout(()=>{window._wmMoved=false},60)};
-  svg.addEventListener("pointerup",up);svg.addEventListener("pointercancel",up);svg.addEventListener("pointerleave",up);
+  function move(e){if(!drag)return;const dx=e.clientX-lx,dy=e.clientY-ly;if(Math.abs(dx)+Math.abs(dy)>4)window._wmMoved=true;const r=svg.getBoundingClientRect();_map.x+=dx/(r.width||1)*2000;_map.y+=dy/(r.height||1)*1000;lx=e.clientX;ly=e.clientY;wClamp();wApply()}
+  function up(){if(!drag)return;drag=false;svg.classList.remove("grab");window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up);setTimeout(()=>{window._wmMoved=false},70)}
+  svg.addEventListener("pointerdown",e=>{if(e.button&&e.button!==0)return;drag=true;window._wmMoved=false;lx=e.clientX;ly=e.clientY;svg.classList.add("grab");window.addEventListener("pointermove",move);window.addEventListener("pointerup",up)});
+  // 위임 클릭: 드래그가 아니면 해당 나라 뉴스로 (setPointerCapture 미사용 → 클릭 정상 전달)
+  svg.addEventListener("click",e=>{if(window._wmMoved)return;const t=e.target&&e.target.closest&&e.target.closest(".wc");if(t){const c=t.getAttribute("data-c");if(c)openCountry(c)}});
   const lab=document.getElementById("wlabel"),g=document.getElementById("wg");
   if(g&&lab){g.addEventListener("pointerover",e=>{const t=e.target.closest&&e.target.closest(".wc");if(t){lab.textContent=t.getAttribute("data-ko")||"";lab.classList.add("show")}});g.addEventListener("pointerout",()=>lab.classList.remove("show"))}
   let pd=0;
