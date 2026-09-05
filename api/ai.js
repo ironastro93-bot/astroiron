@@ -252,6 +252,11 @@ ONLY raw JSON, 한국어: {"valuation":"현재가 밸류에이션 한줄(데이�
 데이터: ${ctxStr}
 ONLY raw JSON, 한국어: {"summary":"3문장 시장 요약"}`;
       maxTokens = 400;
+    } else if (task === "watch_brief") {
+      prompt = `다음은 사용자의 관심종목 실시간 시세 목록입니다(가격·등락률 %). 이 데이터만 근거로 오늘 관심종목 전반을 간결히 브리핑하세요. 특정 종목 매매 지시·목표가 단정 금지, 수치 날조 금지, 데이터에 없는 종목 언급 금지.
+데이터: ${ctxStr}
+ONLY raw JSON, 한국어: {"tone":"positive|neutral|negative","headline":"관심종목 전반 한줄 요약(등락률 근거)","mover":"오늘 눈에 띄는 종목 1~2개와 이유 1문장","watch":"오늘 지켜볼 포인트 1문장(중립)"}`;
+      maxTokens = 500;
     } else if (task === "translate_news") {
       prompt = `다음 영어 뉴스 제목들을 자연스러운 한국어로 번역하세요. 회사명·티커·고유명사는 그대로 두고 의미를 정확히 옮기세요.
 제목 목록(JSON): ${ctxStr}
