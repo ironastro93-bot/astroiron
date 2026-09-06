@@ -113,6 +113,8 @@
   .wc{fill:#2f6fd6;stroke:#9ad4ff;stroke-width:1.1;cursor:pointer;transition:fill .12s;vector-effect:non-scaling-stroke;filter:url(#wglow)}
   .wc:hover,.wc:focus{fill:#5ab6ff;outline:none}
   .wc.on{fill:#ffb020;stroke:#ffe6a0}
+  .wlbl{fill:#eaf3ff;stroke:#07152c;stroke-width:2.6;paint-order:stroke;font-weight:800;pointer-events:none;font-family:Inter,system-ui,sans-serif}
+  .wlabel.wlabel-on{border-color:#5aa0ff;color:#eaf4ff;background:rgba(20,60,120,.72)}
   .whud{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:4}
   .whud button{width:34px;height:34px;border-radius:9px;border:1px solid #2a4d7a;background:rgba(8,22,44,.72);color:#cfe4ff;font-size:17px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
   .whud button:hover{background:rgba(30,70,130,.9);border-color:#5aa0ff}
@@ -1448,7 +1450,7 @@ function renderMap(){
   <div class="worldwrap" id="worldMapBox">
     <div class="whud"><button aria-label="확대" onclick="wZoom(1.5)">＋</button><button aria-label="축소" onclick="wZoom(0.6667)">－</button><button aria-label="원위치" onclick="wReset()" style="font-size:15px">⟳</button></div>
     <div class="wlabel" id="wlabel"></div>
-    <div class="whint">드래그 이동 · 휠/버튼 확대 · 핀치 줌</div>
+    <div class="whint"><span style="color:#57b6ff">●</span> 밝은 나라 = 뉴스 제공 · 드래그·휠·더블클릭·핀치로 탐색</div>
     <div id="wmapLoading" style="padding:70px 20px;text-align:center;color:rgba(200,220,255,.6);font-size:13px">🛰️ 세계 지도를 불러오는 중…</div>
   </div>
   <div id="worldBrief" style="margin-top:16px"></div>`;
@@ -1465,39 +1467,42 @@ function ensureWorldMap(){
 }
 function paintWorldMap(){
   const box=document.getElementById("worldMapBox");if(!box||!window.WORLD_PATHS)return;
+  const VB=window.WORLD_VB||[0,0,1000,500];const W=VB[2],H=VB[3];window._MW=W;window._MH=H;
   const supSet=new Set(),ko={};WORLD_GEO.forEach(g=>{supSet.add(g[0]);ko[g[0]]=g[1]});
-  let grid="";
-  for(let lon=-150;lon<=150;lon+=30){const x=((lon+180)/360*2000).toFixed(0);grid+='<line class="wgrid" x1="'+x+'" y1="0" x2="'+x+'" y2="1000"/>';}
-  for(let lat=-60;lat<=60;lat+=30){const y=((90-lat)/180*1000).toFixed(0);grid+='<line class="wgrid" x1="0" y1="'+y+'" x2="2000" y2="'+y+'"/>';}
+  let labels="";
   const paths=window.WORLD_PATHS.map(c=>{
     const a2=c.a2,ok=a2&&supSet.has(a2),nm=ok?ko[a2]:(c.n||"");
-    if(ok)return '<path d="'+c.d+'" class="wc'+(state.newsCountry===a2?' on':'')+'" tabindex="0" role="button" data-c="'+a2+'" data-ko="'+esc(nm)+'" aria-label="'+esc(nm)+' 뉴스" onkeydown="if(event.key===\'Enter\')openCountry(\''+a2+'\')"><title>'+esc(nm)+'</title></path>';
-    return '<path d="'+c.d+'" class="wland"/>';
+    if(ok){
+      if(c.cx!=null)labels+='<text class="wlbl" x="'+c.cx+'" y="'+c.cy+'" text-anchor="middle">'+esc(nm)+'</text>';
+      return '<path d="'+c.d+'" class="wc'+(state.newsCountry===a2?' on':'')+'" tabindex="0" role="button" data-c="'+a2+'" data-nm="'+esc(nm)+'" aria-label="'+esc(nm)+' 뉴스" onkeydown="if(event.key===\'Enter\')openCountry(\''+a2+'\')"></path>';
+    }
+    return '<path d="'+c.d+'" class="wland" data-nm="'+esc(nm)+'"/>';
   }).join("");
-  const svg='<svg id="wsvg" viewBox="0 0 2000 1000" role="img" aria-label="세계 지도"><defs><filter id="wglow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#5ab0ff" flood-opacity="0.75"/></filter></defs><g>'+grid+'</g><g id="wg">'+paths+'</g></svg>';
+  const svg='<svg id="wsvg" viewBox="'+VB.join(" ")+'" role="img" aria-label="세계 지도"><defs><filter id="wglow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="0" stdDeviation="2.5" flood-color="#5ab0ff" flood-opacity="0.85"/></filter></defs><g id="wg">'+paths+'<g id="wlabels" font-size="9">'+labels+'</g></g></svg>';
   const ld=document.getElementById("wmapLoading");if(ld)ld.remove();
   const old=document.getElementById("wsvg");if(old)old.remove();
   box.insertAdjacentHTML("afterbegin",svg);
   _map={s:1,x:0,y:0};wApply();bindMapGestures();
 }
 let _map={s:1,x:0,y:0};
-function wApply(){const g=document.getElementById("wg");if(g)g.setAttribute("transform","translate("+_map.x.toFixed(1)+","+_map.y.toFixed(1)+") scale("+_map.s.toFixed(3)+")")}
-function wClamp(){_map.s=Math.max(1,Math.min(9,_map.s));const W=2000,H=1000;_map.x=Math.max(W-W*_map.s,Math.min(0,_map.x));_map.y=Math.max(H-H*_map.s,Math.min(0,_map.y))}
-window.wZoom=function(f,cx,cy){const W=2000,H=1000;if(cx==null){cx=W/2;cy=H/2}const ns=Math.max(1,Math.min(9,_map.s*f)),k=ns/_map.s;_map.x=cx-(cx-_map.x)*k;_map.y=cy-(cy-_map.y)*k;_map.s=ns;wClamp();wApply()};
+function wApply(){const g=document.getElementById("wg");if(g)g.setAttribute("transform","translate("+_map.x.toFixed(1)+","+_map.y.toFixed(1)+") scale("+_map.s.toFixed(3)+")");const lg=document.getElementById("wlabels");if(lg)lg.setAttribute("font-size",(9/_map.s).toFixed(2))}
+function wClamp(){_map.s=Math.max(1,Math.min(10,_map.s));const W=window._MW||1000,H=window._MH||500;_map.x=Math.max(W-W*_map.s,Math.min(0,_map.x));_map.y=Math.max(H-H*_map.s,Math.min(0,_map.y))}
+window.wZoom=function(f,cx,cy){const W=window._MW||1000,H=window._MH||500;if(cx==null){cx=W/2;cy=H/2}const ns=Math.max(1,Math.min(10,_map.s*f)),k=ns/_map.s;_map.x=cx-(cx-_map.x)*k;_map.y=cy-(cy-_map.y)*k;_map.s=ns;wClamp();wApply()};
 window.wReset=function(){_map={s:1,x:0,y:0};wApply()};
-window.wCountryClick=function(code){if(window._wmMoved)return;openCountry(code)};
 function bindMapGestures(){
   const svg=document.getElementById("wsvg");if(!svg)return;
-  const toVB=(cxp,cyp)=>{const r=svg.getBoundingClientRect();return [(cxp-r.left)/(r.width||1)*2000,(cyp-r.top)/(r.height||1)*1000]};
+  const toVB=(cxp,cyp)=>{const r=svg.getBoundingClientRect();return [(cxp-r.left)/(r.width||1)*(window._MW||1000),(cyp-r.top)/(r.height||1)*(window._MH||500)]};
   svg.addEventListener("wheel",e=>{e.preventDefault();const p=toVB(e.clientX,e.clientY);wZoom(e.deltaY<0?1.2:1/1.2,p[0],p[1])},{passive:false});
+  svg.addEventListener("dblclick",e=>{e.preventDefault();const p=toVB(e.clientX,e.clientY);wZoom(2,p[0],p[1])});
   let drag=false,lx=0,ly=0;window._wmMoved=false;
-  function move(e){if(!drag)return;const dx=e.clientX-lx,dy=e.clientY-ly;if(Math.abs(dx)+Math.abs(dy)>4)window._wmMoved=true;const r=svg.getBoundingClientRect();_map.x+=dx/(r.width||1)*2000;_map.y+=dy/(r.height||1)*1000;lx=e.clientX;ly=e.clientY;wClamp();wApply()}
+  function move(e){if(!drag)return;const dx=e.clientX-lx,dy=e.clientY-ly;if(Math.abs(dx)+Math.abs(dy)>4)window._wmMoved=true;const r=svg.getBoundingClientRect();_map.x+=dx/(r.width||1)*(window._MW||1000);_map.y+=dy/(r.height||1)*(window._MH||500);lx=e.clientX;ly=e.clientY;wClamp();wApply()}
   function up(){if(!drag)return;drag=false;svg.classList.remove("grab");window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up);setTimeout(()=>{window._wmMoved=false},70)}
   svg.addEventListener("pointerdown",e=>{if(e.button&&e.button!==0)return;drag=true;window._wmMoved=false;lx=e.clientX;ly=e.clientY;svg.classList.add("grab");window.addEventListener("pointermove",move);window.addEventListener("pointerup",up)});
-  // 위임 클릭: 드래그가 아니면 해당 나라 뉴스로 (setPointerCapture 미사용 → 클릭 정상 전달)
+  // 위임 클릭(setPointerCapture 미사용 → 클릭 정상 전달)
   svg.addEventListener("click",e=>{if(window._wmMoved)return;const t=e.target&&e.target.closest&&e.target.closest(".wc");if(t){const c=t.getAttribute("data-c");if(c)openCountry(c)}});
+  // 호버 HUD: 모든 나라 이름 표시(지원국은 클릭 가능)
   const lab=document.getElementById("wlabel"),g=document.getElementById("wg");
-  if(g&&lab){g.addEventListener("pointerover",e=>{const t=e.target.closest&&e.target.closest(".wc");if(t){lab.textContent=t.getAttribute("data-ko")||"";lab.classList.add("show")}});g.addEventListener("pointerout",()=>lab.classList.remove("show"))}
+  if(g&&lab){g.addEventListener("pointerover",e=>{const t=e.target;const nm=t&&t.getAttribute&&t.getAttribute("data-nm");if(nm){const ok=t.classList&&t.classList.contains("wc");lab.textContent=nm+(ok?"  ›":"");lab.classList.toggle("wlabel-on",!!ok);lab.classList.add("show")}});g.addEventListener("pointerout",()=>lab.classList.remove("show"))}
   let pd=0;
   svg.addEventListener("touchstart",e=>{if(e.touches.length===2)pd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)},{passive:true});
   svg.addEventListener("touchmove",e=>{if(e.touches.length===2){e.preventDefault();const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(pd){const mx=(e.touches[0].clientX+e.touches[1].clientX)/2,my=(e.touches[0].clientY+e.touches[1].clientY)/2,p=toVB(mx,my);wZoom(nd/pd,p[0],p[1])}pd=nd;window._wmMoved=true}},{passive:false});
@@ -1636,8 +1641,43 @@ function renderAlerts(){
 }
 // 딥링크(해시 라우팅)
 let _hashGuard=false;
-function syncHash(){let h="";if(state.view==="stock"&&state.symbol)h="stock/"+state.symbol;else if(state.view&&state.view!=="home")h=state.view;const nh=h?("#"+h):(location.pathname);if(h){if(location.hash!=="#"+h){_hashGuard=true;location.hash=h;setTimeout(()=>_hashGuard=false,60)}}else if(location.hash){_hashGuard=true;history.replaceState(null,"",location.pathname+location.search);setTimeout(()=>_hashGuard=false,60)}}
-function routeFromHash(){const h=decodeURIComponent((location.hash||"").replace(/^#/,"")).trim();if(!h){switchView("home");return}if(h.toLowerCase().startsWith("stock/")){const sym=h.slice(6).toUpperCase();if(sym){loadStock(sym);return}}const vs=["home","market","watchlist","portfolio","paper","calc","alerts","board","cal","compare","news","map"];if(vs.includes(h)){switchView(h);return}loadStock(h.toUpperCase())}
+function setDocMeta(){
+  try{
+    var t="ASTRO IRON · 미국주식 실시간 시세·AI 분석";
+    var d="미국 주식 실시간 시세·차트·재무·뉴스·AI 분석과 전세계 경제 캘린더·뉴스 지도까지 한 곳에서. 무료·한국어.";
+    var canon=location.origin+"/";
+    if(state.view==="stock"&&state.symbol){
+      var nm=(state.data&&state.data.profile&&state.data.profile.name)||state.symbol;
+      var p=state.data&&state.data.quote&&state.data.quote.price;
+      t=nm+" ("+state.symbol+") 주가 실시간·차트·AI 분석 | ASTRO IRON";
+      d=nm+"("+state.symbol+") 실시간 주가"+(p!=null?" $"+fmt(p):"")+" · 차트·재무·배당·투자의견·최근 뉴스·AI 분석을 한국어로.";
+      canon=location.origin+"/stock/"+state.symbol;
+    } else if(state.view==="news"){ t="미국·세계 증시 뉴스 실시간 | ASTRO IRON"; d="미국 증시 헤드라인과 전세계 뉴스를 한국어로. AI 요약·감성분석 제공."; }
+    else if(state.view==="map"){ t="세계 뉴스 지도 · 나라별 오늘의 소식 | ASTRO IRON"; d="세계 지도에서 나라를 눌러 그 나라 오늘의 경제·정치 뉴스를 한국어로 확인하세요."; }
+    else if(state.view==="cal"){ t="전세계 경제 캘린더 · FOMC·ECB·BoJ·한국은행 | ASTRO IRON"; d="미국·유럽·일본·한국·중국 중앙은행 금리결정과 주요 지표·관심종목 실적 일정을 한눈에."; }
+    else if(state.view==="board"){ t="미국주식 실시간 토론방 | ASTRO IRON"; d="미국 주식 투자자들의 실시간 토론·정보 공유. 로그인 없이 참여."; }
+    document.title=t;
+    var setM=function(sel,attr,val){var el=document.querySelector(sel);if(el)el.setAttribute(attr,val)};
+    setM('meta[name="description"]','content',d);
+    setM('link[rel="canonical"]','href',canon);
+    setM('meta[property="og:title"]','content',t);
+    setM('meta[property="og:description"]','content',d);
+    setM('meta[property="og:url"]','content',canon);
+    setM('meta[name="twitter:title"]','content',t);
+    setM('meta[name="twitter:description"]','content',d);
+  }catch(e){}
+}
+function syncHash(){_hashGuard=true;try{
+  if(state.view==="stock"&&state.symbol){var p="/stock/"+state.symbol;if(location.pathname!==p||location.hash)history.replaceState(null,"",p);}
+  else if(state.view&&state.view!=="home"){var h="#"+state.view;if(location.hash!==h||location.pathname!=="/")history.replaceState(null,"","/"+h);}
+  else{if(location.pathname!=="/"||location.hash)history.replaceState(null,"","/");}
+}catch(e){}setTimeout(function(){_hashGuard=false},60);}
+function routeFromHash(){
+  const h=decodeURIComponent((location.hash||"").replace(/^#/,"")).trim();
+  if(h){if(h.toLowerCase().startsWith("stock/")){const sym=h.slice(6).toUpperCase();if(sym){loadStock(sym);return}}const vs=["home","market","watchlist","portfolio","paper","calc","alerts","board","cal","compare","news","map"];if(vs.includes(h)){switchView(h);return}loadStock(h.toUpperCase());return}
+  var mp=(location.pathname||"").match(/^\/stock\/([A-Za-z0-9.]{1,6})\/?$/);
+  if(mp){loadStock(mp[1].toUpperCase());return}
+  switchView("home")}
 window.routeFromHash=routeFromHash;
 
 // ═══ 종목 비교 ═══
@@ -2313,7 +2353,7 @@ function render(){
   else if(state.view==="alerts")renderAlerts();
   else if(state.view==="news"){renderNews();autoTransNews();if(!window._newsLoaded){window._newsLoaded=true;loadNews()}startNewsPoll();}
   {const ab=document.getElementById("aboutSection");if(ab)ab.style.display=(state.view==="home"?"block":"none")}
-  setNavH();syncHash();window._rendered=true;
+  setNavH();syncHash();setDocMeta();window._rendered=true;
 }
 window.render=render;
 window.switchView=(v)=>{state.view=v;state.error=null;closeAc();render()};
@@ -2434,13 +2474,14 @@ async function cloudPush(){if(!_fb.ready||!_fb.user)return;try{await _fb.db.coll
 function updateAuthUI(){var el=document.getElementById("authBtn");if(!el)return;if(_fb&&_fb.user){var nm=_fb.user.displayName||_fb.user.email||"내 계정";el.textContent="☁ "+String(nm).split(" ")[0].slice(0,10);el.title="클릭하면 로그아웃";}else{el.textContent="로그인";el.title="Google로 로그인 · 기기 간 동기화";}el.style.display=""}
 // ═══ 시작(부트) · 방탄 ═══
 try{window.addEventListener("hashchange",()=>{if(_hashGuard)return;routeFromHash()})}catch(e){}
+try{window.addEventListener("popstate",()=>{if(_hashGuard)return;routeFromHash()})}catch(e){}
 window._deferredPrompt=null;
 try{window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window._deferredPrompt=e;var b=document.getElementById("installBtn");if(b)b.style.display=""})}catch(e){}
 window.pwaInstall=async function(){var e=window._deferredPrompt;if(!e){toast("브라우저 메뉴의 ‘홈 화면에 추가/앱 설치’를 사용해 주세요");return}try{e.prompt();await e.userChoice}catch(_){}window._deferredPrompt=null;var b=document.getElementById("installBtn");if(b)b.style.display="none"};
 try{window.addEventListener("appinstalled",function(){try{trackEvent&&trackEvent("pwa_installed",{})}catch(e){}var b=document.getElementById("installBtn");if(b)b.style.display="none";toast("앱이 설치됐어요 🚀")})}catch(e){}
 function _boot(){
   // 1) 무조건 화면부터 그린다 (다른 무엇도 이걸 막지 못하게)
-  try{ if(location.hash&&location.hash.length>1){routeFromHash()}else{render()} }
+  try{ if((location.pathname&&location.pathname!=="/"&&location.pathname!=="/index.html")||(location.hash&&location.hash.length>1)){routeFromHash()}else{render()} }
   catch(e){ try{state.view="home";render()}catch(_){ try{document.getElementById("app").innerHTML='<div style="padding:40px;text-align:center;color:#888">화면을 불러오지 못했어요. 새로고침해 주세요.</div>'}catch(__){} } }
   // 2) 부가기능은 렌더 이후, 각각 격리 (하나가 실패해도 앱은 뜬다)
   try{ if(getList("alerts").filter(a=>!a.done).length)startAlertPoll() }catch(e){}

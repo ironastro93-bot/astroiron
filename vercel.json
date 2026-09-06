@@ -1,4 +1,7 @@
 {
+  "rewrites": [
+    { "source": "/stock/(.*)", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
