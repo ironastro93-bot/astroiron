@@ -1,0 +1,51 @@
+<!doctype html><html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>페이지를 찾을 수 없어요 (404) | ASTRO IRON</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/icon-192.png">
+<script>(function(){try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark")t=(window.matchMedia&&matchMedia("(prefers-color-scheme:dark)").matches)?"dark":"light";document.documentElement.setAttribute("data-theme",t)}catch(e){}})();</script>
+<style>
+:root{--bg:#fff;--ink:#1A1D24;--sub:#5B616B;--line:#E7EAF0;--soft:#F4F7FC;--steel:#2F6BFF}
+[data-theme="dark"]{--bg:#0b1220;--ink:#F3F4F6;--sub:#B3B9C4;--line:#243049;--soft:#141d2e;--steel:#4EA8FF}
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{font-family:-apple-system,BlinkMacFont,'Segoe UI',Roboto,'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:28px}
+.box{max-width:520px;width:100%;text-align:center}
+.logo{width:54px;height:54px;border-radius:14px;margin:0 auto 14px;background:linear-gradient(135deg,#2F6BFF,#7C4CE0);color:#fff;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif}
+h1{font-size:52px;margin:6px 0 2px;font-family:'Inter',sans-serif;letter-spacing:-1px}
+.msg{font-size:15px;color:var(--sub);line-height:1.7;margin:4px 0 20px}
+.srch{display:flex;gap:8px;margin:0 auto 8px;max-width:420px}
+.srch input{flex:1;min-width:0;padding:13px 14px;font-size:15px;border-radius:12px;border:1.5px solid var(--line);background:var(--soft);color:var(--ink)}
+.btn{background:linear-gradient(135deg,#2F6BFF,#4F46E5);color:#fff;border:none;font-weight:800;font-size:15px;padding:0 18px;border-radius:12px;cursor:pointer}
+.hint{font-size:12px;color:var(--sub);margin-bottom:22px}
+.sec{font-size:12px;font-weight:800;color:var(--sub);letter-spacing:.04em;margin:18px 0 8px;text-transform:uppercase}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.chips a{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:9px 13px;font-size:13.5px;font-weight:700;color:var(--ink);text-decoration:none}
+.chips a:hover{border-color:var(--steel);color:var(--steel)}
+.nav{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:22px;font-size:14px}
+.nav a{color:var(--steel);text-decoration:none;font-weight:600}
+</style></head><body><div class="box">
+<div class="logo">AI</div>
+<h1>404</h1>
+<div class="msg" id="msg">찾으시는 페이지가 없거나 주소가 바뀌었어요.<br>종목을 검색하거나 아래에서 골라 보세요.</div>
+<form class="srch" onsubmit="return go()"><input id="q" placeholder="종목 검색 · 예) 테슬라, 엔비디아, AAPL" autocomplete="off" aria-label="종목 검색"><button class="btn" type="submit">검색</button></form>
+<div class="hint">한국어·티커 모두 검색됩니다</div>
+<div class="sec">인기 종목</div>
+<div class="chips">
+<a href="/stock/AAPL">애플 AAPL</a><a href="/stock/TSLA">테슬라 TSLA</a><a href="/stock/NVDA">엔비디아 NVDA</a><a href="/stock/CPNG">쿠팡 CPNG</a><a href="/stock/QQQ">나스닥 QQQ</a><a href="/stock/SCHD">배당 SCHD</a><a href="/stocks/">전체 종목 →</a>
+</div>
+<div class="nav"><a href="/">🏠 홈</a><a href="/#news">📰 뉴스</a><a href="/#map">🗺️ 세계 뉴스 지도</a><a href="/#cal">📅 경제 캘린더</a></div>
+</div>
+<script>
+(function(){
+  var p=location.pathname||"";
+  // /stock/TICKER 로 잘못 들어온 경우(리라이트 미스 등) 앱으로 안내
+  var m=p.match(/^\/stock\/([A-Za-z0-9.]{1,6})\/?$/i);
+  if(m){var sym=m[1].toUpperCase();document.getElementById("msg").innerHTML="<b>"+sym+"</b> 페이지로 이동 중…";location.replace("/#stock/"+sym);return;}
+  var ms=p.match(/^\/stocks\/([a-z0-9.]{1,6})\.html$/i);
+  if(ms){/* 존재하지 않는 종목 랜딩 → 앱에서 시세 시도 */ document.getElementById("msg").innerHTML="이 주소는 없지만, <b>"+ms[1].toUpperCase()+"</b> 시세를 앱에서 확인해 보세요.";}
+})();
+function go(){var v=(document.getElementById("q").value||"").trim();if(!v)return false;location.href="/#stock/"+encodeURIComponent(v);return false;}
+</script>
+</body></html>
