@@ -9,6 +9,7 @@
 <meta name="naver-site-verification" content="3f1a6e8c0d838961fad2a4645d89ee3c06d9f01b"/>
 <meta name="robots" content="index,follow"/>
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"/><meta name="theme-color" content="#14161A" media="(prefers-color-scheme: dark)"/>
+<script>(function(){try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark")t=(window.matchMedia&&matchMedia("(prefers-color-scheme:dark)").matches)?"dark":"light";document.documentElement.setAttribute("data-theme",t)}catch(e){}})();</script>
 <link rel="manifest" href="/manifest.webmanifest"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="mobile-web-app-capable" content="yes"/>
@@ -115,6 +116,12 @@
   .wc.on{fill:#ffb020;stroke:#ffe6a0}
   .wlbl{fill:#eaf3ff;stroke:#07152c;stroke-width:2.6;paint-order:stroke;font-weight:800;pointer-events:none;font-family:Inter,system-ui,sans-serif}
   .wlabel.wlabel-on{border-color:#5aa0ff;color:#eaf4ff;background:rgba(20,60,120,.72)}
+  .nrov{position:fixed;inset:0;z-index:120;background:rgba(6,12,24,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s}
+  .nrov.show{opacity:1;pointer-events:auto}
+  .nrcard{position:relative;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;background:var(--bg);border-radius:20px 20px 0 0;padding:22px 20px 26px;box-shadow:0 -14px 44px rgba(0,0,0,.34);transform:translateY(24px);transition:transform .22s cubic-bezier(.2,.8,.25,1);-webkit-overflow-scrolling:touch}
+  .nrov.show .nrcard{transform:none}
+  .nrx{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--sub);font-size:15px;cursor:pointer;line-height:1}
+  @media(min-width:560px){.nrov{align-items:center}.nrcard{border-radius:18px}}
   .whud{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:4}
   .whud button{width:34px;height:34px;border-radius:9px;border:1px solid #2a4d7a;background:rgba(8,22,44,.72);color:#cfe4ff;font-size:17px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
   .whud button:hover{background:rgba(30,70,130,.9);border-color:#5aa0ff}
@@ -324,7 +331,7 @@
   <div class="navin">
     <div onclick="goHome()" style="display:flex;align-items:center;gap:10px;cursor:pointer" title="홈으로"><div class="logo">AI</div><span class="brand">ASTRO IRON</span></div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-      <button class="icon-btn" id="bellBtn" title="가격 알림" aria-label="가격 알림" onclick="switchView('alerts')" style="position:relative"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="bellDot" style="display:none;position:absolute;top:3px;right:3px;min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:var(--up);color:#fff;font-size:9px;font-weight:800;line-height:15px;text-align:center;font-family:'Inter',sans-serif;box-shadow:0 0 0 2px var(--card)"></span></button><button class="icon-btn" id="installBtn" title="앱 설치" aria-label="앱으로 설치" onclick="pwaInstall()" style="display:none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg></button><button class="icon-btn" id="themeBtn" title="다크 모드" aria-label="다크 모드 전환">◐</button>
+      <button class="icon-btn" id="bellBtn" title="가격 알림" aria-label="가격 알림" onclick="switchView('alerts')" style="position:relative"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="bellDot" style="display:none;position:absolute;top:3px;right:3px;min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:var(--up);color:#fff;font-size:9px;font-weight:800;line-height:15px;text-align:center;font-family:'Inter',sans-serif;box-shadow:0 0 0 2px var(--card)"></span></button><button class="icon-btn" id="installBtn" title="앱 설치" aria-label="앱으로 설치" onclick="pwaInstall()" style="display:none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg></button><button class="icon-btn" id="themeBtn" title="다크/라이트 전환" aria-label="다크/라이트 모드 전환" onclick="toggleTheme()">◐</button>
       <button id="authBtn" class="icon-btn" style="display:none;width:auto;padding:0 10px;font-size:12px;font-weight:700"></button>
       <button id="quotaBtn"></button>
     </div>
@@ -407,9 +414,13 @@ function coupangBanner(){
   return `<div style="margin:16px 0 6px;text-align:center"><iframe src="${a.src}" title="쿠팡 파트너스 광고" width="${a.w}" height="${a.h}" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:0;max-width:100%" loading="lazy"></iframe><div style="font-size:10px;color:var(--faint);margin-top:6px;line-height:1.45">이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</div></div>`;
 }
 // GA4
-function initGA(){if(!GA4_ID||window._gaInit)return;window._gaInit=true;var sc=document.createElement("script");sc.async=true;sc.src="https://www.googletagmanager.com/gtag/js?id="+GA4_ID;document.head.appendChild(sc);window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments)};gtag("js",new Date());gtag("config",GA4_ID)}
+function initGA(){if(!GA4_ID||window._gaInit)return;window._gaInit=true;var sc=document.createElement("script");sc.async=true;sc.src="https://www.googletagmanager.com/gtag/js?id="+GA4_ID;document.head.appendChild(sc);window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments)};gtag("js",new Date());gtag("config",GA4_ID,{send_page_view:false});try{gaPage()}catch(e){}}
+function gaPage(){try{if(!window.gtag)return;var pth=(location.pathname||"/")+(location.hash||"");if(!pth)pth="/";if(window._gaLast===pth)return;window._gaLast=pth;gtag("event","page_view",{page_title:document.title,page_location:location.href,page_path:pth})}catch(e){}}
 function trackEvent(action,params){try{if(GA4_ID&&window.gtag)gtag("event",action,params||{})}catch(e){}}
 window.trackEvent=trackEvent;
+function applyThemeIcon(){try{var t=document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light";var b=document.getElementById("themeBtn");if(b){b.textContent=(t==="dark"?"☀":"🌙");b.title=(t==="dark"?"라이트 모드로":"다크 모드로")}}catch(e){}}
+window.setTheme=function(t){try{document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light");localStorage.setItem("theme",t==="dark"?"dark":"light")}catch(e){}applyThemeIcon()};
+window.toggleTheme=function(){var cur=document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light";setTheme(cur==="dark"?"light":"dark");try{trackEvent("theme_toggle",{to:(cur==="dark"?"light":"dark")})}catch(e){}};
 // 쿠키 동의 (동의 전 GA4 미로드)
 function mountConsent(){
   const c=localStorage.getItem("cookieConsent");
@@ -536,7 +547,7 @@ async function loadStock(sym){
     const [quote,profile]=await Promise.all([finApi("quote",{symbol:sym}),finApi("profile",{symbol:sym}).catch(()=>({}))]);
     if(quote.price==null){throw new Error("시세를 찾지 못했어요. 티커를 확인해 주세요.")}
     pushRecent(sym,profile?.name||sym);
-    state.data={symbol:sym,quote,profile,candles:null,news:null,financials:null,filings:null,recommend:null,earnings:null,ai:null,aiState:"idle"};
+    state.data={symbol:sym,quote,profile,candles:null,news:null,financials:null,filings:null,recommend:null,earnings:null,peers:null,ai:null,aiState:"idle"};
     state.loading=false;render();
     finApi("candle",{symbol:sym,resolution:state.period}).then(r=>{state.data.candles=r.candles;if(state.tab==="chart")render()}).catch(()=>{state.data.candles=[]});
     finApi("financials",{symbol:sym}).then(r=>{state.data.financials=r.metrics;if(state.tab==="financials")render()}).catch(()=>{});
@@ -544,6 +555,7 @@ async function loadStock(sym){
     finApi("filings",{symbol:sym}).then(r=>{state.data.filings=r.filings;if(state.tab==="filings")render()}).catch(()=>{state.data.filings=[]});
     finApi("recommend",{symbol:sym}).then(r=>{state.data.recommend=r.recommend;if(state.tab==="recommend")render()}).catch(()=>{state.data.recommend=[]});
     finApi("earnings",{symbol:sym}).then(r=>{state.data.earnings=r.earnings;if(state.tab==="earnings")render()}).catch(()=>{state.data.earnings=[]});
+    finApi("peers",{symbol:sym}).then(r=>{state.data.peers=(r.peers||[]).filter(p=>p&&p!==sym).slice(0,6);if(state.tab==="overview")render()}).catch(()=>{state.data.peers=[]});
     if(window._usdkrw==null){const fxc=aiCache("fx",60);if(fxc){window._usdkrw=fxc}else{finApi("fx").then(r=>{if(r&&r.usdkrw){window._usdkrw=r.usdkrw;aiCacheSet("fx",r.usdkrw);if(state.view==="stock")render()}}).catch(()=>{})}}
   }catch(e){state.loading=false;state.error=e.message;render()}
 }
@@ -809,6 +821,7 @@ function renderStockResult(){
       ${d.profile?.finnhubIndustry?`<div style="margin-top:14px;font-size:13.5px;color:var(--sub)">업종: ${esc(d.profile.finnhubIndustry)}${d.profile.marketCapitalization?` · 시총 $${fmt(d.profile.marketCapitalization/1000,1)}B`:""}${d.profile.country?` · ${esc(d.profile.country)}`:""}</div>`:""}
       <p style="margin-top:16px;font-size:12px;color:var(--faint);line-height:1.6">모든 수치는 Finnhub 실시간 데이터입니다. 깊은 해석은 [AI 분석] 탭에서.</p>
       `;
+    if(d.peers&&d.peers.length)t+=`<div class="card" style="margin-top:16px"><div style="padding:14px 18px"><div style="font-size:13px;font-weight:800;margin-bottom:10px">🔗 비슷한 종목</div><div style="display:flex;flex-wrap:wrap;gap:8px">${d.peers.map(p=>`<button class="tk" onclick="loadStock('${esc(p)}')"><b style="font-family:Inter">${esc(p)}</b></button>`).join("")}</div><div style="font-size:11px;color:var(--faint);margin-top:8px">같은 업종·연관 기업 (Finnhub)</div></div></div>`;
     t+=alertSetter(d.symbol,name);
   }
   else if(state.tab==="chart"){
@@ -1099,6 +1112,7 @@ function renderHome(){
   ${dashSection("달러 · 원자재","dashMacro","달러인덱스·금·은·유가·가스 (FRED)")}
   </div>`:""}
   ${watch.length?`<div class="card" style="margin-bottom:16px"><div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)"><h2 style="font-size:14.5px">관심종목 (${watch.length})</h2><button class="btn-g" onclick="switchView('watchlist')">전체 →</button></div><div style="padding:4px 12px 8px">${watch.slice(0,5).map(w=>`<div class="tk" style="border:none;width:100%;justify-content:space-between;background:none;padding:11px 8px" onclick="loadStock('${w.ticker}')"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${w.ticker}</b> <span>${esc(w.name)}</span></span><span id="hwq_${w.ticker}" style="color:var(--faint);font-size:12.5px;white-space:nowrap">·</span></div>`).join("")}</div></div>`:""}
+  <div class="card" style="margin-bottom:16px"><div style="padding:15px 18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center"><div style="flex:1;min-width:150px"><div style="font-weight:800;font-size:14.5px">🎁 친구 초대 · 📊 브리핑 공유</div><div style="font-size:11.5px;color:var(--faint);margin-top:2px">초대하면 PRO 선물 · 오늘의 브리핑은 카톡에 붙여넣기</div></div><button class="btn-sm" onclick="openInvite()">친구 초대</button><button class="btn-g" onclick="openBrief()">브리핑</button></div></div>
   ${recent.length?`<div style="margin-bottom:20px"><h2 style="margin-bottom:12px;font-size:14.5px">최근 조회</h2><div style="display:flex;flex-wrap:wrap;gap:8px">${recent.map(r=>`<button class="tk" onclick="loadStock('${r.ticker}')"><b>${r.ticker}</b><span>${esc(r.name)}</span></button>`).join("")}</div></div>`:""}`;
   document.getElementById("app").insertAdjacentHTML("beforeend", coupangBanner());
   bindSearch();
@@ -1428,10 +1442,43 @@ function newsCard(it,idx,big){
   const rel=(it.related||[]).map(t=>`<button onclick="event.stopPropagation();loadStock('${esc(t)}')" style="font-size:10.5px;font-weight:700;font-family:Inter;color:var(--steel);background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 7px;cursor:pointer">${esc(t)}</button>`).join(" ");
   const meta=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--faint);margin-top:7px"><span class="pill" style="font-size:10px;background:color-mix(in srgb,var(--steel) 12%,transparent);color:var(--steel)">${esc(it.category)}</span>${(it._sent||it.sentiment)?newsSentBadge(it._sent||it.sentiment):""}${it._impact?newsImpactBadge(it._impact):""}<span style="font-weight:600;color:var(--sub)">${esc(it.source||"")}</span><span>·</span><span>${relTime(it.datetime)}</span></div>`;
   const thumb=it.image?`<img src="${esc(it.image)}" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'" style="${big?"width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-bottom:10px":"width:66px;height:66px;object-fit:cover;border-radius:9px;flex-shrink:0"}"/>`:"";
-  const inner=`${big&&thumb?thumb:""}<a href="${esc(it.url)}" target="_blank" rel="noreferrer" class="newslink">${(state.newsKo&&it._ko)?`<div style="font-size:${big?"16.5px":"14.5px"};font-weight:700;line-height:1.4">${esc(it._ko)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:3px;line-height:1.4" class="clamp3">${esc(it.title)}</div>`:`<div style="font-size:${big?"17px":"14.5px"};font-weight:700;line-height:1.4" class="${big?"":"clamp3"}">${esc(it.title)}</div>`}</a>${meta}`;
+  const titleHtml=(state.newsKo&&it._ko)?`<div style="font-size:${big?"16.5px":"14.5px"};font-weight:700;line-height:1.4">${esc(it._ko)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:3px;line-height:1.4" class="clamp3">${esc(it.title)}</div>`:`<div style="font-size:${big?"17px":"14.5px"};font-weight:700;line-height:1.4" class="${big?"":"clamp3"}">${esc(it.title)}</div>`;
+  const inner=`${big&&thumb?thumb:""}${titleHtml}${meta}`;
   const bodyHtml=big?inner:`<div style="display:flex;gap:12px;align-items:flex-start">${thumb}<div style="flex:1;min-width:0">${inner}</div></div>`;
-  return `<div class="card" style="margin-bottom:12px${big?";border-left:4px solid var(--steel)":""}"><div style="padding:${big?"18px 20px":"14px 18px"}">${big?'<div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--steel);margin-bottom:6px">TOP NEWS</div>':""}${bodyHtml}${rel?`<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${rel}</div>`:""}<div id="nai_${idx}" style="margin-top:10px">${newsAiArea(it,idx)}</div></div></div>`;
+  const foot=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;flex-wrap:wrap"><div style="display:flex;gap:6px;flex-wrap:wrap;min-width:0">${rel}</div><div style="display:flex;align-items:center;gap:12px;white-space:nowrap"><span style="font-size:11px;font-weight:800;color:var(--steel)">✨ AI 정리</span><a href="${esc(it.url)}" target="_blank" rel="noreferrer" onclick="event.stopPropagation()" style="font-size:11px;color:var(--faint)">원문 →</a></div></div>`;
+  return `<div class="card" style="margin-bottom:12px;cursor:pointer${big?";border-left:4px solid var(--steel)":""}" onclick="openNewsReader(${idx})"><div style="padding:${big?"18px 20px":"14px 18px"}">${big?'<div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--steel);margin-bottom:6px">TOP NEWS</div>':""}${bodyHtml}${foot}</div></div>`;
 }
+window.openNewsReader=async function(idx){
+  const it=(window._news||[])[idx];if(!it)return;window._readerIdx=idx;try{trackEvent("news_read",{source:it.source||"",cat:it.category||""})}catch(e){}
+  let ov=document.getElementById("newsReader");
+  if(!ov){ov=document.createElement("div");ov.id="newsReader";ov.className="nrov";ov.addEventListener("click",e=>{if(e.target===ov)closeNewsReader()});document.body.appendChild(ov);
+    if(!window._nrKey){window._nrKey=1;document.addEventListener("keydown",e=>{if(e.key==="Escape")closeNewsReader()})}}
+  const koT=it._ko||"";
+  ov.innerHTML='<div class="nrcard"><button class="nrx" onclick="closeNewsReader()" aria-label="닫기">✕</button>'+
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--faint);margin-bottom:8px;padding-right:28px"><span class="pill" style="font-size:10px;background:color-mix(in srgb,var(--steel) 12%,transparent);color:var(--steel)">'+esc(it.category||"뉴스")+'</span>'+((it._sent||it.sentiment)?newsSentBadge(it._sent||it.sentiment):"")+'<span style="font-weight:600;color:var(--sub)">'+esc(it.source||"")+'</span><span>·</span><span>'+relTime(it.datetime)+'</span></div>'+
+    '<h2 style="font-size:18px;line-height:1.4;margin:0 0 4px">'+esc(koT||it.title)+'</h2>'+
+    (koT?'<div style="font-size:12px;color:var(--faint);line-height:1.45;margin-bottom:10px">'+esc(it.title)+'</div>':'<div style="height:6px"></div>')+
+    ((it.related&&it.related.length)?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'+it.related.map(t=>'<button class="tk" style="font-size:11px" onclick="closeNewsReader();loadStock(\''+esc(t)+'\')">'+esc(t)+' 분석 →</button>').join("")+'</div>':'')+
+    '<div style="font-size:12px;font-weight:800;color:var(--steel);margin:6px 0 6px">✨ AI 정리</div>'+
+    '<div id="nrBody" style="font-size:13.5px;line-height:1.75;color:var(--ink)"><div class="skel" style="height:36px;margin-bottom:8px"></div><div class="skel" style="height:36px"></div></div>'+
+    '<div style="font-size:10.5px;color:var(--faint);margin-top:10px;line-height:1.5">AI가 제목을 바탕으로 배경·의미를 정리한 참고용 설명입니다(원문 전재 아님). 정확한 내용은 원문에서 확인하세요.</div>'+
+    '<div style="display:flex;gap:8px;margin-top:14px"><a href="'+esc(it.url)+'" target="_blank" rel="noreferrer" class="btn" style="flex:1;text-align:center;text-decoration:none;padding:12px">원문 보기 →</a><button class="btn-g" style="padding:12px 16px" onclick="closeNewsReader()">닫기</button></div></div>';
+  ov.classList.add("show");try{document.body.style.overflow="hidden"}catch(e){}
+  if(it._exp){paintReaderBody(it._exp);return}
+  try{const r=await aiApi("news_explain",{title:it.title,related:(it.related||[]).slice(0,4)});
+    if(window._readerIdx!==idx)return;
+    if(r&&!r.aiUnavailable&&(r.summary||(r.points&&r.points.length))){it._exp=r;paintReaderBody(r)}else paintReaderBody({err:true});
+  }catch(e){paintReaderBody({err:true})}
+};
+function paintReaderBody(r){const el=document.getElementById("nrBody");if(!el)return;
+  if(r.err){el.innerHTML='<div style="color:var(--faint);font-size:12.5px">지금은 AI 정리를 불러올 수 없어요. 아래 원문에서 확인해 주세요.</div>';return}
+  let h='';
+  if(r.summary)h+='<div>'+esc(r.summary)+'</div>';
+  if(r.points&&r.points.length)h+='<ul style="margin:10px 0 0;padding-left:18px">'+r.points.map(p=>'<li style="margin-bottom:5px">'+esc(p)+'</li>').join("")+'</ul>';
+  if(r.impact)h+='<div style="margin-top:12px;padding:10px 12px;background:var(--soft);border-radius:10px;font-size:12.5px;line-height:1.6"><b style="color:var(--steel)">시장 관점</b> · '+esc(r.impact)+'</div>';
+  el.innerHTML=h||'<div style="color:var(--faint)">요약 정보가 없어요.</div>';
+}
+window.closeNewsReader=function(){const ov=document.getElementById("newsReader");if(ov)ov.classList.remove("show");try{document.body.style.overflow=""}catch(e){}};
 const NEWS_COUNTRIES=[["","🌐 미국 증시 (전체)"],["US","🇺🇸 미국"],["KR","🇰🇷 한국"],["JP","🇯🇵 일본"],["CN","🇨🇳 중국"],["GB","🇬🇧 영국"],["DE","🇩🇪 독일"],["FR","🇫🇷 프랑스"],["IN","🇮🇳 인도"],["TW","🇹🇼 대만"],["CA","🇨🇦 캐나다"],["AU","🇦🇺 호주"],["BR","🇧🇷 브라질"],["MX","🇲🇽 멕시코"],["IT","🇮🇹 이탈리아"],["ES","🇪🇸 스페인"],["NL","🇳🇱 네덜란드"],["SE","🇸🇪 스웨덴"],["CH","🇨🇭 스위스"],["PL","🇵🇱 폴란드"],["RU","🇷🇺 러시아"],["TR","🇹🇷 튀르키예"],["SA","🇸🇦 사우디"],["AE","🇦🇪 UAE"],["ZA","🇿🇦 남아공"],["HK","🇭🇰 홍콩"],["SG","🇸🇬 싱가포르"],["VN","🇻🇳 베트남"],["ID","🇮🇩 인도네시아"],["TH","🇹🇭 태국"],["MY","🇲🇾 말레이시아"],["PH","🇵🇭 필리핀"]];
 // 세계 지도용 좌표(위도,경도) + 국기 — 등거리 투영 x%=(lon+180)/360, y%=(90-lat)/180
 const WORLD_GEO=[
@@ -1507,7 +1554,7 @@ function bindMapGestures(){
   svg.addEventListener("touchstart",e=>{if(e.touches.length===2)pd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)},{passive:true});
   svg.addEventListener("touchmove",e=>{if(e.touches.length===2){e.preventDefault();const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(pd){const mx=(e.touches[0].clientX+e.touches[1].clientX)/2,my=(e.touches[0].clientY+e.touches[1].clientY)/2,p=toVB(mx,my);wZoom(nd/pd,p[0],p[1])}pd=nd;window._wmMoved=true}},{passive:false});
 }
-window.openCountry=function(code){state.view="news";state.newsWatch=false;state.newsCountry=code;state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;render();loadNews(true);try{window.scrollTo({top:0,behavior:"smooth"})}catch(e){}};
+window.openCountry=function(code){try{trackEvent("map_country",{country:code})}catch(e){}state.view="news";state.newsWatch=false;state.newsCountry=code;state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;render();loadNews(true);try{window.scrollTo({top:0,behavior:"smooth"})}catch(e){}};
 function worldBriefCard(code,ko,flag,items){
   if(!items||!items.length)return '';
   const rows=items.slice(0,3).map(it=>'<a href="'+esc(it.url)+'" target="_blank" rel="noreferrer" class="newslink" style="display:block;font-size:12.5px;line-height:1.5;padding:5px 0;border-top:1px solid var(--line)">'+esc((state.newsKo&&it._ko)?it._ko:it.title)+' <span style="color:var(--faint);font-size:10.5px">· '+esc(it.source||"")+'</span></a>').join("");
@@ -1665,6 +1712,7 @@ function setDocMeta(){
     setM('meta[property="og:url"]','content',canon);
     setM('meta[name="twitter:title"]','content',t);
     setM('meta[name="twitter:description"]','content',d);
+    try{gaPage()}catch(e){}
   }catch(e){}
 }
 function syncHash(){_hashGuard=true;try{
@@ -2384,6 +2432,65 @@ paintStars();paintParticles();
 function showPro(){trackEvent("click_premium_preview",{feature:"pro_unlock",user_status:"free_tier"});document.getElementById("proModal").classList.add("show")}
 function hidePro(){document.getElementById("proModal").classList.remove("show")}
 window.showPro=showPro;
+// ═══ 친구 초대(바이럴) ═══
+function myRefCode(){try{if(_fb&&_fb.user&&_fb.user.uid)return _fb.user.uid.slice(0,12);var c=localStorage.getItem("refCode");if(!c){c="d"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);localStorage.setItem("refCode",c)}return c}catch(e){return "guest"}}
+function inviteLink(){return location.origin+"/?ref="+encodeURIComponent(myRefCode())}
+function grantPro(days,msg){try{var cur=+localStorage.getItem("proExp")||0;var base=Math.max(cur,Date.now());localStorage.setItem("proExp",String(base+days*86400000));if(msg)toast(msg);try{render()}catch(e){}}catch(e){}}
+function flushInviteCredit(){try{var ref=localStorage.getItem("pendingInvite");if(!ref)return;if(!(_fb&&_fb.ready&&_fb.db&&firebase&&firebase.firestore))return;_fb.db.collection("invites").doc(String(ref).slice(0,40)).set({count:firebase.firestore.FieldValue.increment(1),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}).then(function(){localStorage.removeItem("pendingInvite")}).catch(function(){})}catch(e){}}
+function handleRef(){try{
+  var u=new URL(location.href);var ref=u.searchParams.get("ref");if(!ref)return;
+  u.searchParams.delete("ref");history.replaceState(null,"",u.pathname+(u.search||"")+(u.hash||""));
+  if(ref===myRefCode()||localStorage.getItem("refWelcomed"))return;
+  localStorage.setItem("refWelcomed","1");localStorage.setItem("referredBy",ref);localStorage.setItem("pendingInvite",ref);
+  if(!isPro())grantPro(3,"🎁 초대 링크 환영! PRO 3일이 지급됐어요");
+  flushInviteCredit();
+}catch(e){}}
+window.openInvite=async function(){
+  var link=inviteLink();var loggedIn=!!(_fb&&_fb.user);
+  var ov=document.getElementById("inviteModal");
+  if(!ov){ov=document.createElement("div");ov.id="inviteModal";ov.className="nrov";ov.addEventListener("click",function(e){if(e.target===ov)closeInvite()});document.body.appendChild(ov)}
+  ov.innerHTML='<div class="nrcard"><button class="nrx" onclick="closeInvite()" aria-label="닫기">✕</button>'+
+   '<h2 style="font-size:19px;margin:0 0 6px">🎁 친구 초대하고 PRO 받기</h2>'+
+   '<p style="font-size:13.5px;color:var(--sub);line-height:1.7;margin:0 0 12px">내 링크로 친구가 들어오면 <b>친구는 PRO 3일</b>을 받고, 나는 <b>3명 초대 시 PRO 7일 · 10명 시 30일</b>을 받아요.</p>'+
+   '<div style="display:flex;gap:8px;margin-bottom:10px"><input id="invLink" readonly value="'+esc(link)+'" style="flex:1;min-width:0;padding:11px 12px;font-size:12.5px;border-radius:10px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><button class="btn-sm" onclick="copyInvite()">복사</button></div>'+
+   '<button class="btn" style="width:100%;padding:13px" onclick="shareInvite()">📤 친구에게 공유하기</button>'+
+   '<div id="invCount" style="font-size:13px;color:var(--sub);margin-top:14px;text-align:center">'+(loggedIn?"초대 집계 불러오는 중…":'<span style="color:var(--faint)">구글 로그인하면 초대 수가 기기 간 정확히 집계돼요.</span>')+'</div>'+
+   '<div style="font-size:10.5px;color:var(--faint);margin-top:12px;line-height:1.5">PRO는 AI 심화 분석 잠금 해제 혜택입니다. 초대 집계는 로그인 시 가장 정확합니다.</div></div>';
+  ov.classList.add("show");try{document.body.style.overflow="hidden"}catch(e){}
+  if(loggedIn)loadInviteCount();
+};
+window.closeInvite=function(){var ov=document.getElementById("inviteModal");if(ov)ov.classList.remove("show");try{document.body.style.overflow=""}catch(e){}};
+window.copyInvite=function(){var l=inviteLink();if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(l).then(function(){toast("초대 링크 복사됨 📋")},function(){toast(l)})}else toast(l)};
+window.shareInvite=async function(){try{trackEvent("invite_share",{})}catch(e){}var l=inviteLink();var t="미국주식 실시간·AI 분석 무료 앱 ASTRO IRON! 이 링크로 들어오면 PRO 3일 무료 🎁";if(navigator.share){try{await navigator.share({title:"ASTRO IRON 초대",text:t,url:l});return}catch(e){if(e&&e.name==="AbortError")return}}copyInvite()};
+async function loadInviteCount(){try{if(!(_fb&&_fb.ready&&_fb.db&&_fb.user))return;var doc=await _fb.db.collection("invites").doc(_fb.user.uid.slice(0,12)).get();var n=(doc.exists&&doc.data().count)||0;var claimed=+localStorage.getItem("refClaimed")||0;
+  if(n>=10&&claimed<10){grantPro(30,"🎉 10명 초대 달성! PRO 30일 지급");localStorage.setItem("refClaimed","10")}
+  else if(n>=3&&claimed<3){grantPro(7,"🎉 3명 초대 달성! PRO 7일 지급");localStorage.setItem("refClaimed","3")}
+  var el=document.getElementById("invCount");if(el)el.innerHTML='초대한 친구 <b style="color:var(--steel);font-size:16px">'+n+'</b>명'+(n<3?' · 3명이면 PRO 7일!':n<10?' · 10명이면 PRO 30일!':' · 최고 등급 🏆');
+}catch(e){}}
+// ═══ 오늘의 브리핑 공유(카톡 붙여넣기) ═══
+async function buildBriefText(){
+  var d=new Date();var ds=(d.getMonth()+1)+"월 "+d.getDate()+"일";
+  var codes=[["US","🇺🇸"],["KR","🇰🇷"],["JP","🇯🇵"],["CN","🇨🇳"]];var picks=[];
+  for(var i=0;i<codes.length;i++){var c=codes[i];try{var ck="world_"+c[0];var wd=cGet(ck);if(!wd){wd=await finApi("worldnews",{country:c[0]});cSet(ck,wd)}var it=(wd.news||[])[0];if(it)picks.push({flag:c[1],it:it})}catch(e){}}
+  try{if(state.newsKo!==false)await translateTitles(picks.map(function(p){return p.it}))}catch(e){}
+  var lines=["📊 "+ds+" 미국·세계 증시 브리핑 (ASTRO IRON)",""];
+  var mkt=aiCache("mkt",720);if(mkt)lines.push("🇺🇸 시장: "+String(mkt).replace(/\s+/g," ").trim(),"");
+  lines.push("🌎 오늘의 세계 주요 뉴스");
+  picks.forEach(function(p){lines.push(p.flag+" "+(p.it._ko||p.it.title))});
+  lines.push("","👉 실시간·차트·AI분석 무료 astroiron.com");
+  return lines.join("\n");
+}
+window.openBrief=async function(){
+  try{trackEvent("brief_open",{})}catch(e){}
+  var ov=document.getElementById("briefModal");
+  if(!ov){ov=document.createElement("div");ov.id="briefModal";ov.className="nrov";ov.addEventListener("click",function(e){if(e.target===ov)closeBrief()});document.body.appendChild(ov)}
+  ov.innerHTML='<div class="nrcard"><button class="nrx" onclick="closeBrief()" aria-label="닫기">✕</button><h2 style="font-size:18px;margin:0 0 6px">📊 오늘의 브리핑 공유</h2><div style="font-size:12px;color:var(--faint);margin-bottom:8px">카톡·오픈채팅에 붙여넣기 좋은 요약이에요.</div><textarea id="briefText" readonly style="width:100%;height:210px;padding:12px;font-size:12.5px;line-height:1.6;border-radius:12px;border:1.5px solid var(--line-d);background:var(--soft);color:var(--ink);resize:none">불러오는 중…</textarea><div style="display:flex;gap:8px;margin-top:12px"><button class="btn" style="flex:1;padding:12px" onclick="copyBrief()">📋 복사</button><button class="btn-g" style="padding:12px 16px" onclick="shareBrief()">공유</button></div></div>';
+  ov.classList.add("show");try{document.body.style.overflow="hidden"}catch(e){}
+  var txt=await buildBriefText();window._briefText=txt;var ta=document.getElementById("briefText");if(ta)ta.value=txt;
+};
+window.closeBrief=function(){var ov=document.getElementById("briefModal");if(ov)ov.classList.remove("show");try{document.body.style.overflow=""}catch(e){}};
+window.copyBrief=function(){var t=window._briefText||"";if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast("복사됐어요 · 카톡에 붙여넣기 📋")},function(){toast("복사 실패")})}else toast("길게 눌러 복사해 주세요")};
+window.shareBrief=async function(){var t=window._briefText||"";if(navigator.share){try{await navigator.share({text:t});return}catch(e){if(e&&e.name==="AbortError")return}}copyBrief()};
 document.getElementById("quotaBtn").addEventListener("click",()=>{if(!isPro())showPro()});
 try{document.getElementById("authBtn").addEventListener("click",function(){if(_fb&&_fb.user){if(window.confirm("로그아웃할까요? (이 기기의 데이터는 남아있어요)"))fbLogout();}else{fbLogin();}})}catch(e){}
 document.getElementById("proModal").addEventListener("click",hidePro);
@@ -2421,7 +2528,7 @@ async function initFirebase(){
     await loadFirebase();
     firebase.initializeApp(FIREBASE_CONFIG);
     try{if(APPCHECK_KEY&&firebase.appCheck){firebase.appCheck().activate(APPCHECK_KEY,true)}}catch(e){}
-    _fb.db=firebase.firestore();_fb.ready=true;
+    _fb.db=firebase.firestore();_fb.ready=true;try{flushInviteCredit()}catch(e){}
     try{
       _fb.auth=firebase.auth();
       try{await _fb.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)}catch(e){}
@@ -2481,6 +2588,8 @@ window.pwaInstall=async function(){var e=window._deferredPrompt;if(!e){toast("�
 try{window.addEventListener("appinstalled",function(){try{trackEvent&&trackEvent("pwa_installed",{})}catch(e){}var b=document.getElementById("installBtn");if(b)b.style.display="none";toast("앱이 설치됐어요 🚀")})}catch(e){}
 function _boot(){
   // 1) 무조건 화면부터 그린다 (다른 무엇도 이걸 막지 못하게)
+  try{handleRef()}catch(e){}
+  try{applyThemeIcon()}catch(e){}
   try{ if((location.pathname&&location.pathname!=="/"&&location.pathname!=="/index.html")||(location.hash&&location.hash.length>1)){routeFromHash()}else{render()} }
   catch(e){ try{state.view="home";render()}catch(_){ try{document.getElementById("app").innerHTML='<div style="padding:40px;text-align:center;color:#888">화면을 불러오지 못했어요. 새로고침해 주세요.</div>'}catch(__){} } }
   // 2) 부가기능은 렌더 이후, 각각 격리 (하나가 실패해도 앱은 뜬다)

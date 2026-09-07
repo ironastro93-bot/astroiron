@@ -228,6 +228,11 @@ ONLY raw JSON, 한국어: {"bull":"강세 시나리오 ${isPremium ? "2문장" :
 뉴스: ${ctxStr}
 ONLY raw JSON, 한국어: {"summary":"전체 요약","items":[{"title":"제목(원문 유지)","impact":"positive|neutral|negative"}]}`;
       maxTokens = 1000;
+    } else if (task === "news_explain") {
+      prompt = `다음은 미국·글로벌 뉴스 헤드라인 하나와 관련 티커입니다. 제목만 근거로 이 뉴스가 무엇에 관한 것인지 배경과 의미를 한국어로 정리하세요. 제목에 없는 구체 수치·사실은 지어내지 말고 일반적 맥락과 '왜 중요한지' 위주로. 투자 권유·단정 금지.
+데이터: ${ctxStr}
+ONLY raw JSON, 한국어: {"summary":"이 뉴스의 배경·핵심 2~3문장","points":["핵심 포인트1","핵심 포인트2"],"impact":"시장·업종·관련 종목 관점의 의미 1문장(중립)"}`;
+      maxTokens = 700;
     } else if (task === "news_sentiment") {
       prompt = `다음 뉴스 제목 목록을 감성 분석하세요. 각 제목의 감성과 주가 영향도를 분류하고, 전체 감성과 핵심 키워드를 뽑으세요.
 뉴스(JSON): ${ctxStr}
