@@ -279,6 +279,7 @@
   .crow.me .cbrow{flex-direction:row-reverse}
   .cbub{padding:9px 13px;border-radius:17px;font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word;background:var(--soft);color:var(--ink);border:1px solid var(--line)}
   .crow:not(.me) .cbub{border-bottom-left-radius:5px}
+.cbub.bot{background:color-mix(in srgb,var(--steel) 9%,var(--soft));border:1px solid color-mix(in srgb,var(--steel) 28%,transparent)}
   .cbub.me{background:linear-gradient(135deg,#3B5BDB 0%,#6C4CE0 100%);color:#fff;border-bottom-right-radius:5px;box-shadow:0 4px 14px rgba(76,70,229,.28)}
   [data-theme="dark"] .cbub.me{background:linear-gradient(135deg,#4EA8FF 0%,#7C5CFF 100%);box-shadow:0 4px 16px rgba(78,168,255,.3)}
   .ctime{font-size:10px;color:var(--faint);white-space:nowrap;margin-bottom:2px}
@@ -338,6 +339,10 @@
   }
   @media(prefers-reduced-motion:reduce){ *,#app{animation:none!important} .card:hover{transform:none} html{scroll-behavior:auto} }
 </style>
+<!-- Vercel Web Analytics + Speed Insights (정적 HTML용 · npm 설치 불필요, 대시보드에서 기능 켜면 자동 동작) -->
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments)};</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
 </head>
 <body>
 <div id="sky"><div class="neb"></div><svg id="stars" style="position:absolute;top:0;left:0;width:100%;height:400px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice"></svg><div id="particles"></div></div>
@@ -1592,20 +1597,42 @@ function paintWorldMap(){
 let _map={s:1,x:0,y:0};
 function wApply(){const g=document.getElementById("wg");if(g)g.setAttribute("transform","translate("+_map.x.toFixed(1)+","+_map.y.toFixed(1)+") scale("+_map.s.toFixed(3)+")");const lg=document.getElementById("wlabels");if(lg)lg.setAttribute("font-size",(9/_map.s).toFixed(2));const lg2=document.getElementById("wlabels2");if(lg2)lg2.setAttribute("font-size",(7/_map.s).toFixed(2));const svg=document.getElementById("wsvg");if(svg)svg.classList.toggle("wsvg-zoomed",_map.s>=2.2)}
 function wClamp(){_map.s=Math.max(1,Math.min(12,_map.s));const W=window._MW||1000,H=window._MH||500;_map.x=Math.max(W-W*_map.s,Math.min(0,_map.x));_map.y=Math.max(H-H*_map.s,Math.min(0,_map.y))}
-function wTween(ts,tx,ty){if(window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches){_map.s=ts;_map.x=tx;_map.y=ty;wApply();return}const s0=_map.s,x0=_map.x,y0=_map.y,t0=(window.performance&&performance.now())||Date.now(),dur=440;if(window._wraf)cancelAnimationFrame(window._wraf);function step(){const t1=(window.performance&&performance.now())||Date.now();let p=Math.min(1,(t1-t0)/dur);const e=1-Math.pow(1-p,3);_map.s=s0+(ts-s0)*e;_map.x=x0+(tx-x0)*e;_map.y=y0+(ty-y0)*e;wApply();if(p<1)window._wraf=requestAnimationFrame(step);else window._wraf=0}window._wraf=requestAnimationFrame(step)}
-window.wZoom=function(f,cx,cy,anim){const W=window._MW||1000,H=window._MH||500;if(cx==null){cx=W/2;cy=H/2}const ns=Math.max(1,Math.min(12,_map.s*f)),k=ns/_map.s,os=_map.s,ox=_map.x,oy=_map.y;_map.s=ns;_map.x=cx-(cx-_map.x)*k;_map.y=cy-(cy-_map.y)*k;wClamp();const fs=_map.s,fx=_map.x,fy=_map.y;if(anim){_map.s=os;_map.x=ox;_map.y=oy;wTween(fs,fx,fy)}else wApply()};
-window.wReset=function(){wTween(1,0,0);const pr=document.getElementById("wpreset");if(pr)pr.querySelectorAll("button").forEach((b,i)=>b.classList.toggle("on",i===0))};
+function curCenter(){const W=window._MW||1000,H=window._MH||500;return [(W/2-_map.x)/_map.s,(H/2-_map.y)/_map.s]}
+// 자연스러운 줌: 배율은 로그-스케일, 중심점은 easeInOutCubic 보간 (구글어스식 flyTo)
+function wFlyTo(ts,cx,cy){
+  const W=window._MW||1000,H=window._MH||500;
+  ts=Math.max(1,Math.min(12,ts));
+  const setAt=(s,ccx,ccy)=>{_map.s=s;_map.x=W/2-ccx*s;_map.y=H/2-ccy*s;wClamp()};
+  if(window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches){setAt(ts,cx,cy);wApply();return}
+  const s0=_map.s,c0=curCenter(),ls0=Math.log(s0),ls1=Math.log(ts),t0=(window.performance&&performance.now())||Date.now(),dur=560;
+  if(window._wraf)cancelAnimationFrame(window._wraf);
+  function step(){
+    const t1=(window.performance&&performance.now())||Date.now();let p=Math.min(1,(t1-t0)/dur);
+    const e=p<0.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+    setAt(Math.exp(ls0+(ls1-ls0)*e),c0[0]+(cx-c0[0])*e,c0[1]+(cy-c0[1])*e);wApply();
+    if(p<1)window._wraf=requestAnimationFrame(step);else window._wraf=0;
+  }
+  window._wraf=requestAnimationFrame(step);
+}
+window.wZoom=function(f,cx,cy,anim){const W=window._MW||1000,H=window._MH||500;const ns=Math.max(1,Math.min(12,_map.s*f));
+  if(!anim){const fx=(cx==null?W/2:cx),fy=(cy==null?H/2:cy),k=ns/_map.s;_map.x=fx-(fx-_map.x)*k;_map.y=fy-(fy-_map.y)*k;_map.s=ns;wClamp();wApply();return}
+  const c=curCenter();let tcx,tcy;
+  if(cx==null){tcx=c[0];tcy=c[1]}else{tcx=cx*0.6+c[0]*0.4;tcy=cy*0.6+c[1]*0.4}
+  wFlyTo(ns,tcx,tcy);
+};
+window.wReset=function(){const W=window._MW||1000,H=window._MH||500;wFlyTo(1,W/2,H/2);const pr=document.getElementById("wpreset");if(pr)pr.querySelectorAll("button").forEach((b,i)=>b.classList.toggle("on",i===0))};
 const WCONT={"북미":["US","CA","MX"],"유럽":["GB","FR","DE","ES","IT","NL","CH","SE","PL","TR"],"아시아":["CN","JP","KR","IN","HK","TW","SG","TH","VN","PH","ID","MY"],"호주":["AU"]};
 window.wPreset=function(region,btn){
   const pr=document.getElementById("wpreset");if(pr&&btn)pr.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b===btn));
-  if(region==="전체"||!WCONT[region]){wTween(1,0,0);return}
+  const W=window._MW||1000,H=window._MH||500;
+  if(region==="전체"||!WCONT[region]){wFlyTo(1,W/2,H/2);return}
   const cs=window._wcent||{};let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,any=false;
   WCONT[region].forEach(a=>{const c=cs[a];if(c){any=true;x0=Math.min(x0,c.x0);y0=Math.min(y0,c.y0);x1=Math.max(x1,c.x1);y1=Math.max(y1,c.y1)}});
-  if(!any){wTween(1,0,0);return}
-  const W=window._MW||1000,H=window._MH||500,px=(x1-x0)*0.14+8,py=(y1-y0)*0.14+8;x0-=px;y0-=py;x1+=px;y1+=py;
+  if(!any){wFlyTo(1,W/2,H/2);return}
+  const px=(x1-x0)*0.16+10,py=(y1-y0)*0.16+10;x0-=px;y0-=py;x1+=px;y1+=py;
   const bw=Math.max(1,x1-x0),bh=Math.max(1,y1-y0);let s=Math.max(1,Math.min(12,Math.min(W/bw,H/bh)));
-  const cx=(x0+x1)/2,cy=(y0+y1)/2,os=_map.s,ox=_map.x,oy=_map.y;
-  _map.s=s;_map.x=W/2-cx*s;_map.y=H/2-cy*s;wClamp();const fs=_map.s,fx=_map.x,fy=_map.y;_map.s=os;_map.x=ox;_map.y=oy;wTween(fs,fx,fy)};
+  wFlyTo(s,(x0+x1)/2,(y0+y1)/2);
+};
 function bindMapGestures(){
   const svg=document.getElementById("wsvg");if(!svg)return;
   const toVB=(cxp,cyp)=>{const r=svg.getBoundingClientRect();return [(cxp-r.left)/(r.width||1)*(window._MW||1000),(cyp-r.top)/(r.height||1)*(window._MH||500)]};
@@ -1897,9 +1924,10 @@ function paintBoardMsgs(stick){
       var actM=shared?'':'<button class="cact" onclick="delBoard(\''+x.id+'\')">삭제</button>';
       html+='<div class="crow me"><div class="cbrow"><div class="cbub me">'+esc(x.text)+'</div>'+timeHtml+actM+'</div></div>';
     }else{
-      var act=shared?'<button class="cact" onclick="reportBoard(\''+x.id+'\')">신고</button>':'<button class="cact" onclick="delBoard(\''+x.id+'\')">삭제</button>';
-      var av=cont?'<div class="cav" style="visibility:hidden"></div>':'<div class="cav" style="background:'+_avatarColor(x.name)+'">'+esc((x.name||"?").slice(0,1))+'</div>';
-      html+='<div class="crow">'+av+'<div class="ccol">'+(cont?'':'<div class="cnm">'+esc(x.name||"익명")+'</div>')+'<div class="cbrow"><div class="cbub">'+esc(x.text)+'</div>'+timeHtml+act+'</div></div></div>';
+      var isBot=x.bot||x.uid==="__ironbot__";
+      var act=isBot?'':(shared?'<button class="cact" onclick="reportBoard(\''+x.id+'\')">신고</button>':'<button class="cact" onclick="delBoard(\''+x.id+'\')">삭제</button>');
+      var av=cont?'<div class="cav" style="visibility:hidden"></div>':'<div class="cav" style="background:'+(isBot?'linear-gradient(135deg,#2F6BFF,#7C4CE0)':_avatarColor(x.name))+'">'+(isBot?'🤖':esc((x.name||"?").slice(0,1)))+'</div>';
+      html+='<div class="crow">'+av+'<div class="ccol">'+(cont?'':'<div class="cnm">'+(isBot?'아이언봇 <span style="font-size:9px;font-weight:800;color:var(--steel);border:1px solid var(--steel);border-radius:4px;padding:0 3px">AI</span>':esc(x.name||"익명"))+'</div>')+'<div class="cbrow"><div class="cbub'+(isBot?' bot':'')+'">'+esc(x.text)+'</div>'+timeHtml+act+'</div></div></div>';
     }
     lastUid=x.uid;lastT=t;
   }
@@ -1919,7 +1947,7 @@ function renderBoard(){
   const badge=shared?'<span class="live"><span class="live-dot"></span>실시간</span>':'<span style="font-size:11px;color:var(--faint)">이 기기</span>';
   const nickChip=nick?'<div style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--sub)"><b style="color:var(--ink)">'+esc(nick)+'</b><button onclick="changeNick()" style="background:none;border:none;color:var(--steel);font-size:11.5px;cursor:pointer;font-weight:700">변경</button></div>':'';
   const composer = nick
-    ? '<div class="chatbar"><input id="boardIn" maxlength="300" placeholder="메시지 입력…" style="flex:1;min-width:0" onkeydown="if(event.key===\'Enter\')addBoard()"/><button class="btn-sm" onclick="addBoard()">전송</button></div>'
+    ? '<div class="chatbar"><input id="boardIn" maxlength="300" placeholder="메시지 입력… (질문에 &#39;아이언봇&#39; 넣으면 AI 답변)" style="flex:1;min-width:0" onkeydown="if(event.key===\'Enter\')addBoard()"/><button class="btn-sm" onclick="addBoard()">전송</button></div>'
     : '<div class="chatbar"><input id="nickSet" maxlength="16" placeholder="닉네임을 정해주세요 (2~16자)" style="flex:1;min-width:0" onkeydown="if(event.key===\'Enter\')setNick()"/><button class="btn-sm" onclick="setNick()">시작</button></div>';
   app.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:2px"><h1 style="margin:0;font-size:20px">토론방</h1>'+badge+nickChip+'</div>'+'<p class="lede" style="margin:0 0 12px">미국 주식 투자자들의 실시간 라운지 🚀</p>'
     +'<div class="chatwrap"><div id="chatmsgs" class="chatmsgs"></div>'+composer+'</div>'
@@ -1939,7 +1967,23 @@ window.addBoard=async()=>{
     const at=new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
     const list=getList("board");list.push({id:Date.now(),name:nick,text:v,at});setList("board",list);if(el){el.value="";el.focus()}paintBoardMsgs(true);
   }
+  if(/아이언봇|@?ironbot/i.test(v))ironbotReply(v);
 };
+async function ironbotReply(q){
+  try{
+    toast("🤖 아이언봇이 생각 중…");
+    const r=await aiApi("board_qa",null,q);
+    const ans=(r&&!r.aiUnavailable&&r.answer)?String(r.answer).slice(0,900):"지금은 답변을 만들지 못했어요. 잠시 후 다시 '아이언봇'을 붙여 질문해 주세요.";
+    if(boardShared()){
+      try{await _fb.db.collection("board").add({uid:"__ironbot__",name:"아이언봇",text:ans,bot:true,reports:0,ts:firebase.firestore.FieldValue.serverTimestamp()})}catch(e){}
+    }else{
+      const at=new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
+      const list=getList("board");list.push({id:Date.now(),name:"아이언봇",text:ans,bot:true,at});setList("board",list);paintBoardMsgs(true);
+    }
+    try{trackEvent("ironbot_ask",{})}catch(e){}
+  }catch(e){}
+}
+window.ironbotReply=ironbotReply;
 window.delBoard=async(id)=>{
   if(boardShared()){try{await _fb.db.collection("board").doc(String(id)).delete()}catch(e){toast("삭제 실패")}}
   else{setList("board",getList("board").filter(x=>String(x.id)!==String(id)));paintBoardMsgs(false)}
