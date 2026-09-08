@@ -106,6 +106,10 @@
   .ac-item:hover,.ac-item.sel{background:var(--soft)}
   .worldwrap{position:relative;width:100%;background:radial-gradient(140% 150% at 50% -20%,#0b2a52 0%,#061530 55%,#03081a 100%);border-radius:18px;overflow:hidden;border:1px solid #1b3a63;box-shadow:inset 0 2px 34px rgba(0,0,0,.6),0 10px 34px rgba(0,20,60,.4)}
   .worldwrap::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:18px;box-shadow:inset 0 0 120px rgba(0,0,0,.55)}
+.worldwrap::before{content:"";position:absolute;inset:-20%;pointer-events:none;z-index:0;background:radial-gradient(40% 40% at 28% 18%,rgba(60,140,255,.12),transparent 70%),radial-gradient(36% 36% at 78% 82%,rgba(120,90,240,.11),transparent 70%);animation:waur 20s ease-in-out infinite alternate}
+@keyframes waur{0%{transform:translate(0,0)}100%{transform:translate(4%,-3%)}}
+.worldwrap svg{position:relative;z-index:1}
+@media(prefers-reduced-motion:reduce){.wpulse{animation:none;opacity:.55}.worldwrap::before{animation:none}}
   .worldwrap svg{display:block;width:100%;height:auto;touch-action:none;cursor:grab}
   .worldwrap svg.grab{cursor:grabbing}
   #wg{transition:transform .05s linear}
@@ -128,6 +132,17 @@
   .wlabel{position:absolute;left:12px;top:12px;z-index:4;font-size:12px;font-weight:800;color:#eaf4ff;background:rgba(8,22,44,.62);border:1px solid #234a78;padding:4px 11px;border-radius:8px;pointer-events:none;opacity:0;transition:opacity .15s}
   .wlabel.show{opacity:1}
   .whint{position:absolute;left:12px;bottom:10px;z-index:4;font-size:10.5px;color:rgba(200,220,255,.5);pointer-events:none}
+.wlbl2{fill:#a8c6ee;stroke:#07152c;stroke-width:1.8;paint-order:stroke;font-weight:700;pointer-events:none;font-family:Inter,system-ui,sans-serif;opacity:0;transition:opacity .25s}
+.wsvg-zoomed .wlbl2{opacity:.92}
+.wpulse{fill:none;stroke:#7cc4ff;stroke-width:1.2;transform-box:fill-box;transform-origin:center;animation:wpr 2.6s ease-out infinite;pointer-events:none;vector-effect:non-scaling-stroke}
+@keyframes wpr{0%{transform:scale(.28);opacity:.9}70%{transform:scale(2.6);opacity:0}100%{opacity:0}}
+.wdot{fill:#bfe0ff;pointer-events:none}
+.wpreset{position:absolute;left:10px;top:10px;z-index:4;display:flex;gap:5px;flex-wrap:wrap;max-width:72%}
+.wpreset button{font-size:11px;font-weight:800;padding:5px 9px;border-radius:8px;border:1px solid #2a4d7a;background:rgba(8,22,44,.72);color:#cfe4ff;cursor:pointer;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);line-height:1}
+.wpreset button:hover,.wpreset button.on{background:rgba(30,80,150,.92);border-color:#5aa0ff;color:#eaf4ff}
+.wh1{fill:#26467f}.wh2{fill:#2f66bd}.wh3{fill:#4f97ec}.wh4{fill:#79c0ff}.wh5{fill:#a6dbff}
+.wheatlgd{position:absolute;right:10px;bottom:10px;z-index:4;display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(200,220,255,.72);pointer-events:none}
+.wheatlgd i{width:38px;height:8px;border-radius:4px;background:linear-gradient(90deg,#26467f,#2f66bd,#4f97ec,#79c0ff,#a6dbff);display:inline-block}
   .chip{padding:5px 12px;font-size:12.5px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--sub);cursor:pointer}
   .chip.on{background:var(--charcoal);color:var(--bg);border-color:var(--charcoal);font-weight:700}
   .adbox{border:1px dashed var(--line-d);border-radius:12px;padding:14px;text-align:center;font-size:12px;color:var(--faint);background:var(--soft)}
@@ -560,6 +575,28 @@ async function loadStock(sym){
   }catch(e){state.loading=false;state.error=e.message;render()}
 }
 window.loadStock=loadStock;
+// 종목 상세: 장중(프리/정규/애프터, 화면 보일 때만) 시세 자동 갱신
+async function liveStock(){
+  try{
+    if(state.view!=="stock"||!state.data||!state.data.symbol||document.hidden)return;
+    const ss=window.__mktSess&&window.__mktSess(); if(!ss||ss.s==="cls")return;
+    const sym=state.data.symbol;
+    const q=await finApi("quote",{symbol:sym});
+    if(!q||q.price==null||state.symbol!==sym||!state.data)return;
+    const prev=state.data.quote&&state.data.quote.price;
+    state.data.quote=Object.assign({},state.data.quote,q);
+    const pxEl=document.getElementById("ovPx"),chEl=document.getElementById("ovCh"),lv=document.getElementById("ovLive");
+    if(pxEl)pxEl.textContent="$"+fmt(q.price);
+    if(chEl&&q.changePercent!=null){const up=q.changePercent>=0;chEl.textContent=(up?"+":"")+fmt(q.changePercent)+"%";chEl.style.color=up?"var(--up)":"var(--down)";}
+    if(pxEl&&prev!=null&&q.price!==prev){const g=q.price>prev?"glow-up":"glow-down";pxEl.classList.remove("glow-up","glow-down");void pxEl.offsetWidth;pxEl.classList.add(g);}
+    const hp=document.getElementById("hdrPx"),hk=document.getElementById("hdrKrw"),hc=document.getElementById("hdrCh");
+    if(hp){hp.textContent="$"+fmt(q.price);if(prev!=null&&q.price!==prev){const g=q.price>prev?"glow-up":"glow-down";hp.classList.remove("glow-up","glow-down");void hp.offsetWidth;hp.classList.add(g)}}
+    if(hk&&window._usdkrw){hk.textContent="≈ ₩"+fmt(q.price*window._usdkrw,0);hk.style.display=""}
+    if(hc&&q.changePercent!=null){const up=q.changePercent>=0;hc.textContent=(up?"▲":"▼")+" "+fmt(Math.abs(q.changePercent))+"%";hc.style.color=up?"var(--up)":"var(--down)"}
+    if(lv){try{lv.textContent="· "+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+" 갱신";}catch(e){}}
+  }catch(e){}
+}
+if(!window._stockPoll)window._stockPoll=setInterval(liveStock,25000);
 
 // ═══ 비상장 기업 (SpaceX 등) ═══
 async function loadPrivate(sym){
@@ -814,8 +851,8 @@ function renderStockResult(){
   let t="";
   if(state.tab==="overview"){
     t=`<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
-      <div class="met"><div class="k">현재가</div><div class="v">$${fmt(q.price)}</div></div>
-      <div class="met"><div class="k">전일 대비</div><div class="v" style="color:${cc}">${q.changePercent>=0?"+":""}${fmt(q.changePercent)}%</div></div>
+      <div class="met"><div class="k">현재가 <span id="ovLive" style="font-size:10px;color:var(--faint);font-weight:700;letter-spacing:0"></span></div><div class="v" id="ovPx">$${fmt(q.price)}</div></div>
+      <div class="met"><div class="k">전일 대비</div><div class="v" id="ovCh" style="color:${cc}">${q.changePercent>=0?"+":""}${fmt(q.changePercent)}%</div></div>
       <div class="met"><div class="k">고가 / 저가</div><div class="v" style="font-size:15px">$${fmt(q.high)} / $${fmt(q.low)}</div></div>
       <div class="met"><div class="k">시가 / 전일종가</div><div class="v" style="font-size:15px">$${fmt(q.open)} / $${fmt(q.prevClose)}</div></div></div>
       ${d.profile?.finnhubIndustry?`<div style="margin-top:14px;font-size:13.5px;color:var(--sub)">업종: ${esc(d.profile.finnhubIndustry)}${d.profile.marketCapitalization?` · 시총 $${fmt(d.profile.marketCapitalization/1000,1)}B`:""}${d.profile.country?` · ${esc(d.profile.country)}`:""}</div>`:""}
@@ -871,7 +908,7 @@ function renderStockResult(){
   return `<div class="card" style="margin-bottom:36px;box-shadow:0 2px 14px rgba(20,25,40,.06);overflow:visible">
     <div style="padding:18px 26px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--line);position:sticky;top:var(--navh,90px);z-index:6;background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px 16px 0 0">
       <div><div style="font-size:13px;font-weight:600;color:var(--faint);font-family:Inter">${esc(d.symbol)}</div><h1 style="font-size:20px;font-weight:700;margin:2px 0 0;font-family:Inter;letter-spacing:0">${esc(name)}</h1></div>
-      <div style="text-align:right"><div style="font-size:27px;font-weight:700;font-family:Inter">$${fmt(q.price)}</div>${window._usdkrw&&q.price!=null?`<div style="font-size:11.5px;color:var(--faint);font-family:Inter;margin-top:1px">≈ ₩${fmt(q.price*window._usdkrw,0)}</div>`:""}<div style="font-size:15px;color:${cc};font-weight:700;font-family:Inter">${q.changePercent>=0?"▲":"▼"} ${fmt(Math.abs(q.changePercent))}%</div>
+      <div style="text-align:right"><div id="hdrPx" style="font-size:27px;font-weight:700;font-family:Inter">$${fmt(q.price)}</div>${window._usdkrw&&q.price!=null?`<div id="hdrKrw" style="font-size:11.5px;color:var(--faint);font-family:Inter;margin-top:1px">≈ ₩${fmt(q.price*window._usdkrw,0)}</div>`:`<div id="hdrKrw" style="display:none"></div>`}<div id="hdrCh" style="font-size:15px;color:${cc};font-weight:700;font-family:Inter">${q.changePercent>=0?"▲":"▼"} ${fmt(Math.abs(q.changePercent))}%</div>
       <button onclick="toggleWatch('${d.symbol}','${esc(name)}')" style="margin-top:8px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px;border:1px solid ${wl?"var(--steel)":"var(--line)"};background:${wl?"var(--soft)":"var(--bg)"};color:${wl?"var(--steel)":"var(--sub)"}">${wl?"★ 관심종목":"☆ 관심 추가"}</button> <button onclick="shareStock('${d.symbol}')" style="margin-top:8px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--sub)">🔗 공유</button> <button onclick="paperTradeFrom('${d.symbol}')" style="margin-top:8px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px;border:1px solid var(--steel);background:var(--bg);color:var(--steel)">🎮 모의 매수</button></div>
     </div>
     <div style="display:flex;gap:2px;padding:0 14px;border-bottom:1px solid var(--line);overflow-x:auto">${TABS.map(x=>`<button class="tab ${state.tab===x[0]?"on":""}" onclick="stab('${x[0]}')">${x[1]}</button>`).join("")}</div>
@@ -991,6 +1028,8 @@ function updateQuoteCells(items){
 // 30초 실시간 폴링 (홈에서만)
 async function pollHome(){
   if(state.view!=="home"||document.hidden)return;
+  window._pollTick=(window._pollTick||0)+1;
+  try{const ss=window.__mktSess&&window.__mktSess();if(ss&&ss.s==="cls"&&window._pollTick%4!==0)return}catch(e){}
   updatePulse("refreshing");
   try{
     const [idx,cry]=await Promise.all([finApi("indices"),finApi("crypto")]);
@@ -1462,13 +1501,22 @@ window.openNewsReader=async function(idx){
     '<div style="font-size:12px;font-weight:800;color:var(--steel);margin:6px 0 6px">✨ AI 정리</div>'+
     '<div id="nrBody" style="font-size:13.5px;line-height:1.75;color:var(--ink)"><div class="skel" style="height:36px;margin-bottom:8px"></div><div class="skel" style="height:36px"></div></div>'+
     '<div style="font-size:10.5px;color:var(--faint);margin-top:10px;line-height:1.5">AI가 제목을 바탕으로 배경·의미를 정리한 참고용 설명입니다(원문 전재 아님). 정확한 내용은 원문에서 확인하세요.</div>'+
-    '<div style="display:flex;gap:8px;margin-top:14px"><a href="'+esc(it.url)+'" target="_blank" rel="noreferrer" class="btn" style="flex:1;text-align:center;text-decoration:none;padding:12px">원문 보기 →</a><button class="btn-g" style="padding:12px 16px" onclick="closeNewsReader()">닫기</button></div></div>';
+    '<div style="display:flex;gap:8px;margin-top:14px"><a href="'+esc(it.url)+'" target="_blank" rel="noreferrer" class="btn" style="flex:1;text-align:center;text-decoration:none;padding:12px">원문 보기 →</a><button class="btn-g" style="padding:12px 14px" onclick="shareNews('+idx+')" aria-label="공유">🔗 공유</button><button class="btn-g" style="padding:12px 16px" onclick="closeNewsReader()">닫기</button></div></div>';
   ov.classList.add("show");try{document.body.style.overflow="hidden"}catch(e){}
   if(it._exp){paintReaderBody(it._exp);return}
   try{const r=await aiApi("news_explain",{title:it.title,related:(it.related||[]).slice(0,4)});
     if(window._readerIdx!==idx)return;
     if(r&&!r.aiUnavailable&&(r.summary||(r.points&&r.points.length))){it._exp=r;paintReaderBody(r)}else paintReaderBody({err:true});
   }catch(e){paintReaderBody({err:true})}
+};
+window.shareNews=async function(idx){
+  const it=(window._news||[])[idx];if(!it)return;
+  const title=((it._ko||it.title)||"").trim();
+  const url=location.origin+"/#news";
+  const txt=title+(it.source?(" · "+it.source):"")+" — ASTRO IRON 세계 뉴스";
+  try{if(navigator.share){await navigator.share({title:"ASTRO IRON 뉴스",text:txt,url});try{trackEvent("news_share",{source:it.source||""})}catch(_){}return}}catch(e){if(e&&e.name==="AbortError")return}
+  try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(txt+" "+url);toast("링크 복사됨");try{trackEvent("news_share",{source:it.source||""})}catch(_){}return}}catch(e){}
+  toast(url);
 };
 function paintReaderBody(r){const el=document.getElementById("nrBody");if(!el)return;
   if(r.err){el.innerHTML='<div style="color:var(--faint);font-size:12.5px">지금은 AI 정리를 불러올 수 없어요. 아래 원문에서 확인해 주세요.</div>';return}
@@ -1495,7 +1543,8 @@ function renderMap(){
   document.getElementById("app").innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><h1 style="margin:0">세계 뉴스 지도</h1><span class="live"><span class="live-dot"></span>LIVE</span></div>
   <p class="lede" style="margin-bottom:12px">지도에서 <b style="color:var(--steel)">밝게 빛나는 나라</b>를 탭하면 그 나라 오늘 뉴스로 이동해요. 휠·손가락으로 확대·이동됩니다.</p>
   <div class="worldwrap" id="worldMapBox">
-    <div class="whud"><button aria-label="확대" onclick="wZoom(1.5)">＋</button><button aria-label="축소" onclick="wZoom(0.6667)">－</button><button aria-label="원위치" onclick="wReset()" style="font-size:15px">⟳</button></div>
+    <div class="whud"><button aria-label="확대" onclick="wZoom(1.6,null,null,true)">＋</button><button aria-label="축소" onclick="wZoom(0.625,null,null,true)">－</button><button aria-label="원위치" onclick="wReset()" style="font-size:15px">⟳</button></div>
+    <div class="wpreset" id="wpreset"><button class="on" onclick="wPreset('전체',this)">🌐 전체</button><button onclick="wPreset('북미',this)">북미</button><button onclick="wPreset('유럽',this)">유럽</button><button onclick="wPreset('아시아',this)">아시아</button><button onclick="wPreset('호주',this)">호주</button></div>
     <div class="wlabel" id="wlabel"></div>
     <div class="whint"><span style="color:#57b6ff">●</span> 밝은 나라 = 뉴스 제공 · 드래그·휠·더블클릭·핀치로 탐색</div>
     <div id="wmapLoading" style="padding:70px 20px;text-align:center;color:rgba(200,220,255,.6);font-size:13px">🛰️ 세계 지도를 불러오는 중…</div>
@@ -1512,35 +1561,56 @@ function ensureWorldMap(){
   s.onerror=()=>{window._wmLoading=false;const b=document.getElementById("wmapLoading");if(b)b.innerHTML='지도를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'};
   document.body.appendChild(s);
 }
+function pathCentroid(d){let xs=0,ys=0,n=0,x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;const re=/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g;let m;while((m=re.exec(d))){const x=+m[1],y=+m[2];xs+=x;ys+=y;n++;if(x<x0)x0=x;if(y<y0)y0=y;if(x>x1)x1=x;if(y>y1)y1=y}if(!n)return null;return {cx:xs/n,cy:ys/n,x0,y0,x1,y1,area:(x1-x0)*(y1-y0)}}
 function paintWorldMap(){
   const box=document.getElementById("worldMapBox");if(!box||!window.WORLD_PATHS)return;
   const VB=window.WORLD_VB||[0,0,1000,500];const W=VB[2],H=VB[3];window._MW=W;window._MH=H;
   const supSet=new Set(),ko={};WORLD_GEO.forEach(g=>{supSet.add(g[0]);ko[g[0]]=g[1]});
-  let labels="";
+  const PULSE=new Set(["US","KR","JP","CN","GB","IN","DE","BR"]);
+  const cent={};window._wcent=cent;
+  let labels="",labels2="",pulses="";
   const paths=window.WORLD_PATHS.map(c=>{
     const a2=c.a2,ok=a2&&supSet.has(a2),nm=ok?ko[a2]:(c.n||"");
+    const ce=pathCentroid(c.d);
+    if(ce&&a2)cent[a2]={cx:(c.cx!=null?c.cx:ce.cx),cy:(c.cy!=null?c.cy:ce.cy),x0:ce.x0,y0:ce.y0,x1:ce.x1,y1:ce.y1};
+    const lx=cent[a2]&&cent[a2].cx,ly=cent[a2]&&cent[a2].cy;
     if(ok){
-      if(c.cx!=null)labels+='<text class="wlbl" x="'+c.cx+'" y="'+c.cy+'" text-anchor="middle">'+esc(nm)+'</text>';
+      if(lx!=null)labels+='<text class="wlbl" x="'+lx.toFixed(1)+'" y="'+ly.toFixed(1)+'" text-anchor="middle">'+esc(nm)+'</text>';
+      if(lx!=null&&PULSE.has(a2))pulses+='<circle class="wdot" cx="'+lx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="1.7"/><circle class="wpulse" cx="'+lx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="6" style="animation-delay:'+(Math.random()*2).toFixed(2)+'s"/>';
       return '<path d="'+c.d+'" class="wc'+(state.newsCountry===a2?' on':'')+'" tabindex="0" role="button" data-c="'+a2+'" data-nm="'+esc(nm)+'" aria-label="'+esc(nm)+' 뉴스" onkeydown="if(event.key===\'Enter\')openCountry(\''+a2+'\')"></path>';
     }
+    if(lx!=null&&ce&&ce.area>18)labels2+='<text class="wlbl2" x="'+lx.toFixed(1)+'" y="'+ly.toFixed(1)+'" text-anchor="middle">'+esc(nm)+'</text>';
     return '<path d="'+c.d+'" class="wland" data-nm="'+esc(nm)+'"/>';
   }).join("");
-  const svg='<svg id="wsvg" viewBox="'+VB.join(" ")+'" role="img" aria-label="세계 지도"><defs><filter id="wglow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="0" stdDeviation="2.5" flood-color="#5ab0ff" flood-opacity="0.85"/></filter></defs><g id="wg">'+paths+'<g id="wlabels" font-size="9">'+labels+'</g></g></svg>';
+  const svg='<svg id="wsvg" viewBox="'+VB.join(" ")+'" role="img" aria-label="세계 지도"><defs><filter id="wglow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="0" stdDeviation="2.5" flood-color="#5ab0ff" flood-opacity="0.85"/></filter></defs><g id="wg">'+paths+'<g id="wpulses">'+pulses+'</g><g id="wlabels2" font-size="6">'+labels2+'</g><g id="wlabels" font-size="9">'+labels+'</g></g></svg>';
   const ld=document.getElementById("wmapLoading");if(ld)ld.remove();
   const old=document.getElementById("wsvg");if(old)old.remove();
   box.insertAdjacentHTML("afterbegin",svg);
   _map={s:1,x:0,y:0};wApply();bindMapGestures();
+  try{loadWorldHeat()}catch(e){}
 }
 let _map={s:1,x:0,y:0};
-function wApply(){const g=document.getElementById("wg");if(g)g.setAttribute("transform","translate("+_map.x.toFixed(1)+","+_map.y.toFixed(1)+") scale("+_map.s.toFixed(3)+")");const lg=document.getElementById("wlabels");if(lg)lg.setAttribute("font-size",(9/_map.s).toFixed(2))}
-function wClamp(){_map.s=Math.max(1,Math.min(10,_map.s));const W=window._MW||1000,H=window._MH||500;_map.x=Math.max(W-W*_map.s,Math.min(0,_map.x));_map.y=Math.max(H-H*_map.s,Math.min(0,_map.y))}
-window.wZoom=function(f,cx,cy){const W=window._MW||1000,H=window._MH||500;if(cx==null){cx=W/2;cy=H/2}const ns=Math.max(1,Math.min(10,_map.s*f)),k=ns/_map.s;_map.x=cx-(cx-_map.x)*k;_map.y=cy-(cy-_map.y)*k;_map.s=ns;wClamp();wApply()};
-window.wReset=function(){_map={s:1,x:0,y:0};wApply()};
+function wApply(){const g=document.getElementById("wg");if(g)g.setAttribute("transform","translate("+_map.x.toFixed(1)+","+_map.y.toFixed(1)+") scale("+_map.s.toFixed(3)+")");const lg=document.getElementById("wlabels");if(lg)lg.setAttribute("font-size",(9/_map.s).toFixed(2));const lg2=document.getElementById("wlabels2");if(lg2)lg2.setAttribute("font-size",(7/_map.s).toFixed(2));const svg=document.getElementById("wsvg");if(svg)svg.classList.toggle("wsvg-zoomed",_map.s>=2.2)}
+function wClamp(){_map.s=Math.max(1,Math.min(12,_map.s));const W=window._MW||1000,H=window._MH||500;_map.x=Math.max(W-W*_map.s,Math.min(0,_map.x));_map.y=Math.max(H-H*_map.s,Math.min(0,_map.y))}
+function wTween(ts,tx,ty){if(window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches){_map.s=ts;_map.x=tx;_map.y=ty;wApply();return}const s0=_map.s,x0=_map.x,y0=_map.y,t0=(window.performance&&performance.now())||Date.now(),dur=440;if(window._wraf)cancelAnimationFrame(window._wraf);function step(){const t1=(window.performance&&performance.now())||Date.now();let p=Math.min(1,(t1-t0)/dur);const e=1-Math.pow(1-p,3);_map.s=s0+(ts-s0)*e;_map.x=x0+(tx-x0)*e;_map.y=y0+(ty-y0)*e;wApply();if(p<1)window._wraf=requestAnimationFrame(step);else window._wraf=0}window._wraf=requestAnimationFrame(step)}
+window.wZoom=function(f,cx,cy,anim){const W=window._MW||1000,H=window._MH||500;if(cx==null){cx=W/2;cy=H/2}const ns=Math.max(1,Math.min(12,_map.s*f)),k=ns/_map.s,os=_map.s,ox=_map.x,oy=_map.y;_map.s=ns;_map.x=cx-(cx-_map.x)*k;_map.y=cy-(cy-_map.y)*k;wClamp();const fs=_map.s,fx=_map.x,fy=_map.y;if(anim){_map.s=os;_map.x=ox;_map.y=oy;wTween(fs,fx,fy)}else wApply()};
+window.wReset=function(){wTween(1,0,0);const pr=document.getElementById("wpreset");if(pr)pr.querySelectorAll("button").forEach((b,i)=>b.classList.toggle("on",i===0))};
+const WCONT={"북미":["US","CA","MX"],"유럽":["GB","FR","DE","ES","IT","NL","CH","SE","PL","TR"],"아시아":["CN","JP","KR","IN","HK","TW","SG","TH","VN","PH","ID","MY"],"호주":["AU"]};
+window.wPreset=function(region,btn){
+  const pr=document.getElementById("wpreset");if(pr&&btn)pr.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b===btn));
+  if(region==="전체"||!WCONT[region]){wTween(1,0,0);return}
+  const cs=window._wcent||{};let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,any=false;
+  WCONT[region].forEach(a=>{const c=cs[a];if(c){any=true;x0=Math.min(x0,c.x0);y0=Math.min(y0,c.y0);x1=Math.max(x1,c.x1);y1=Math.max(y1,c.y1)}});
+  if(!any){wTween(1,0,0);return}
+  const W=window._MW||1000,H=window._MH||500,px=(x1-x0)*0.14+8,py=(y1-y0)*0.14+8;x0-=px;y0-=py;x1+=px;y1+=py;
+  const bw=Math.max(1,x1-x0),bh=Math.max(1,y1-y0);let s=Math.max(1,Math.min(12,Math.min(W/bw,H/bh)));
+  const cx=(x0+x1)/2,cy=(y0+y1)/2,os=_map.s,ox=_map.x,oy=_map.y;
+  _map.s=s;_map.x=W/2-cx*s;_map.y=H/2-cy*s;wClamp();const fs=_map.s,fx=_map.x,fy=_map.y;_map.s=os;_map.x=ox;_map.y=oy;wTween(fs,fx,fy)};
 function bindMapGestures(){
   const svg=document.getElementById("wsvg");if(!svg)return;
   const toVB=(cxp,cyp)=>{const r=svg.getBoundingClientRect();return [(cxp-r.left)/(r.width||1)*(window._MW||1000),(cyp-r.top)/(r.height||1)*(window._MH||500)]};
   svg.addEventListener("wheel",e=>{e.preventDefault();const p=toVB(e.clientX,e.clientY);wZoom(e.deltaY<0?1.2:1/1.2,p[0],p[1])},{passive:false});
-  svg.addEventListener("dblclick",e=>{e.preventDefault();const p=toVB(e.clientX,e.clientY);wZoom(2,p[0],p[1])});
+  svg.addEventListener("dblclick",e=>{e.preventDefault();const p=toVB(e.clientX,e.clientY);wZoom(2,p[0],p[1],true)});
   let drag=false,lx=0,ly=0;window._wmMoved=false;
   function move(e){if(!drag)return;const dx=e.clientX-lx,dy=e.clientY-ly;if(Math.abs(dx)+Math.abs(dy)>4)window._wmMoved=true;const r=svg.getBoundingClientRect();_map.x+=dx/(r.width||1)*(window._MW||1000);_map.y+=dy/(r.height||1)*(window._MH||500);lx=e.clientX;ly=e.clientY;wClamp();wApply()}
   function up(){if(!drag)return;drag=false;svg.classList.remove("grab");window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up);setTimeout(()=>{window._wmMoved=false},70)}
@@ -1555,6 +1625,27 @@ function bindMapGestures(){
   svg.addEventListener("touchmove",e=>{if(e.touches.length===2){e.preventDefault();const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(pd){const mx=(e.touches[0].clientX+e.touches[1].clientX)/2,my=(e.touches[0].clientY+e.touches[1].clientY)/2,p=toVB(mx,my);wZoom(nd/pd,p[0],p[1])}pd=nd;window._wmMoved=true}},{passive:false});
 }
 window.openCountry=function(code){try{trackEvent("map_country",{country:code})}catch(e){}state.view="news";state.newsWatch=false;state.newsCountry=code;state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;render();loadNews(true);try{window.scrollTo({top:0,behavior:"smooth"})}catch(e){}};
+async function loadWorldHeat(){
+  try{
+    let d=cGet("worldheat");
+    if(!d){d=await finApi("worldheat");if(d&&d.counts)cSet("worldheat",d)}
+    if(d&&d.counts)applyHeat(d.counts);
+  }catch(e){}
+}
+function applyHeat(counts){
+  const svg=document.getElementById("wsvg");if(!svg||!counts)return;
+  let max=0;for(const k in counts){if(counts[k]>max)max=counts[k]}
+  if(max<=0)return;
+  svg.querySelectorAll(".wc").forEach(p=>{
+    p.classList.remove("wh1","wh2","wh3","wh4","wh5");
+    const c=p.getAttribute("data-c"),n=(counts[c]!=null?counts[c]:0),r=n/max;
+    const b=r<=0?0:r<0.2?1:r<0.4?2:r<0.6?3:r<0.8?4:5;
+    if(b>0&&!p.classList.contains("on"))p.classList.add("wh"+b);
+    const nm=p.getAttribute("data-nm")||c;p.setAttribute("aria-label",nm+" 뉴스"+(counts[c]!=null?(" 약 "+n+"건"):""));
+  });
+  const box=document.getElementById("worldMapBox");
+  if(box&&!document.getElementById("wheatlgd")){const l=document.createElement("div");l.id="wheatlgd";l.className="wheatlgd";l.innerHTML='뉴스 적음 <i></i> 많음';box.appendChild(l)}
+}
 function worldBriefCard(code,ko,flag,items){
   if(!items||!items.length)return '';
   const rows=items.slice(0,3).map(it=>'<a href="'+esc(it.url)+'" target="_blank" rel="noreferrer" class="newslink" style="display:block;font-size:12.5px;line-height:1.5;padding:5px 0;border-top:1px solid var(--line)">'+esc((state.newsKo&&it._ko)?it._ko:it.title)+' <span style="color:var(--faint);font-size:10.5px">· '+esc(it.source||"")+'</span></a>').join("");
@@ -1670,8 +1761,11 @@ async function checkAlerts(){
 }
 function startAlertPoll(){if(window._alertPoll)return;checkAlerts();window._alertPoll=setInterval(checkAlerts,60000)}
 function stopAlertPoll(){if(window._alertPoll){clearInterval(window._alertPoll);window._alertPoll=null}}
+const LANDING=new Set("aapl abnb adbe amd amzn arm asml avgo ba baba coin cost cpng crm dis googl hood intc ionq jpm ko lly mcd meta msft mu nflx nke nvda nvo orcl pdd pltr pypl qcom qqq rivn rklb sbux schd shop smci sofi spy tsla tsm uber v".split(" "));
 window.shareStock=async(sym)=>{
-  const url=location.origin+"/#stock/"+sym;
+  const low=(sym||"").toLowerCase();
+  // 공유 링크는 크롤러(카톡·X 등)가 종목별 미리보기를 읽도록: 랜딩 있으면 정적 랜딩, 없으면 실주소 경로
+  const url=LANDING.has(low)?(location.origin+"/stocks/"+low+".html"):(location.origin+"/stock/"+sym);
   let txt=sym+" · ASTRO IRON에서 실시간 시세·AI 분석 보기";
   try{const d=state.data;if(d&&d.symbol===sym&&d.quote&&d.quote.price!=null){const nm=(d.profile&&d.profile.name)||sym;const c=d.quote.changePercent||0;txt=nm+" ("+sym+") $"+fmt(d.quote.price)+" "+(c>=0?"▲":"▼")+" "+fmt(Math.abs(c))+"% · ASTRO IRON";}}catch(e){}
   if(navigator.share){try{await navigator.share({title:"ASTRO IRON · "+sym,text:txt,url:url});try{trackEvent("share_stock",{ticker:sym})}catch(_){}return}catch(e){if(e&&e.name==="AbortError")return}}
@@ -2608,6 +2702,54 @@ function _deferHeavy(){
   _idle(go,3500);
 }
 if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",_boot)}else{_boot()}
+</script>
+<script>
+/* 미국 시장 세션 배지 (한국시간·휴일 인식) — 뷰 재렌더와 독립, 자체 부트 */
+(function(){
+  function etP(d){var f=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,weekday:'short'});var o={};f.formatToParts(d).forEach(function(p){o[p.type]=p.value});return o;}
+  var HOL=new Set(["2026-01-01","2026-01-19","2026-02-16","2026-04-03","2026-05-25","2026-06-19","2026-07-03","2026-09-07","2026-11-26","2026-12-25","2027-01-01","2027-01-18","2027-02-15","2027-03-26","2027-05-31","2027-06-18","2027-07-05","2027-09-06","2027-11-25","2027-12-24"]);
+  function isTD(wd,ds){return wd!=="Sat"&&wd!=="Sun"&&!HOL.has(ds);}
+  function nextOpen(now){
+    for(var i=0;i<9;i++){
+      var pr=new Date(now.getTime()+i*86400000),p=etP(pr),ds=p.year+"-"+p.month+"-"+p.day;
+      if(!isTD(p.weekday,ds))continue;
+      var off=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second)-Math.floor(pr.getTime()/1000)*1000;
+      var op=Date.UTC(+p.year,+p.month-1,+p.day,9,30)-off;
+      if(op>now.getTime())return op;
+    }return null;
+  }
+  function sess(){
+    var now=new Date(),p=etP(now),ds=p.year+"-"+p.month+"-"+p.day,mins=(+p.hour)*60+(+p.minute),td=isTD(p.weekday,ds);
+    if(td&&mins>=240&&mins<570)return{s:"pre",c:"#f5a623",t:"프리마켓",u:570-mins,ul:"개장"};
+    if(td&&mins>=570&&mins<960)return{s:"reg",c:"#16b364",t:"정규장",u:960-mins,ul:"마감"};
+    if(td&&mins>=960&&mins<1200)return{s:"aft",c:"#ff7a45",t:"애프터",u:1200-mins,ul:"종료"};
+    var op=nextOpen(now),kst="";
+    if(op){try{kst=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(op));}catch(e){}}
+    return{s:"cls",c:"#e5484d",t:"휴장",openKst:kst};
+  }
+  function hm(m){var h=Math.floor(m/60),mm=m%60;return h>0?(h+"시간 "+(mm<10?"0"+mm:mm)+"분"):(mm+"분");}
+  function paint(){
+    var el=document.getElementById("mktPill");if(!el)return;var x=sess();
+    var sub=x.s==="cls"?("· 개장 "+(x.openKst||"")):("· "+x.ul+" "+hm(x.u));
+    el.innerHTML='<span style="width:7px;height:7px;border-radius:50%;background:'+x.c+';display:inline-block;box-shadow:0 0 0 3px '+x.c+'22;flex:0 0 auto"></span><b style="font-weight:800">'+x.t+'</b><span class="mp-sub" style="color:var(--sub);font-weight:600">'+sub+'</span>';
+    el.title="미국 시장(한국시간 기준) — "+(x.s==="cls"?("다음 개장 "+(x.openKst||"미정")):(x.t+", "+x.ul+"까지 "+hm(x.u)));
+  }
+  function mount(){
+    if(document.getElementById("mktPill"))return true;
+    var nav=document.querySelector("nav .navin");if(!nav)return false;
+    var grp=nav.querySelector('div[style*="margin-left:auto"]');
+    var b=document.createElement("button");
+    b.id="mktPill";b.type="button";b.setAttribute("aria-label","미국 시장 상태");
+    b.style.cssText="display:flex;align-items:center;gap:6px;font-size:12px;padding:5px 10px;margin-left:12px;border-radius:999px;border:1px solid var(--line);background:var(--soft,var(--bg));color:var(--ink);cursor:pointer;white-space:nowrap;line-height:1";
+    b.onclick=function(){try{(window.goHome||function(){location.hash=""})()}catch(e){}};
+    if(grp){nav.insertBefore(b,grp);}else{nav.appendChild(b);}
+    return true;
+  }
+  window.__mktSess=sess;
+  function boot(){if(mount()){paint();setInterval(paint,30000);}else setTimeout(boot,400);}
+  try{var st=document.createElement("style");st.textContent="@media(max-width:440px){#mktPill .mp-sub{display:none}}#mktPill:hover{border-color:var(--steel)}";document.head.appendChild(st);}catch(e){}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
+})();
 </script>
 </body>
 </html>
