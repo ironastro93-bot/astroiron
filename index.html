@@ -1548,7 +1548,7 @@ function renderMap(){
   document.getElementById("app").innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><h1 style="margin:0">세계 뉴스 지도</h1><span class="live"><span class="live-dot"></span>LIVE</span></div>
   <p class="lede" style="margin-bottom:12px">지도에서 <b style="color:var(--steel)">밝게 빛나는 나라</b>를 탭하면 그 나라 오늘 뉴스로 이동해요. 휠·손가락으로 확대·이동됩니다.</p>
   <div class="worldwrap" id="worldMapBox">
-    <div class="whud"><button aria-label="확대" onclick="wZoom(1.6,null,null,true)">＋</button><button aria-label="축소" onclick="wZoom(0.625,null,null,true)">－</button><button aria-label="원위치" onclick="wReset()" style="font-size:15px">⟳</button></div>
+    <div class="whud"><button aria-label="확대" onclick="wZoom(1.6,null,null,true)">＋</button><button aria-label="축소" onclick="wZoom(0.625,null,null,true)">－</button><button aria-label="원위치" onclick="wReset()" style="font-size:15px">⟳</button><button aria-label="지도 공유" title="지도 공유" onclick="shareMap()">🔗</button></div>
     <div class="wpreset" id="wpreset"><button class="on" onclick="wPreset('전체',this)">🌐 전체</button><button onclick="wPreset('북미',this)">북미</button><button onclick="wPreset('유럽',this)">유럽</button><button onclick="wPreset('아시아',this)">아시아</button><button onclick="wPreset('호주',this)">호주</button></div>
     <div class="wlabel" id="wlabel"></div>
     <div class="whint"><span style="color:#57b6ff">●</span> 밝은 나라 = 뉴스 제공 · 드래그·휠·더블클릭·핀치로 탐색</div>
@@ -1652,6 +1652,13 @@ function bindMapGestures(){
   svg.addEventListener("touchmove",e=>{if(e.touches.length===2){e.preventDefault();const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(pd){const mx=(e.touches[0].clientX+e.touches[1].clientX)/2,my=(e.touches[0].clientY+e.touches[1].clientY)/2,p=toVB(mx,my);wZoom(nd/pd,p[0],p[1])}pd=nd;window._wmMoved=true}},{passive:false});
 }
 window.openCountry=function(code){try{trackEvent("map_country",{country:code})}catch(e){}state.view="news";state.newsWatch=false;state.newsCountry=code;state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;render();loadNews(true);try{window.scrollTo({top:0,behavior:"smooth"})}catch(e){}};
+window.shareMap=async function(){
+  const url=location.origin+"/#map";
+  const txt="🌍 세계 뉴스 지도 — 지도에서 나라를 누르면 그 나라 오늘 뉴스가 한국어로. 미국주식·세계경제 한눈에, 무료. ASTRO IRON";
+  try{if(navigator.share){await navigator.share({title:"ASTRO IRON 세계 뉴스 지도",text:txt,url});try{trackEvent("map_share",{})}catch(_){}return}}catch(e){if(e&&e.name==="AbortError")return}
+  try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(txt+" "+url);toast("링크 복사됨 · 붙여넣기 해서 공유하세요");try{trackEvent("map_share",{})}catch(_){}return}}catch(e){}
+  toast(url);
+};
 async function loadWorldHeat(){
   try{
     let d=cGet("worldheat");

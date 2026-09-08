@@ -1,4 +1,24 @@
-# ASTRO IRON — 배포 가이드 (v139)
+# ASTRO IRON — 배포 가이드 (v180)
+
+## 🚨 이번 버전(v180) 핵심 — 반드시 배포해야 적용됩니다
+- **AI 전면 복구:** NVIDIA `meta/llama-3.3-70b-instruct` 모델이 2026-08-26 EOL(수명 종료)되어 410 오류로 **아이언봇·번역·뉴스정리·종목AI가 전부 다운**된 상태였습니다.
+  - `api/ai.js`를 **후보 모델 체인**으로 교체 — 죽은 모델은 자동 스킵하고 살아있는 첫 모델을 찾아 캐시합니다. (아이언봇 `board_qa` 태스크도 포함)
+- **지금 라이브에 뜨는 410/400 오류는 "옛 배포본"에서 나는 것**입니다. 아래대로 v180을 배포하면 사라집니다.
+
+### 배포 방법 (셋 중 하나)
+1. **Git 방식(권장):** 이 zip 내용을 저장소 루트에 덮어쓰기 → `git add -A && git commit -m "v180 AI fix" && git push` → Vercel 자동 배포.
+2. **Vercel CLI:** zip을 푼 폴더에서 `vercel --prod`.
+3. **대시보드 드래그&드롭:** Vercel 프로젝트 → Deployments → 이 zip의 **내용물**(폴더 안 파일들, `index.html`·`api/`가 최상단)을 업로드.
+> ⚠️ zip 안의 `ironastro/` 폴더째가 아니라 **그 안의 파일들이 사이트 루트**가 되어야 합니다(`/index.html`, `/api/ai.js`).
+
+### 배포 직후 확인 (1분)
+1. `https://astroiron.com/api/ai?diag=1` 접속 → `nvidiaTest.chosen`에 모델명이 뜨면 **AI 정상**.
+2. `ok:false`(후보 전부 불가)라면 → Vercel 환경변수 **`NVIDIA_MODEL`** 에 [build.nvidia.com/models](https://build.nvidia.com/models)의 현재 제공 모델 ID를 넣고 재배포. (콤마로 여러 개 가능)
+3. (권장) **`ANTHROPIC_API_KEY`** 등록 시 NVIDIA 전체 장애에도 폴백 → 재발 방지.
+
+---
+
+# (이전) 배포 가이드
 
 ## ✅ 현재 배포 파일 (zip에 모두 포함)
 ```

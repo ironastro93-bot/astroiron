@@ -64,6 +64,22 @@ function parseGNews(xml, category) {
   }
   return out;
 }
+let _heatCache = null, _heatTs = 0;
+async function worldHeat() {
+  const now = Date.now();
+  if (_heatCache && now - _heatTs < 8 * 60 * 1000) return { counts: _heatCache, cached: true };
+  const MK = ["US","KR","JP","CN","GB","DE","FR","IN","CA","AU","BR","TW","HK","SG","IT","ES","MX","TR"];
+  const counts = {};
+  await Promise.allSettled(MK.map(async (cc) => {
+    try {
+      const ed = GNEWS_ED[cc] || GNEWS_ED.US; const q = `hl=${ed[0]}&gl=${ed[1]}&ceid=${ed[2]}`;
+      const xml = await fetchText(`https://news.google.com/rss/headlines/section/topic/BUSINESS?${q}`);
+      counts[cc] = parseGNews(xml, "경제").length;
+    } catch { counts[cc] = 0; }
+  }));
+  _heatCache = counts; _heatTs = now;
+  return { counts, cached: false };
+}
 async function worldNews(country) {
   const ed = GNEWS_ED[String(country || "US").toUpperCase()] || GNEWS_ED.US;
   const q = `hl=${ed[0]}&gl=${ed[1]}&ceid=${ed[2]}`;
@@ -358,6 +374,11 @@ export default async function handler(req, res) {
         return res.status(200).json({ news: await keywordNews(query || "SpaceX") });
       case "worldnews":
         return res.status(200).json({ news: await worldNews(country || "US"), country: String(country || "US").toUpperCase() });
+      case "worldheat": {
+        const h = await worldHeat();
+        res.setHeader("Cache-Control", "public, max-age=300, s-maxage=480");
+        return res.status(200).json(h);
+      }
       case "earnings_cal": {
         const esyms = String(query || "").split(",").map((x) => x.trim().toUpperCase()).filter((x) => /^[A-Z0-9.]{1,6}$/.test(x)).slice(0, 25);
         const ef = /^\d{4}-\d{2}-\d{2}$/.test(from || "") ? from : "", et = /^\d{4}-\d{2}-\d{2}$/.test(to || "") ? to : "";

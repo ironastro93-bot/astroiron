@@ -11,7 +11,20 @@
 import { verifyToken } from "./redeem.js";
 const KEY = process.env.ANTHROPIC_API_KEY;
 const NVIDIA_KEY = process.env.NVIDIA_API_KEY;
-const NVIDIA_MODEL = process.env.NVIDIA_MODEL || "meta/llama-3.3-70b-instruct";
+// EOL 대비: 후보 모델을 순서대로 시도하고, 살아있는 첫 모델을 캐시(goodNvModel)한다.
+// NVIDIA_MODEL 환경변수에 콤마로 여러 개 지정 가능(예: "meta/llama-4-scout-17b-16e-instruct,meta/llama-3.1-8b-instruct").
+const NV_DEFAULT_MODELS = [
+  "meta/llama-4-maverick-17b-128e-instruct",
+  "meta/llama-4-scout-17b-16e-instruct",
+  "nvidia/llama-3.3-nemotron-super-49b-v1",
+  "meta/llama-3.1-8b-instruct",
+  "meta/llama-3.1-70b-instruct",
+  "meta/llama-3.3-70b-instruct",
+];
+const NV_ENV_MODELS = String(process.env.NVIDIA_MODEL || "").split(",").map((s) => s.trim()).filter(Boolean);
+const NV_MODELS = NV_ENV_MODELS.length ? NV_ENV_MODELS : NV_DEFAULT_MODELS;
+let goodNvModel = null;                 // 검증된 살아있는 모델(캐시)
+const deadNvModels = new Set();         // EOL/미존재로 확인된 모델
 const STATIC_FALLBACK = [
   "claude-sonnet-4-20250514", "claude-3-7-sonnet-20250219",
   "claude-3-5-sonnet-latest", "claude-3-5-sonnet-20241022",
@@ -105,36 +118,60 @@ async function anthropicProvider(prompt, maxTokens) {
   }
   throw { code: last.status === 429 ? 429 : 502, msg: last.msg };
 }
-// Provider: NVIDIA NIM (OpenAI 호환) → 성공 시 text, 실패 시 throw {code,msg}
-async function nvidiaProvider(prompt, maxTokens) {
+// 단일 모델 호출 → 성공 시 text, 실패 시 throw {code,msg,model,gone}
+async function nvidiaCall(model, prompt, maxTokens) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), NV_TIMEOUT);
   try {
     const r = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
       method: "POST", signal: ctrl.signal,
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + NVIDIA_KEY },
-      body: JSON.stringify({ model: NVIDIA_MODEL, messages: [{ role: "user", content: prompt }], max_tokens: maxTokens, temperature: 0.3 }),
+      body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }], max_tokens: maxTokens, temperature: 0.3 }),
     });
     const raw = await r.text();
     let d = {}; try { d = JSON.parse(raw); } catch { /* non-JSON */ }
     if (!r.ok) {
       const msg = d?.detail || d?.error?.message || raw.slice(0, 180) || ("NVIDIA 오류 " + r.status);
-      console.error("[ai] NVIDIA", r.status, msg.slice(0, 160));
-      throw { code: r.status === 429 ? 429 : 502, msg };
+      // 모델이 사라졌거나(EOL 410 / 없음 404 / 잘못된 모델 400·422) → 다음 후보로 넘어가도록 gone 표시
+      const gone = r.status === 404 || r.status === 410 || r.status === 400 || r.status === 422 || /end of life|no longer available|not.*found|unknown model|does not exist/i.test(msg);
+      throw { code: r.status === 429 ? 429 : 502, msg, model, gone };
     }
     return (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "";
   } catch (e) {
-    if (e.name === "AbortError") throw { code: 504, msg: "NVIDIA 응답 시간 초과" };
+    if (e && e.name === "AbortError") throw { code: 504, msg: "NVIDIA 응답 시간 초과", model, gone: false };
     if (e && e.code) throw e;
-    throw { code: 502, msg: String(e && e.message || e) };
+    throw { code: 502, msg: String(e && e.message || e), model, gone: false };
   } finally { clearTimeout(timer); }
+}
+// Provider: NVIDIA NIM — 후보 모델을 순서대로 시도(EOL/없음이면 다음), 성공 모델은 캐시
+async function nvidiaProvider(prompt, maxTokens) {
+  const tryList = goodNvModel ? [goodNvModel] : NV_MODELS.filter((m) => !deadNvModels.has(m));
+  const list = tryList.length ? tryList : NV_MODELS; // 전부 dead면 그래도 다시 시도
+  let last = { code: 502, msg: "NVIDIA 사용 가능한 모델 없음" };
+  for (const model of list) {
+    try {
+      const text = await nvidiaCall(model, prompt, maxTokens);
+      if (goodNvModel !== model) { goodNvModel = model; console.error("[ai] NVIDIA 모델 선택:", model); }
+      return text;
+    } catch (e) {
+      last = { code: e.code || 502, msg: e.msg || String(e) };
+      if (e && e.gone) { deadNvModels.add(model); if (goodNvModel === model) goodNvModel = null; console.error("[ai] NVIDIA 모델 사용 불가(스킵):", model, String(e.msg).slice(0, 90)); }
+      else { console.error("[ai] NVIDIA", e.code, model, String(e.msg).slice(0, 120)); if (e.code === 429) break; }
+    }
+  }
+  throw last;
 }
 
 // NVIDIA 상태 진단(무료 키/모델 점검용) — GET /api/ai?diag=1
 async function nvidiaProbe() {
   if (!NVIDIA_KEY) return { ok: false, msg: "NVIDIA_API_KEY 미설정" };
-  try { const t = await nvidiaProvider("Reply with the single word: OK", 5); return { ok: true, model: NVIDIA_MODEL, sample: String(t).slice(0, 40) }; }
-  catch (e) { return { ok: false, model: NVIDIA_MODEL, code: e && e.code, msg: String((e && e.msg) || e).slice(0, 220) }; }
+  const candidates = []; let chosen = null;
+  for (const m of NV_MODELS) {
+    try { const t = await nvidiaCall(m, "Reply with the single word: OK", 5); candidates.push({ model: m, ok: true, sample: String(t).slice(0, 30) }); if (!chosen) chosen = m; }
+    catch (e) { candidates.push({ model: m, ok: false, code: e && e.code, gone: !!(e && e.gone), msg: String((e && e.msg) || e).slice(0, 120) }); }
+  }
+  if (chosen) goodNvModel = chosen;
+  return { ok: !!chosen, chosen, candidates };
 }
 
 // ── Provider 레지스트리(확장 지점: openai/gemini 등 여기에 추가) ──
@@ -188,7 +225,7 @@ export default async function handler(req, res) {
       const wantDiag = !!(req.query && (req.query.diag || req.query.test)) || (typeof req.url === "string" && /[?&](diag|test)=/.test(req.url));
       return res.status(200).json({
         ok: true, providerOrder: order, primary: order[0] || null, activeProvider: lastProvider,
-        nvidia: !!NVIDIA_KEY, anthropic: !!KEY, nvidiaModel: NVIDIA_KEY ? NVIDIA_MODEL : null,
+        nvidia: !!NVIDIA_KEY, anthropic: !!KEY, nvidiaModel: NVIDIA_KEY ? (goodNvModel || NV_MODELS[0]) : null, nvidiaCandidates: NVIDIA_KEY ? NV_MODELS : [],
         nvidiaTest: wantDiag ? await nvidiaProbe() : undefined,
         availableModels: KEY ? await listModels() : [], activeModel: goodModel,
         cacheSize: _cache.size, env: process.env.VERCEL_ENV || "unknown",
@@ -233,6 +270,12 @@ ONLY raw JSON, 한국어: {"summary":"전체 요약","items":[{"title":"제목(�
 데이터: ${ctxStr}
 ONLY raw JSON, 한국어: {"summary":"이 뉴스의 배경·핵심 2~3문장","points":["핵심 포인트1","핵심 포인트2"],"impact":"시장·업종·관련 종목 관점의 의미 1문장(중립)"}`;
       maxTokens = 700;
+    } else if (task === "board_qa") {
+      const qy = String((body && body.question) || "").slice(0, 500);
+      prompt = `당신은 미국 주식 커뮤니티 도우미 '아이언봇'입니다. 사용자의 질문에 한국어로 친절하고 간결하게 답하세요. 미국 주식·ETF·시장·경제·투자 용어 위주로 돕고, 확실하지 않으면 모른다고 솔직히 말하세요. 특정 종목의 매수/매도 권유나 목표가 단정은 하지 말고, 판단에 필요한 일반적 근거·개념을 설명하세요. 실시간 시세·차트는 앱 상단 검색으로 확인하도록 안내하세요. 욕설·비방·정치 선동·불법·성적 내용에는 답하지 말고 정중히 거절하세요.
+사용자 질문: ${qy}
+ONLY raw JSON, 한국어: {"answer":"3~6문장, 자연스러운 한국어 답변. 마지막에 필요하면 '※ 투자 권유가 아닙니다.'를 붙이세요."}`;
+      maxTokens = 650;
     } else if (task === "news_sentiment") {
       prompt = `다음 뉴스 제목 목록을 감성 분석하세요. 각 제목의 감성과 주가 영향도를 분류하고, 전체 감성과 핵심 키워드를 뽑으세요.
 뉴스(JSON): ${ctxStr}
