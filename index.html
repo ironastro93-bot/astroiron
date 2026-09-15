@@ -337,7 +337,26 @@
     #authBtn{white-space:nowrap;padding:0 9px;font-size:11.5px;height:31px}
     #quotaBtn{white-space:nowrap;padding:5px 10px;font-size:11px}
   }
-  @media(prefers-reduced-motion:reduce){ *,#app{animation:none!important} .card:hover{transform:none} html{scroll-behavior:auto} }
+  /* ===== v188 모바일 하단 탭바 (네이티브 앱 느낌) ===== */
+  #bnav{display:none}
+  @media(max-width:640px){
+    nav .viewnav{display:none!important}
+    .wrap{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))!important}
+    input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea,select{font-size:16px}
+    #bnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;
+      background:color-mix(in srgb,var(--card) 90%,transparent);backdrop-filter:saturate(1.4) blur(16px);-webkit-backdrop-filter:saturate(1.4) blur(16px);
+      border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));
+      box-shadow:0 -6px 22px rgba(10,20,40,.12)}
+    #bnav button{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+      padding:6px 2px;min-height:52px;color:var(--faint);font-size:10.5px;font-weight:600;letter-spacing:-.01em;border-radius:13px;position:relative;transition:color .15s,background .15s,transform .12s}
+    #bnav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;transition:transform .18s cubic-bezier(.2,.7,.3,1)}
+    #bnav button.on{color:var(--steel);font-weight:800}
+    #bnav button.on svg{transform:translateY(-1px) scale(1.08)}
+    #bnav button.on::before{content:"";position:absolute;top:3px;left:50%;transform:translateX(-50%);width:22px;height:3px;border-radius:3px;background:var(--steel)}
+    #bnav button:active{background:var(--soft);transform:scale(.94)}
+    #bnav .bdot{position:absolute;top:5px;left:calc(50% + 6px);min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:var(--up);color:#fff;font-size:9px;font-weight:800;line-height:16px;text-align:center;font-family:'Inter',sans-serif;display:none;box-shadow:0 0 0 2px var(--card)}
+  }
+  @media(prefers-reduced-motion:reduce){ *,#app{animation:none!important} .card:hover{transform:none} html{scroll-behavior:auto} #bnav button svg{transition:none} }
 </style>
 <!-- Vercel Web Analytics + Speed Insights (정적 HTML용 · npm 설치 불필요, 대시보드에서 기능 켜면 자동 동작) -->
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments)};</script>
@@ -358,6 +377,14 @@
   </div>
   <div class="viewnav" id="viewnav" role="tablist" aria-label="주요 메뉴"><button class="vitem on" role="tab" aria-selected="true" onclick="switchView('home')">홈</button><button class="vitem" role="tab" aria-selected="false" onclick="switchView('news')">뉴스</button><button class="vitem" role="tab" aria-selected="false" onclick="switchView('map')">지도</button><button class="vitem" role="tab" aria-selected="false" onclick="switchView('cal')">캘린더</button><button class="vitem" role="tab" aria-selected="false" onclick="switchView('board')">토론방</button></div>
 </nav>
+
+<div id="bnav" role="tablist" aria-label="하단 메뉴">
+  <button data-view="home" role="tab" aria-label="홈" onclick="switchView('home')"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>홈</button>
+  <button data-view="news" role="tab" aria-label="뉴스" onclick="switchView('news')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8.5h7M7 12h7M7 15.5h5"/></svg>뉴스</button>
+  <button data-view="map" role="tab" aria-label="세계 지도" onclick="switchView('map')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 3 2.6 15 0 18M12 3c-2.6 3-2.6 15 0 18"/></svg>지도</button>
+  <button data-view="cal" role="tab" aria-label="캘린더" onclick="switchView('cal')"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16.5" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>캘린더</button>
+  <button data-view="board" role="tab" aria-label="토론방" onclick="switchView('board')"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>토론방</button>
+</div>
 
 <div class="wrap">
   <main id="app"><div style="margin-bottom:22px"><h1>Market Pulse <span style="font-size:15px;font-weight:600;color:var(--sub);letter-spacing:0">시장의 흐름</span></h1><p class="lede">지수·금리·달러·원자재·크립토를 실시간으로. AI가 오늘 시장을 요약해 드려요.</p><div class="srow" style="pointer-events:none;opacity:.7"><input placeholder="티커·회사명 검색 · 예) TSLA, Apple" disabled aria-hidden="true"/><button class="btn">분석</button></div></div><div class="pstrip"><div class="skel" style="height:52px;flex:1 1 110px"></div><div class="skel" style="height:52px;flex:1 1 110px"></div><div class="skel" style="height:52px;flex:1 1 110px"></div><div class="skel" style="height:52px;flex:1 1 110px"></div><div class="skel" style="height:52px;flex:1 1 110px"></div></div><div style="height:17px"></div><div class="skel" style="height:150px;border-radius:16px;margin-bottom:16px"></div><div class="skel" style="height:150px;border-radius:16px"></div></main>
@@ -1571,7 +1598,7 @@ function ensureWorldMap(){
   if(window.WORLD_PATHS){paintWorldMap();try{loadWorldBrief()}catch(e){}return}
   if(window._wmLoading)return;
   window._wmLoading=true;
-  const s=document.createElement("script");s.src="worldmap.js";s.async=true;
+  const s=document.createElement("script");s.src="/worldmap.js";s.async=true;
   s.onload=()=>{window._wmLoading=false;if(state.view==="map"){paintWorldMap();try{loadWorldBrief()}catch(e){}}};
   s.onerror=()=>{window._wmLoading=false;const b=document.getElementById("wmapLoading");if(b)b.innerHTML='지도를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'};
   document.body.appendChild(s);
@@ -2540,6 +2567,7 @@ function render(){
   if(state.view!=="news")stopNewsPoll();
   const views=[["home","홈"],["news","뉴스"],["map","지도"],["cal","캘린더"],["board","토론방"]];
   document.getElementById("viewnav").innerHTML=views.map(v=>{let c="";if(v[0]==="watchlist"&&getList("watchlist").length)c=` (${getList("watchlist").length})`;if(v[0]==="alerts"){const n=getList("alerts").filter(a=>!a.done).length;if(n)c=` (${n})`}return `<button class="vitem ${state.view===v[0]?"on":""}" role="tab" aria-selected="${state.view===v[0]?"true":"false"}" onclick="switchView('${v[0]}')">${v[1]}${c}</button>`}).join("");
+  try{document.querySelectorAll("#bnav button").forEach(function(b){var on=b.getAttribute("data-view")===state.view;b.classList.toggle("on",on);b.setAttribute("aria-selected",on?"true":"false")})}catch(e){}
   {const bd=document.getElementById("bellDot");if(bd){const n=getList("alerts").filter(a=>!a.done).length;if(n){bd.textContent=n>9?"9+":String(n);bd.style.display="block"}else bd.style.display="none"}}
   const q=document.getElementById("quotaBtn");if(isPro()){q.textContent="PRO";q.className="pro"}else{var _n=Math.max(0,FREE-getUsage());q.textContent=(window.innerWidth<=640?(_n+"회 · PRO"):("오늘 "+_n+"회 · Premium"));q.className=""}
   if(state.view==="home")renderHome();
