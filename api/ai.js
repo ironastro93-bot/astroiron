@@ -25,16 +25,17 @@ const NV_ENV_MODELS = String(process.env.NVIDIA_MODEL || "").split(",").map((s) 
 const NV_MODELS = NV_ENV_MODELS.length ? NV_ENV_MODELS : NV_DEFAULT_MODELS;
 let goodNvModel = null;                 // 검증된 살아있는 모델(캐시)
 const deadNvModels = new Set();         // EOL/미존재로 확인된 모델
+// 발견(listModels)이 실패할 때만 쓰는 정적 폴백. 비용 최소화를 위해 haiku 우선.
 const STATIC_FALLBACK = [
-  "claude-sonnet-4-20250514", "claude-3-7-sonnet-20250219",
-  "claude-3-5-sonnet-latest", "claude-3-5-sonnet-20241022",
-  "claude-3-5-haiku-20241022", "claude-haiku-4-5-20251001",
+  "claude-haiku-4-5-20251001", "claude-haiku-4-5",
+  "claude-sonnet-4-5-20250929", "claude-sonnet-4-5",
+  "claude-sonnet-4-20250514", "claude-3-5-haiku-20241022",
 ];
 let goodModel = null;
 let discovered = null;
 let lastProvider = null;
 const TIMEOUT = 45000;
-const NV_TIMEOUT = 12000; // NVIDIA는 빨리 폴백하도록 짧게
+const NV_TIMEOUT = 8000; // NVIDIA는 빨리 폴백하도록 짧게
 
 // ── 남용 방지: IP당 분당 요청 제한 ──
 const _rl = new Map();
@@ -76,10 +77,12 @@ async function listModels() {
 }
 async function modelOrder() {
   const disc = await listModels();
+  // 비용 최소화: 번역/요약엔 haiku면 충분 → haiku 우선, opus는 최후순
   const pref = [
-    ...disc.filter((id) => /sonnet/i.test(id)),
     ...disc.filter((id) => /haiku/i.test(id)),
-    ...disc.filter((id) => !/sonnet|haiku/i.test(id)),
+    ...disc.filter((id) => /sonnet/i.test(id)),
+    ...disc.filter((id) => !/sonnet|haiku|opus/i.test(id)),
+    ...disc.filter((id) => /opus/i.test(id)),
   ];
   const order = [process.env.ANTHROPIC_MODEL, goodModel, ...pref, ...STATIC_FALLBACK].filter(Boolean);
   return [...new Set(order)];
@@ -143,10 +146,33 @@ async function nvidiaCall(model, prompt, maxTokens) {
     throw { code: 502, msg: String(e && e.message || e), model, gone: false };
   } finally { clearTimeout(timer); }
 }
-// Provider: NVIDIA NIM — 후보 모델을 순서대로 시도(EOL/없음이면 다음), 성공 모델은 캐시
+// NVIDIA 라이브 카탈로그 자동탐색 — EOL 자가치유(무료 유지). OpenAI 호환 GET /v1/models
+let nvDiscovered = null;
+async function listNvidiaModels() {
+  if (nvDiscovered) return nvDiscovered;
+  try {
+    const r = await fetch("https://integrate.api.nvidia.com/v1/models", { headers: { "Authorization": "Bearer " + NVIDIA_KEY } });
+    if (!r.ok) { nvDiscovered = []; return nvDiscovered; }
+    const j = await r.json();
+    nvDiscovered = ((j && (j.data || j.models)) || []).map((m) => m && (m.id || m.name)).filter(Boolean);
+  } catch (e) { nvDiscovered = []; }
+  return nvDiscovered;
+}
+function rankNvModels(ids) {
+  // 채팅/instruct 계열만, 빠른(작은) 모델 우선. 임베딩·가드·비전 등 제외
+  const chat = (ids || []).filter((id) => /instruct|nemotron|llama|qwen|deepseek|mixtral|mistral|gemma|phi/i.test(id) && !/guard|embed|reward|rerank|vision|-vl|ocr|safety|paraphrase|retriev/i.test(id));
+  const small = chat.filter((id) => /(mini|nano|small|4b|7b|8b|9b|12b|17b|22b|27b)/i.test(id));
+  const rest = chat.filter((id) => !small.includes(id));
+  return [...small, ...rest];
+}
+// Provider: NVIDIA NIM — 라이브 카탈로그 탐색 + 후보 순차 시도(EOL/없음이면 다음), 성공 모델 캐시
 async function nvidiaProvider(prompt, maxTokens) {
-  const tryList = goodNvModel ? [goodNvModel] : NV_MODELS.filter((m) => !deadNvModels.has(m));
-  const list = tryList.length ? tryList : NV_MODELS; // 전부 dead면 그래도 다시 시도
+  let disc = [];
+  try { disc = rankNvModels(await listNvidiaModels()); } catch (e) {}
+  const seen = new Set();
+  const uniq = [goodNvModel, ...NV_ENV_MODELS, ...disc, ...NV_DEFAULT_MODELS].filter((m) => m && !seen.has(m) && seen.add(m));
+  const alive = uniq.filter((m) => !deadNvModels.has(m));
+  const list = (alive.length ? alive : uniq).slice(0, 6); // 시도 상한(콜드스타트 지연 방지)
   let last = { code: 502, msg: "NVIDIA 사용 가능한 모델 없음" };
   for (const model of list) {
     try {
@@ -166,7 +192,9 @@ async function nvidiaProvider(prompt, maxTokens) {
 async function nvidiaProbe() {
   if (!NVIDIA_KEY) return { ok: false, msg: "NVIDIA_API_KEY 미설정" };
   const candidates = []; let chosen = null;
-  for (const m of NV_MODELS) {
+  const _seen = new Set();
+  const probeList = [...rankNvModels(await listNvidiaModels()), ...NV_MODELS].filter((m) => m && !_seen.has(m) && _seen.add(m)).slice(0, 6);
+  for (const m of probeList) {
     try { const t = await nvidiaCall(m, "Reply with the single word: OK", 5); candidates.push({ model: m, ok: true, sample: String(t).slice(0, 30) }); if (!chosen) chosen = m; }
     catch (e) { candidates.push({ model: m, ok: false, code: e && e.code, gone: !!(e && e.gone), msg: String((e && e.msg) || e).slice(0, 120) }); }
   }
@@ -227,6 +255,7 @@ export default async function handler(req, res) {
         ok: true, providerOrder: order, primary: order[0] || null, activeProvider: lastProvider,
         nvidia: !!NVIDIA_KEY, anthropic: !!KEY, nvidiaModel: NVIDIA_KEY ? (goodNvModel || NV_MODELS[0]) : null, nvidiaCandidates: NVIDIA_KEY ? NV_MODELS : [],
         nvidiaTest: wantDiag ? await nvidiaProbe() : undefined,
+        nvidiaDiscovered: (wantDiag && NVIDIA_KEY) ? rankNvModels(await listNvidiaModels()).slice(0, 20) : undefined,
         availableModels: KEY ? await listModels() : [], activeModel: goodModel,
         cacheSize: _cache.size, env: process.env.VERCEL_ENV || "unknown",
       });
@@ -316,7 +345,7 @@ ONLY raw JSON, 한국어: {"summary":"3문장 시장 요약"}`;
 ONLY raw JSON, 한국어: {"tone":"positive|neutral|negative","headline":"관심종목 전반 한줄 요약(등락률 근거)","mover":"오늘 눈에 띄는 종목 1~2개와 이유 1문장","watch":"오늘 지켜볼 포인트 1문장(중립)"}`;
       maxTokens = 500;
     } else if (task === "translate_news") {
-      prompt = `다음 영어 뉴스 제목들을 한국어로 번역하세요. 회사명·티커·인명·지명 등 고유명사와 숫자·단위는 그대로 두고, 직역투가 아니라 한국 경제뉴스 헤드라인처럼 간결하고 자연스럽게 옮기세요. 과장·의역·추측 금지.
+      prompt = `다음 뉴스 제목들을 한국어로 번역하세요. 원문이 영어·중국어·일본어·러시아어·독일어·프랑스어·스페인어 등 어떤 언어든 자연스러운 한국어로 옮기고, 이미 한국어인 항목은 그대로 두세요. 회사명·티커·인명·지명 등 고유명사와 숫자·단위는 그대로 두고, 직역투가 아니라 한국 경제뉴스 헤드라인처럼 간결하고 자연스럽게 옮기세요. 과장·의역·추측 금지.
 제목 목록(JSON): ${ctxStr}
 반드시 입력과 동일한 개수와 순서로, 각 항목은 한국어 한 줄. ONLY raw JSON: {"items":["번역1","번역2"]}`;
       maxTokens = 1500;

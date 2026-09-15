@@ -420,6 +420,7 @@ export default async function handler(req, res) {
         for (const it of items) {
           const key = (it.title || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 42);
           if (!key || seen.has(key) || isClickbait(it.title)) continue;
+          if (/form 8\.[0-9]|form 8-|ordinary shares|\bRNS\b|transaction in own shares|total voting rights|net asset value|holding\(s\)? in|block ?listing|director\/pdmr|price monitoring extension|form 3\.|scheme of arrangement/i.test(it.title || "")) continue;
           seen.add(key);
           out.push({ ...it, category: newsCategory(it.title), sentiment: newsSentiment(it.title) });
         }
