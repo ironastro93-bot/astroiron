@@ -2051,7 +2051,7 @@ function calUpcoming(){
   items.sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0});items=items.slice(0,10);
   if(!items.length)return "";
   var col={econ:"#3B6FE0",earn:"var(--up)",mine:"var(--steel)"};
-  var rows=items.map(function(e){var dd=econDday(e.d);var dtxt=dd===0?"오늘":dd===1?"내일":"D-"+dd;var click=e.kind==="earn"?' onclick="loadStock(\''+e.tk+'\')" style="cursor:pointer"':'';return '<div'+click+' style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-top:1px solid var(--line)"><span style="width:8px;height:8px;border-radius:2px;background:'+col[e.kind]+';flex:0 0 auto"></span><span style="flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(e.t)+'</span><span style="font-size:11.5px;font-weight:700;color:var(--faint);white-space:nowrap">'+dtxt+' · '+e.d.slice(5).replace("-","/")+'</span></div>';}).join("");
+  var rows=items.map(function(e){var dd=econDday(e.d);var dtxt=dd===0?"오늘":dd===1?"내일":"D-"+dd;var attr=e.kind==="earn"?'onclick="loadStock(\''+e.tk+'\')"':e.kind==="econ"?'onclick="evInfo(this.dataset.ev)" data-ev="'+esc(e.t)+'"':'';var cur=attr?';cursor:pointer':'';return '<div '+attr+' style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-top:1px solid var(--line)'+cur+'"><span style="width:8px;height:8px;border-radius:2px;background:'+col[e.kind]+';flex:0 0 auto"></span><span style="flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(e.t)+(e.kind==="econ"?' <span style="color:var(--steel);font-size:11px">ⓘ</span>':'')+'</span><span style="font-size:11.5px;font-weight:700;color:var(--faint);white-space:nowrap">'+dtxt+' · '+e.d.slice(5).replace("-","/")+'</span></div>';}).join("");
   return '<div class="card" style="margin-top:16px"><div style="padding:12px 16px 2px;font-size:13px;font-weight:800">📌 다가오는 일정</div><div style="padding:0 14px 10px">'+rows+'</div></div>';
 }
 function renderMyCal(){
@@ -2080,7 +2080,7 @@ function renderMyCal(){
   if(window._calSel){
     const ds=window._calSel,o=evOf(ds),dt=new Date(ds+"T00:00:00");
     panel='<div class="card" style="margin-top:16px"><div style="padding:14px 18px 4px"><h2 style="font-size:15px">'+(dt.getMonth()+1)+'월 '+dt.getDate()+'일 ('+"일월화수목금토"[dt.getDay()]+')</h2></div><div style="padding:2px 18px 8px">'+
-      o.econ.map(e=>'<div style="display:flex;gap:8px;align-items:center;padding:6px 0;font-size:13px"><span style="width:8px;height:8px;border-radius:2px;background:#3B6FE0;flex:0 0 auto"></span>'+esc(e.t)+'<span style="color:var(--faint);font-size:11px;margin-left:4px">· 경제일정</span></div>').join("")+
+      o.econ.map(e=>'<div onclick="evInfo(this.dataset.ev)" data-ev="'+esc(e.t)+'" style="display:flex;gap:8px;align-items:center;padding:6px 0;font-size:13px;cursor:pointer"><span style="width:8px;height:8px;border-radius:2px;background:#3B6FE0;flex:0 0 auto"></span>'+esc(e.t)+'<span style="color:var(--steel);font-size:11px;margin-left:4px">ⓘ 설명</span></div>').join("")+
       (o.earn||[]).map(t=>'<div style="display:flex;gap:8px;align-items:center;padding:6px 0;font-size:13px"><span style="width:8px;height:8px;border-radius:2px;background:var(--up);flex:0 0 auto"></span><b onclick="loadStock(\''+esc(t)+'\')" style="cursor:pointer">'+esc(t)+'</b> 실적 발표<span style="color:var(--faint);font-size:11px;margin-left:4px">· 관심종목</span></div>').join("")+
       o.mine.map(e=>'<div style="display:flex;gap:8px;align-items:center;padding:6px 0;font-size:13px"><span style="width:8px;height:8px;border-radius:2px;background:var(--steel);flex:0 0 auto"></span><span style="flex:1;min-width:0">'+(e.t?'<b>'+esc(e.t)+'</b> ':'')+esc(e.title)+(e.note?'<span style="color:var(--faint);font-size:11px"> · '+esc(e.note)+'</span>':'')+'</span><button onclick="delMyCal('+e.id+')" style="font-size:11px;color:var(--faint);background:none;border:none">삭제</button></div>').join("")+
       ((o.econ.length+o.mine.length+(o.earn?o.earn.length:0))===0?'<div style="font-size:12.5px;color:var(--faint);padding:6px 0">등록된 일정이 없어요.</div>':"")+
@@ -2093,6 +2093,43 @@ window.calNav=(d)=>{let y=window._calYM.y,m=window._calYM.m+d;if(m<0){m=11;y--}i
 window.calPick=(ds)=>{window._calSel=(window._calSel===ds?null:ds);render()};
 window.addMyCal=()=>{const ds=window._calSel;if(!ds){toast("날짜를 먼저 선택하세요");return}const t=(document.getElementById("calT")||{}).value,title=((document.getElementById("calTitle")||{}).value||"").trim(),note=((document.getElementById("calNote")||{}).value||"").trim();if(!title){toast("제목을 입력해 주세요");return}setList("mycal",[...getList("mycal"),{id:Date.now(),d:ds,t,title,note}]);toast("일정이 추가됐어요");render()};
 window.delMyCal=(id)=>{setList("mycal",getList("mycal").filter(e=>e.id!==id));render()};
+// ═══ 경제일정 설명 팝업 (클릭 → 무엇/왜/영향/체크 + 최근 결과 AI) ═══
+const EVKB=[
+ {k:/FOMC|연준|연방공개시장/i,t:"FOMC · 미 연준 기준금리 결정",def:"미국 중앙은행(Fed)이 기준금리를 올릴지·내릴지·동결할지 정하고, 향후 금리 경로 전망(점도표)을 함께 공개합니다.",who:"연 8회 · 미국 연방준비제도(FOMC)",why:"미국 금리는 전 세계 주식·채권·환율·코인 가격의 기준점이라 가장 영향이 큰 이벤트입니다.",impact:"금리 인하(비둘기)면 → 주식·성장주·비트코인 강세, 달러 약세. 인상·매파적이면 → 증시 약세, 달러 강세.",watch:"금리 결정 자체보다 파월 의장 회견과 점도표(향후 인하 횟수)가 시장을 더 움직입니다."},
+ {k:/CPI|소비자물가/i,t:"CPI · 소비자물가지수",def:"한 달간 물가가 얼마나 올랐는지 보여주는 대표 인플레이션 지표입니다.",who:"매월 · 미국 노동부",why:"인플레이션은 연준 금리 결정의 핵심 변수라, CPI가 금리 방향을 좌우합니다.",impact:"예상보다 높으면 → 금리 인하 지연 우려로 증시 약세·달러 강세. 낮으면 → 안도 랠리·달러 약세.",watch:"헤드라인보다 변동성 큰 항목을 뺀 '근원(Core) CPI', 전년比·전월比 수치."},
+ {k:/ECB/i,t:"ECB · 유럽중앙은행 기준금리",def:"유로존 20개국의 기준금리를 결정합니다.",who:"약 6주마다 · 유럽중앙은행",why:"유로화 가치와 유럽 증시, 나아가 글로벌 위험선호에 영향을 줍니다.",impact:"인하 → 유로 약세·유럽 증시 강세. 라가르드 총재 발언이 방향을 좌우.",watch:"금리 결정 + 성명서 톤, 경제성장·물가 전망."},
+ {k:/BoE|영란/i,t:"BoE · 영란은행 기준금리",def:"영국의 기준금리를 결정합니다.",who:"연 8회 · 영란은행(Bank of England)",why:"파운드 환율과 영국 증시(FTSE)에 직접 영향.",impact:"인상 → 파운드 강세. 통화정책보고서의 물가·성장 전망도 중요.",watch:"금리 + 투표 구성(몇 대 몇), 향후 인하 신호."},
+ {k:/BoJ|일본은행|금융정책결정/i,t:"BoJ · 일본은행 금융정책결정회의",def:"일본의 기준금리와 통화완화(YCC 등) 정책을 결정합니다.",who:"연 8회 · 일본은행",why:"엔화·닛케이는 물론, 엔 캐리 트레이드를 통해 글로벌 시장 변동성에 영향.",impact:"긴축(완화 축소) → 엔 강세 → 엔 캐리 청산 우려로 전 세계 증시 변동성 확대.",watch:"정책 변경 여부 + 우에다 총재 발언, 전망 리포트."},
+ {k:/고용보고서|비농업|NFP/i,t:"미국 고용보고서 (비농업 · NFP)",def:"농업을 뺀 신규 일자리 수와 실업률을 발표하는 노동시장 핵심 지표입니다.",who:"매월 첫째 주 금요일 · 미국 노동부",why:"고용이 뜨거우면 인플레·금리 부담, 식으면 침체 우려 — 연준 금리와 직결.",impact:"고용 강세 → 금리 인하 지연으로 증시 약세(때론 '경기 호조'로 강세). 약세 → 인하 기대↑.",watch:"비농업 취업자수(NFP), 실업률, 평균 시간당 임금(임금발 인플레)."},
+ {k:/LPR|PBoC|인민은행/i,t:"중국 LPR · 인민은행 대출우대금리",def:"중국의 사실상 기준금리(대출우대금리)를 고시합니다.",who:"매월 · 중국 인민은행(PBoC)",why:"위안화, 중국 증시, 원자재·신흥국 자산에 영향.",impact:"인하 → 경기부양 기대로 원자재·중국 관련주·신흥국 강세.",watch:"1년·5년물 LPR 인하 폭, 경기부양 신호."},
+ {k:/한국은행|금통위|BOK/i,t:"한국은행 기준금리 결정",def:"한국의 기준금리를 금융통화위원회가 결정합니다.",who:"연 8회 · 한국은행",why:"원화 환율, 코스피, 대출금리에 직접 영향.",impact:"인하 → 원화 약세·증시 유동성 개선. 미국과의 금리차도 원달러 환율의 변수.",watch:"금리 + 총재 회견, 성장·물가 전망, 미국과 금리차."},
+ {k:/PCE|개인소비지출/i,t:"PCE · 개인소비지출 물가",def:"연준이 가장 중시하는 인플레이션 지표입니다.",who:"매월 · 미국 상무부",why:"연준의 물가 목표(2%)는 CPI가 아니라 근원 PCE 기준입니다.",impact:"근원 PCE가 높으면 → 금리 인하 지연 우려. 낮으면 → 인하 기대.",watch:"근원(Core) PCE 전년比."},
+ {k:/실업수당|신규 실업/i,t:"주간 신규 실업수당 청구",def:"매주 발표되는 단기 노동시장 온도계입니다.",who:"매주 목요일 · 미국 노동부",why:"고용 흐름을 가장 빠르게 보여줍니다.",impact:"급증 → 침체 우려. 낮게 유지 → 노동시장 견조.",watch:"4주 이동평균 추세."}
+];
+window.evInfo=function(name){
+ var e=EVKB.find(function(x){return x.k.test(name||"")});
+ var t=(name||"").replace(/^[^\uAC00-\uD7A3A-Za-z]+/,"").trim();
+ var old=document.getElementById("evInfoBg"); if(old) old.remove();
+ var bg=document.createElement("div"); bg.id="evInfoBg";
+ bg.style.cssText="position:fixed;inset:0;z-index:120;background:rgba(6,12,24,.6);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);display:flex;align-items:flex-end;justify-content:center;padding:0";
+ bg.onclick=function(ev){if(ev.target===bg)bg.remove()};
+ var row=function(ic,lab,val){return val?'<div style="display:flex;gap:9px;padding:9px 0;border-top:1px solid var(--line)"><span style="flex:0 0 auto">'+ic+'</span><div><div style="font-size:11.5px;color:var(--faint);font-weight:700;margin-bottom:2px">'+lab+'</div><div style="font-size:13.5px;line-height:1.6;color:var(--ink)">'+val+'</div></div></div>':''};
+ var body=e?(row('📌','무엇인가요',esc(e.def))+row('🏛️','발표',esc(e.who))+row('❓','왜 중요',esc(e.why))+row('📈','시장 영향',esc(e.impact))+row('👀','무엇을 볼까',esc(e.watch))):'<div style="font-size:13.5px;color:var(--sub);padding:10px 0;line-height:1.6">이 일정 요약이 아직 준비되지 않았어요. 아래 AI 설명을 눌러보세요.</div>';
+ bg.innerHTML='<div style="width:100%;max-width:560px;background:var(--bg);border-radius:20px 20px 0 0;padding:18px 20px 26px;max-height:86vh;overflow:auto">'
+  +'<div style="width:40px;height:4px;border-radius:3px;background:var(--line-d);margin:0 auto 14px"></div>'
+  +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><h2 style="font-size:17px;margin:0;flex:1">'+esc(e?e.t:t)+'</h2><button onclick="var b=document.getElementById(\'evInfoBg\');if(b)b.remove()" style="background:none;border:none;font-size:20px;color:var(--faint);cursor:pointer">✕</button></div>'
+  +body
+  +'<button id="evAiBtn" style="margin-top:16px;width:100%;padding:12px;border-radius:12px;border:1px solid var(--steel);background:var(--soft);color:var(--steel);font-weight:800;font-size:13.5px;cursor:pointer">🤖 최근 발표 결과·이번 전망 AI 설명</button>'
+  +'<div id="evAi" style="margin-top:12px;font-size:13.5px;line-height:1.7;color:var(--ink)"></div>'
+  +'</div>';
+ document.body.appendChild(bg);
+ document.getElementById("evAiBtn").onclick=async function(){
+   var b=this,boxx=document.getElementById("evAi");b.disabled=true;b.textContent="AI 설명 불러오는 중…";
+   try{var r=await aiApi("chat",{event:(e?e.t:t)},(e?e.t:t)+" — 이 경제 이벤트가 무엇이고, 가장 최근 발표에서 대체로 어떤 결과가 나왔는지, 이번에 시장이 무엇을 주목할지 초보 투자자용으로 4~5문장 한국어로. 확실하지 않은 구체 수치는 지어내지 말 것.");
+     boxx.textContent=(r&&(r.answer||r.text))||"설명을 불러오지 못했어요.";b.style.display="none";
+   }catch(err){boxx.textContent="AI 설명을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.";b.disabled=false;b.textContent="🤖 다시 시도";}
+ };
+};
 async function loadEarningsCal(){
   if(!window._calYM)return;
   var w=getList("watchlist").map(x=>x.ticker);
