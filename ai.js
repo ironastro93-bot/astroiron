@@ -213,8 +213,10 @@ function providerOrder() {
   return base.filter((n) => PROVIDERS[n] && PROVIDERS[n].available());
 }
 // 우선 Provider부터 시도 → 실패하면 다음 Provider로 자동 폴백
-async function callModel(prompt, maxTokens) {
-  const order = providerOrder();
+async function callModel(prompt, maxTokens, fast) {
+  let order = providerOrder();
+  // 번역·뉴스 등 지연 민감 작업은 Anthropic(haiku) 먼저 → NVIDIA 콜드스타트 지연 회피(빠름)
+  if (fast && order.indexOf("anthropic") !== -1) order = ["anthropic", ...order.filter((n) => n !== "anthropic")];
   if (!order.length) throw { code: 503, msg: "AI 키가 설정되지 않았어요." };
   let last = { code: 502, msg: "AI 오류" };
   for (const name of order) {
@@ -269,6 +271,7 @@ export default async function handler(req, res) {
     let body = req.body;
     if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
     const { task, context, question, premium } = body || {};
+    const FAST_TASK = ["translate_news","news_summary","news_sentiment","market_summary","watch_brief","news_explain","board_qa"].includes(task);
     const isPremium = verifyToken(body && body.proToken) || (!process.env.PRO_SECRET && !!premium);
     const ctxStr = JSON.stringify(context || {}).slice(0, 4500);
     const depth = isPremium ? "심층적으로 (기업 개요·성장성·경쟁 환경 포함)" : "간결하게 (핵심만)";
@@ -367,7 +370,7 @@ ${isPremium ? "4~6문장" : "2~3문장"} 한국어. 일반 텍스트.`;
 
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        const text = await callModel(prompt, maxTokens);
+        const text = await callModel(prompt, maxTokens, FAST_TASK);
         if (!wantJson) { const out = { answer: text.trim(), provider: lastProvider }; return res.status(200).json(out); }
         const parsed = parseJson(text);
         if (!parsed) { if (attempt < 2) continue; return res.status(502).json({ error: "AI 응답을 읽지 못했어요.", aiUnavailable: true }); }

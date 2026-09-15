@@ -1765,6 +1765,7 @@ function renderNews(){
 window.setNewsCat=(c)=>{state.newsCat=c;state.newsShow=12;renderNews();autoTransNews()};
 window.setNewsCountry=(v)=>{state.newsCountry=v;state.newsWatch=false;state.worldMap=false;state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;renderNews();loadNews(true)};
 window.setNewsWatch=(on)=>{state.newsWatch=(on===true||on==="true");if(state.newsWatch){state.newsCountry="";state.worldMap=false}state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;renderNews();loadNews(true)};
+function koBusyBar(on){var el=document.getElementById("koBar");if(on){if(!document.getElementById("koSpinCss")){var ks=document.createElement("style");ks.id="koSpinCss";ks.textContent="@keyframes spin{to{transform:rotate(360deg)}}";document.head.appendChild(ks);}if(!el){el=document.createElement("div");el.id="koBar";el.style.cssText="position:fixed;left:50%;transform:translateX(-50%);bottom:76px;z-index:99999;background:#141821;color:#fff;border:1px solid #2a3040;border-radius:999px;padding:9px 18px;font-size:13px;font-weight:800;box-shadow:0 8px 28px rgba(0,0,0,.45);display:flex;align-items:center;gap:8px";document.body.appendChild(el);}el.innerHTML='<span style="width:12px;height:12px;border:2px solid #7cc;border-right-color:transparent;border-radius:50%;display:inline-block;animation:spin .7s linear infinite"></span>🇰🇷 한국어로 번역하는 중…';el.style.display="flex";}else if(el){el.style.display="none";}}
 async function translateTitles(items){
   const list=(items||[]).filter(x=>x&&x.title&&!x._ko);
   if(!list.length)return false;
@@ -1778,22 +1779,24 @@ async function autoTransNews(withToast,_retry){
   const cat=state.newsCat||"전체";const show=state.newsShow||12;
   const list=(cat==="전체"?all:all.filter(x=>x.category===cat)).slice(0,show);
   if(!list.some(x=>x&&x.title&&!x._ko)){if(withToast)toast("이미 번역됨");return}
-  if(withToast)toast("한국어 번역 중…");
+  koBusyBar(true);
   window._koBusy=true;let changed=false;
   try{changed=await translateTitles(list)}finally{window._koBusy=false}
   if(changed&&state.view==="news")renderNews();
   if(!changed&&!_retry){setTimeout(()=>autoTransNews(withToast,true),1200);return}
+  koBusyBar(false);
   if(withToast)toast(changed?"번역 완료 ✓":"번역이 잠시 지연되고 있어요. 다시 시도해 주세요");
 }
 async function autoTransStock(withToast,_retry){
   if(!state.newsKo||window._koBusyS)return;
   const d=state.data;if(!d||!d.news||!d.news.length){if(withToast)toast("뉴스를 불러오는 중이에요");return}
   if(!d.news.some(x=>x&&x.title&&!x._ko)){if(withToast)toast("이미 번역됨");return}
-  if(withToast)toast("한국어 번역 중…");
+  koBusyBar(true);
   window._koBusyS=true;let changed=false;
   try{changed=await translateTitles(d.news.slice(0,20))}finally{window._koBusyS=false}
   if(changed&&state.view==="stock"&&state.tab==="news")render();
   if(!changed&&!_retry){setTimeout(()=>autoTransStock(withToast,true),1200);return}
+  koBusyBar(false);
   if(withToast)toast(changed?"번역 완료 ✓":"번역이 잠시 지연되고 있어요. 다시 시도해 주세요");
 }
 window.setNewsKo=function(on){on=!!on;state.newsKo=on;try{localStorage.setItem("newsKo",on?"1":"0")}catch(e){}
