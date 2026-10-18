@@ -9,17 +9,19 @@ const CODES = (process.env.PRO_CODES || "").split(",").map((s) => s.trim()).filt
 
 function b64url(buf) { return Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
 function sign(p) { return b64url(crypto.createHmac("sha256", SECRET).update(p).digest()); }
-export function makeToken(days) { const exp = Date.now() + days * 86400000; const p = b64url(JSON.stringify({ exp })); return p + "." + sign(p); }
-export function verifyToken(tok) {
+export function makeToken(days, sub) { const exp = Date.now() + days * 86400000; const p = b64url(JSON.stringify(sub ? { exp, sub } : { exp })); return p + "." + sign(p); }
+// 유효하면 payload({exp, sub?}) 반환, 아니면 null
+export function verifyTokenPayload(tok) {
   try {
-    if (!SECRET || !tok) return false;
-    const i = String(tok).indexOf("."); if (i < 0) return false;
+    if (!SECRET || !tok) return null;
+    const i = String(tok).indexOf("."); if (i < 0) return null;
     const p = String(tok).slice(0, i), sig = String(tok).slice(i + 1);
-    if (!p || !sig || sign(p) !== sig) return false;
+    if (!p || !sig || sign(p) !== sig) return null;
     const obj = JSON.parse(Buffer.from(p.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
-    return !!obj.exp && Date.now() < obj.exp;
-  } catch { return false; }
+    return (obj && obj.exp && Date.now() < obj.exp) ? obj : null;
+  } catch { return null; }
 }
+export function verifyToken(tok) { return !!verifyTokenPayload(tok); }
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Access-Control-Allow-Origin", "*");

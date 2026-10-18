@@ -8,7 +8,7 @@
 //   AI_PROVIDER_ORDER(선택, 예: "nvidia,anthropic" — 우선순위 재정의)
 // 어떤 키도 코드에 하드코딩하지 않는다.
 
-import { verifyToken } from "./redeem.js";
+import { verifyToken, verifyTokenPayload } from "./redeem.js";
 const KEY = process.env.ANTHROPIC_API_KEY;
 const NVIDIA_KEY = process.env.NVIDIA_API_KEY;
 // EOL 대비: 후보 모델을 순서대로 시도하고, 살아있는 첫 모델을 캐시(goodNvModel)한다.
@@ -47,6 +47,43 @@ function rateLimited(ip) {
   if (_rl.size > 5000) _rl.clear();
   return e.n > MAX;
 }
+
+// ─── 서버측 사용량 제한(Upstash, 다중 인스턴스에서 공유·durable) ───
+// 미설정(UURL/UTOK 없음)이면 모든 함수가 no-op/통과 → 기존 동작 그대로.
+const Q_URL = process.env.UPSTASH_REDIS_REST_URL || "";
+const Q_TOK = process.env.UPSTASH_REDIS_REST_TOKEN || "";
+const FREE_DAILY = +(process.env.FREE_AI_DAILY || 5);    // 무료: 하루 N회(서버 검증)
+const PRO_DAILY  = +(process.env.PRO_AI_DAILY  || 120);  // Premium 공정사용 소프트캡
+const AI_BURST   = +(process.env.AI_BURST || 12);        // 10초당 최대 요청(버스트/중복/동시 폭주 방지)
+// 사용자가 '분석'으로 소비하는 작업만 일일 한도에 집계(번역·시세요약 등 배경 작업은 제외)
+const COUNTED = new Set(["summary","risk","scenario","stock_deep","portfolio_deep","compare","recommend","chat","portfolio","order_assist","board_qa"]);
+async function uq(cmd) {
+  const r = await fetch(Q_URL, { method: "POST", headers: { Authorization: "Bearer " + Q_TOK, "Content-Type": "application/json" }, body: JSON.stringify(cmd) });
+  if (!r.ok) throw new Error("upstash " + r.status);
+  return (await r.json()).result;
+}
+async function incrWithTtl(key, ttl) { const n = await uq(["INCR", key]); if (n === 1) { try { await uq(["EXPIRE", key, ttl]); } catch (e) {} } return n; }
+function dayStr() { return new Date().toISOString().slice(0, 10).replace(/-/g, ""); }
+// 반환: {ok:true} 또는 {ok:false, msg}
+export async function quotaCheck(ip, isPremium, sub, task) {
+  if (!Q_URL || !Q_TOK) return { ok: true };          // 미설정 → 통과(fail-open)
+  try {
+    const b = await incrWithTtl("q:b:" + ip, 10);       // 버스트: 10초 창
+    if (b > AI_BURST) return { ok: false, msg: "요청이 너무 빨라요. 잠시 후 다시 시도해 주세요." };
+    if (!COUNTED.has(task)) return { ok: true };        // 배경 작업은 일일 집계 제외(버스트만 적용)
+    const day = dayStr();
+    if (isPremium) {
+      const n = await incrWithTtl("q:p:" + (sub || ip) + ":" + day, 172800);
+      if (n > PRO_DAILY) return { ok: false, msg: "오늘 이용량이 많아 잠시 제한됐어요(공정사용 정책). 잠시 후 다시 시도해 주세요." };
+    } else {
+      const n = await incrWithTtl("q:f:" + ip + ":" + day, 172800);
+      if (n > FREE_DAILY) return { ok: false, msg: "오늘 무료 AI 분석 " + FREE_DAILY + "회를 모두 사용했어요. 내일 다시 이용하시거나 Premium에서 무제한으로 이용하세요." };
+    }
+    return { ok: true };
+  } catch (e) { return { ok: true }; }                  // 저장소 장애 시 서비스는 계속(통과)
+}
+async function logCost(task, tokens) { if (!Q_URL || !Q_TOK) return; try { const mo = dayStr().slice(0, 6); await uq(["INCRBY", "cost:tok:" + mo, tokens | 0]); await uq(["INCR", "cost:n:" + mo]); } catch (e) {} }
+async function logErr(task, msg) { if (!Q_URL || !Q_TOK) return; try { await uq(["LPUSH", "ai:err", JSON.stringify({ t: Date.now(), task, msg: String(msg).slice(0, 180) })]); await uq(["LTRIM", "ai:err", 0, 199]); } catch (e) {} }
 
 // ── 응답 캐시(동일 프롬프트 중복 호출 절감, 인스턴스 내 베스트에포트) ──
 const _cache = new Map();
@@ -160,7 +197,7 @@ async function listNvidiaModels() {
 }
 function rankNvModels(ids) {
   // 채팅/instruct 계열만, 빠른(작은) 모델 우선. 임베딩·가드·비전 등 제외
-  const chat = (ids || []).filter((id) => /instruct|nemotron|llama|qwen|deepseek|mixtral|mistral|gemma|phi/i.test(id) && !/guard|embed|reward|rerank|vision|-vl|ocr|safety|paraphrase|retriev/i.test(id));
+  const chat = (ids || []).filter((id) => /instruct|nemotron|llama|qwen|deepseek|mixtral|mistral|gemma|phi/i.test(id) && !/guard|embed|reward|rerank|vision|-vl|ocr|safety|paraphrase|retriev|diffusion|image|imagen|flux|sdxl|sana|stable|clip|siglip|whisper|parakeet|canary|\btts\b|audio|speech|depth|canvas|riva|cosmos|video/i.test(id));
   const small = chat.filter((id) => /(mini|nano|small|4b|7b|8b|9b|12b|17b|22b|27b)/i.test(id));
   const rest = chat.filter((id) => !small.includes(id));
   return [...small, ...rest];
@@ -213,8 +250,10 @@ function providerOrder() {
   return base.filter((n) => PROVIDERS[n] && PROVIDERS[n].available());
 }
 // 우선 Provider부터 시도 → 실패하면 다음 Provider로 자동 폴백
-async function callModel(prompt, maxTokens) {
-  const order = providerOrder();
+async function callModel(prompt, maxTokens, fast) {
+  let order = providerOrder();
+  // 번역·뉴스 등 지연 민감 작업은 Anthropic(haiku) 먼저 → NVIDIA 콜드스타트 지연 회피(빠름)
+  if (fast && order.indexOf("anthropic") !== -1) order = ["anthropic", ...order.filter((n) => n !== "anthropic")];
   if (!order.length) throw { code: 503, msg: "AI 키가 설정되지 않았어요." };
   let last = { code: 502, msg: "AI 오류" };
   for (const name of order) {
@@ -269,7 +308,11 @@ export default async function handler(req, res) {
     let body = req.body;
     if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
     const { task, context, question, premium } = body || {};
-    const isPremium = verifyToken(body && body.proToken) || (!process.env.PRO_SECRET && !!premium);
+    const FAST_TASK = ["translate_news","news_summary","news_sentiment","market_summary","watch_brief","news_explain","board_qa"].includes(task);
+    const _tp = verifyTokenPayload(body && body.proToken);
+    const isPremium = !!_tp || (!process.env.PRO_SECRET && !!premium);
+    const _q = await quotaCheck(ip, isPremium, _tp && _tp.sub, task);
+    if (!_q.ok) return res.status(429).json({ error: _q.msg, aiUnavailable: true, limited: true });
     const ctxStr = JSON.stringify(context || {}).slice(0, 4500);
     const depth = isPremium ? "심층적으로 (기업 개요·성장성·경쟁 환경 포함)" : "간결하게 (핵심만)";
 
@@ -367,7 +410,8 @@ ${isPremium ? "4~6문장" : "2~3문장"} 한국어. 일반 텍스트.`;
 
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        const text = await callModel(prompt, maxTokens);
+        const text = await callModel(prompt, maxTokens, FAST_TASK);
+        logCost(task, maxTokens).catch(() => {});
         if (!wantJson) { const out = { answer: text.trim(), provider: lastProvider }; return res.status(200).json(out); }
         const parsed = parseJson(text);
         if (!parsed) { if (attempt < 2) continue; return res.status(502).json({ error: "AI 응답을 읽지 못했어요.", aiUnavailable: true }); }
@@ -375,6 +419,7 @@ ${isPremium ? "4~6문장" : "2~3문장"} 한국어. 일반 텍스트.`;
         if (ckey) cacheSet(ckey, parsed);
         return res.status(200).json(parsed);
       } catch (e) {
+        logErr(task, (e && (e.msg || e.message)) || e).catch(() => {});
         if (attempt >= 2 || e.code === 429) return res.status(200).json({ error: e.msg || "AI 오류.", aiUnavailable: true });
       }
     }
