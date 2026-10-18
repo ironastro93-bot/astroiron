@@ -391,93 +391,68 @@
 <div class="wrap">
   <main id="app"><div style="margin-bottom:22px"><h1>Market Pulse <span style="font-size:15px;font-weight:600;color:var(--sub);letter-spacing:0">시장의 흐름</span></h1><p class="lede">지수·금리·달러·원자재·크립토를 실시간으로. AI가 오늘 시장을 요약해 드려요.</p><div class="srow" style="pointer-events:none;opacity:.7"><input placeholder="티커·회사명 검색 · 예) TSLA, Apple" disabled aria-hidden="true"/><button class="btn">분석</button></div></div><div class="pstrip"><div class="skel" style="height:52px;flex:1 1 110px"></div><div class="skel" style="height:52px;flex:1 1 110px"></div><div class="skel" style="height:52px;flex:1 1 110px"></div><div class="skel" style="height:52px;flex:1 1 110px"></div><div class="skel" style="height:52px;flex:1 1 110px"></div></div><div style="height:17px"></div><div class="skel" style="height:150px;border-radius:16px;margin-bottom:16px"></div><div class="skel" style="height:150px;border-radius:16px"></div></main>
   <style>
-  #aboutSection h3{font-size:14px;font-weight:800;margin:26px 0 11px;color:var(--ink)}
+  #aboutSection h3{font-size:12.5px;font-weight:800;margin:22px 0 9px;color:var(--sub);letter-spacing:.02em}
   #aboutSection .ftag{background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--sub);font-weight:600;white-space:nowrap}
-  #aboutSection .gcard{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px;text-decoration:none;color:var(--ink);transition:.15s}
-  #aboutSection .gcard:hover{border-color:var(--steel);transform:translateY(-1px)}
-  #aboutSection .gcard .gt{font-size:13.5px;font-weight:700;line-height:1.35}
-  #aboutSection .gcard .gar{color:var(--faint);flex:0 0 auto}
-  #aboutSection .acc{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden;background:var(--card)}
-  #aboutSection .acc>summary{cursor:pointer;list-style:none;padding:13px 15px;font-size:13.5px;font-weight:700;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:10px}
-  #aboutSection .acc>summary::-webkit-details-marker{display:none}
-  #aboutSection .acc>summary::after{content:"+";color:var(--faint);font-size:17px;font-weight:400;flex:0 0 auto}
-  #aboutSection .acc[open]>summary::after{content:"\2212"}
-  #aboutSection .acc .accbody{padding:0 15px 14px;font-size:13px;line-height:1.7;color:var(--sub)}
+  #aboutSection .glink{display:block;color:var(--steel);font-size:13.5px;font-weight:600;text-decoration:none;padding:6px 0}
+  #aboutSection .glink:hover{text-decoration:underline}
   </style>
   <section id="aboutSection" aria-label="서비스 소개" style="margin:36px 0 4px;border-top:1px solid var(--line);padding-top:28px">
-    <h2 style="font-size:18px;font-weight:800;margin:0 0 10px">ASTRO IRON 소개</h2>
-    <p style="font-size:14px;color:var(--sub);line-height:1.75;margin:0 0 4px">미국 주식 시장을 한국어로 한눈에 보는 무료 금융 정보 대시보드입니다. 실시간 지수·종목 시세·차트·재무·뉴스·경제 일정과 AI 요약을 로그인 없이 제공합니다. <a href="/about.html" style="color:var(--steel);font-weight:600;white-space:nowrap">서비스 소개 →</a></p>
+    <h2 style="font-size:17px;font-weight:800;margin:0 0 8px">ASTRO IRON</h2>
+    <p style="font-size:13.5px;color:var(--sub);line-height:1.7;margin:0">미국 주식 시장을 한국어로 한눈에 보는 무료 금융 정보 서비스입니다. <a href="/about.html" style="color:var(--steel);font-weight:600;white-space:nowrap">서비스 소개 →</a></p>
     <h3>주요 기능</h3>
-    <div style="display:flex;flex-wrap:wrap;gap:7px">
-      <span class="ftag">시장 지수</span><span class="ftag">종목 분석</span><span class="ftag">재무지표(PER·PBR·ROE)</span><span class="ftag">실적·서프라이즈</span><span class="ftag">SEC 공시</span><span class="ftag">시장 뉴스</span><span class="ftag">미국 국채금리</span><span class="ftag">달러·원자재</span><span class="ftag">AI 요약·분석</span>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <span class="ftag">시장 지수</span><span class="ftag">종목 분석</span><span class="ftag">재무지표</span><span class="ftag">뉴스</span><span class="ftag">경제 일정</span><span class="ftag">AI 분석</span>
     </div>
     <h3>투자 가이드</h3>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px">
-      <a class="gcard" href="/blog/us-stock-realtime-free.html"><span class="gt">미국주식 실시간 무료로 보기</span><span class="gar">→</span></a>
-      <a class="gcard" href="/blog/us-market-hours-kst.html"><span class="gt">미국장 시간 (한국시간)</span><span class="gar">→</span></a>
-      <a class="gcard" href="/blog/us-stock-tax-korea.html"><span class="gt">미국주식 세금 정리</span><span class="gar">→</span></a>
-      <a class="gcard" href="/blog/dividend-us-stocks.html"><span class="gt">배당주 고르는 법</span><span class="gar">→</span></a>
-      <a class="gcard" href="/blog/per-pbr-roe-guide.html"><span class="gt">PER·PBR·ROE 쉽게</span><span class="gar">→</span></a>
-      <a class="gcard" href="/blog/etf-qqq-spy-schd.html"><span class="gt">QQQ·SPY·SCHD 차이</span><span class="gar">→</span></a>
+    <div style="display:flex;flex-direction:column">
+      <a class="glink" href="/blog/us-stock-realtime-free.html">미국주식 실시간 무료로 보기</a>
+      <a class="glink" href="/blog/us-stock-tax-korea.html">미국주식 세금 정리</a>
+      <a class="glink" href="/blog/dividend-us-stocks.html">배당주 고르는 법</a>
+      <a class="glink" href="/blog/per-pbr-roe-guide.html">PER·PBR·ROE 쉽게</a>
     </div>
-    <a href="/blog/" style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;background:var(--steel);border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:700;color:#fff;text-decoration:none">전체 가이드 보기 →</a>
-    <h3>자주 묻는 질문</h3>
-    <details class="acc"><summary>무료로 사용할 수 있나요?</summary><div class="accbody">네. 실시간 시세·차트·뉴스·공시·재무·관심종목·포트폴리오·가격 알림까지 모두 무료입니다. AI 심층 분석 일부만 선택형 Premium입니다.</div></details>
-    <details class="acc"><summary>주가 데이터는 실시간인가요?</summary><div class="accbody">공개 API 기반의 근실시간 데이터입니다. 무료 서비스 특성상 최대 15분 지연될 수 있습니다.</div></details>
-    <details class="acc"><summary>AI 분석은 투자 권유인가요?</summary><div class="accbody">아니요. 「자본시장법」상 투자자문·투자권유가 아닙니다. AI가 생성한 요약·해석이라 오류가 있을 수 있는 참고용 정보이며, 투자 판단과 책임은 이용자 본인에게 있습니다.</div></details>
-    <details class="acc"><summary>한국 주식도 지원하나요?</summary><div class="accbody">현재는 미국 상장 종목·ETF 중심이며, 일부 해외 지수·환율·원자재도 제공합니다.</div></details>
-    <details class="acc"><summary>관심 종목은 어디에 저장되나요?</summary><div class="accbody">서버가 아닌 이용자 브라우저(기기)에만 저장됩니다. 로그인이 필요 없습니다.</div></details>
-    <p style="font-size:12px;color:var(--faint);margin:10px 2px 0">더 많은 질문은 <a href="/faq.html" style="color:var(--steel);font-weight:600">FAQ 페이지 →</a></p>
-
-    <h3>데이터 및 투자 유의사항</h3>
-    <details class="acc"><summary>데이터 출처와 지연</summary><div class="accbody">시세·차트·지수·환율은 Yahoo Finance, 기업 개요·재무·투자의견·실적은 Finnhub, 기업 공시는 SEC EDGAR, 국채금리·달러·원자재는 FRED, 뉴스는 Google News 등 공개 API에서 제공됩니다. 무료 서비스 특성상 실시간이 아닌 최대 15분 지연이 있을 수 있고, 소스 사정에 따라 일부 값이 제공되지 않을 수 있습니다.</div></details>
-    <details class="acc"><summary>AI 분석의 한계</summary><div class="accbody">AI 분석은 위 데이터를 바탕으로 한 생성형 요약·해석 보조 기능입니다. 사실과 다르거나 오류가 있을 수 있으므로 확정된 사실이 아닌 참고 자료로만 활용하세요. 확인된 시장 데이터와 AI가 생성한 의견은 화면에서 구분해 표시합니다.</div></details>
-    <details class="acc"><summary>무료·Premium 범위</summary><div class="accbody">무료: 실시간 시세·차트·뉴스·공시·재무·관심종목·포트폴리오·가격 알림. Premium(선택): AI 분석·채팅 무제한(무료는 하루 5회), 심층 리포트, 투자 시나리오, 종목 비교, 광고 제거 등. 결제는 1회·자동결제 없음입니다.</div></details>
-    <details class="acc"><summary>투자 책임 고지</summary><div class="accbody">본 서비스의 모든 정보는 참고용이며 「자본시장법」상 투자자문·투자권유가 아닙니다. 시세는 지연·오차가 있을 수 있고 수익을 보장하지 않습니다. 투자 판단과 그 결과에 대한 책임은 전적으로 이용자 본인에게 있습니다.</div></details>
+    <a href="/blog/" style="display:inline-block;margin-top:10px;font-size:13px;font-weight:700;color:var(--steel);text-decoration:none">전체 가이드 보기 →</a>
+    <p style="font-size:11.5px;color:var(--faint);line-height:1.65;margin:20px 0 0">데이터는 공개 API 기반으로 최대 15분 지연될 수 있으며, 모든 정보는 참고용으로 투자자문·투자권유가 아닙니다. 투자 판단과 책임은 이용자 본인에게 있습니다.</p>
   </section>
   <footer>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><div class="logo" style="width:20px;height:20px;font-size:9px;background:#3A3E46;border-radius:6px;color:#fff">AI</div><span style="font-weight:700;font-family:'Inter',sans-serif;font-size:13px">ASTRO IRON</span></div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:18px 22px;margin-bottom:18px">
-      <div>
-        <div style="font-size:11.5px;font-weight:700;opacity:.6;margin-bottom:8px">서비스</div>
-        <a href="/about.html" style="display:block;color:var(--bg);opacity:.9;text-decoration:none;font-size:13px;padding:3px 0">서비스 소개</a>
-        <a href="/faq.html" style="display:block;color:var(--bg);opacity:.9;text-decoration:none;font-size:13px;padding:3px 0">자주 묻는 질문</a>
-        <a href="/contact.html" style="display:block;color:var(--bg);opacity:.9;text-decoration:none;font-size:13px;padding:3px 0">문의하기</a>
-        <a href="/blog/" style="display:block;color:var(--bg);opacity:.9;text-decoration:none;font-size:13px;padding:3px 0">블로그</a>
-      </div>
-      <div>
-        <div style="font-size:11.5px;font-weight:700;opacity:.6;margin-bottom:8px">기능</div>
-        <a href="/realtime-us-stocks.html" style="display:block;color:var(--bg);opacity:.9;text-decoration:none;font-size:13px;padding:3px 0">실시간 시세</a>
-        <a href="/ai-stock-analysis.html" style="display:block;color:var(--bg);opacity:.9;text-decoration:none;font-size:13px;padding:3px 0">AI 분석</a>
-        <a href="/mock-investing.html" style="display:block;color:var(--bg);opacity:.9;text-decoration:none;font-size:13px;padding:3px 0">모의투자</a>
-        <a href="/exchange" style="display:block;color:var(--bg);opacity:.9;text-decoration:none;font-size:13px;padding:3px 0">환율 계산기</a>
-        <a href="/market-hours" style="display:block;color:var(--bg);opacity:.9;text-decoration:none;font-size:13px;padding:3px 0">미국장 시간</a>
-      </div>
-      <div>
-        <div style="font-size:11.5px;font-weight:700;opacity:.6;margin-bottom:8px">약관·정책</div>
-        <a href="/privacy.html" style="display:block;color:var(--bg);opacity:.9;text-decoration:none;font-size:13px;padding:3px 0">개인정보처리방침</a>
-        <a href="/terms.html" style="display:block;color:var(--bg);opacity:.9;text-decoration:none;font-size:13px;padding:3px 0">이용약관</a>
-        <a href="/community-policy.html" style="display:block;color:var(--bg);opacity:.9;text-decoration:none;font-size:13px;padding:3px 0">커뮤니티 정책</a>
-      </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><div class="logo" style="width:20px;height:20px;font-size:9px;background:#3A3E46;border-radius:6px;color:#fff">AI</div><span style="font-weight:700;font-family:'Inter',sans-serif;font-size:13px">ASTRO IRON</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px 18px;margin-bottom:14px">
+      <a href="/about.html" style="color:var(--bg);opacity:.9;text-decoration:none;font-size:13px">서비스 소개</a>
+      <a href="/realtime-us-stocks.html" style="color:var(--bg);opacity:.9;text-decoration:none;font-size:13px">실시간 시세</a>
+      <a href="/ai-stock-analysis.html" style="color:var(--bg);opacity:.9;text-decoration:none;font-size:13px">AI 분석</a>
+      <a href="/blog/" style="color:var(--bg);opacity:.9;text-decoration:none;font-size:13px">블로그</a>
+      <a href="/privacy.html" style="color:var(--bg);opacity:.9;text-decoration:none;font-size:13px">개인정보처리방침</a>
+      <a href="/terms.html" style="color:var(--bg);opacity:.9;text-decoration:none;font-size:13px">이용약관</a>
+      <a href="/contact.html" style="color:var(--bg);opacity:.9;text-decoration:none;font-size:13px">문의하기</a>
     </div>
-    <p style="opacity:.6;font-size:11.5px;line-height:1.7;border-top:1px solid rgba(255,255,255,.12);padding-top:14px;margin:0">관심종목·포트폴리오·메모·최근검색은 이 기기에만 저장됩니다 · 참고용 정보이며 투자자문·투자권유가 아닙니다 · 문의 ironastro93@gmail.com · © ASTRO IRON</p>
+    <p style="opacity:.55;font-size:11px;margin:0">© ASTRO IRON · ironastro93@gmail.com</p>
   </footer>
 </div>
 
 <!-- Premium 모달 -->
 <div class="modalBg" id="proModal">
   <div class="modal" onclick="event.stopPropagation()">
-    <div style="font-size:12px;font-weight:700;color:var(--steel);letter-spacing:.1em;margin-bottom:6px">ASTRO IRON PREMIUM</div>
-    <h3 style="font-size:21px;font-weight:700;margin-bottom:8px">전문가 수준의 분석을 무제한으로</h3>
-    <p style="font-size:14px;color:var(--sub);line-height:1.65;margin-bottom:16px">무료로도 실시간 시세·차트·뉴스·공시·포트폴리오를 모두 쓸 수 있어요. Premium은 AI 분석의 깊이와 자동화를 더합니다.</p>
-    <div style="background:var(--soft);border-radius:12px;padding:16px 18px;margin-bottom:16px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--charcoal-d)">Premium 전용</div>
-      <div style="font-size:13px;line-height:1.9">✓ AI 분석·채팅 무제한 (무료 하루 5회)<br/>✓ 심층 리포트 (경쟁사·산업·기술적 분석)<br/>✓ 투자 시나리오 (강세·중립·약세)<br/>✓ 종목 비교 분석 (Tesla vs Rivian 등)<br/>✓ AI 종목 추천 · 포트폴리오 AI 진단<br/>✓ 광고 제거 · 응답 우선 처리 · PRO 배지</div>
-      <div style="font-size:16px;font-weight:700;margin-top:12px">월 4,900원 · 30일 이용권 <span style="font-size:12px;font-weight:400;color:var(--faint)">(자동결제 없음)</span></div>
+    <div style="font-size:12px;font-weight:800;color:var(--steel);letter-spacing:.1em;margin-bottom:6px">ASTRO IRON PREMIUM</div>
+    <h3 style="font-size:20px;font-weight:800;margin-bottom:6px">AI 분석을 무제한으로, 광고 없이</h3>
+    <p style="font-size:13.5px;color:var(--sub);line-height:1.6;margin-bottom:14px">무료 기능은 그대로. Premium은 AI 심층 분석과 광고 제거를 더합니다.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:14px">
+      <thead><tr><th style="text-align:left;font-weight:600;padding:7px 4px;color:var(--faint)">기능</th><th style="padding:7px 4px;font-weight:700;color:var(--sub);width:62px">무료</th><th style="padding:7px 4px;font-weight:800;color:var(--steel);width:72px">Premium</th></tr></thead>
+      <tbody>
+        <tr style="border-top:1px solid var(--line)"><td style="padding:8px 4px">실시간 시세·차트·뉴스·공시·재무</td><td style="text-align:center">✓</td><td style="text-align:center;color:var(--steel)">✓</td></tr>
+        <tr style="border-top:1px solid var(--line)"><td style="padding:8px 4px">관심종목·포트폴리오·가격 알림</td><td style="text-align:center">✓</td><td style="text-align:center;color:var(--steel)">✓</td></tr>
+        <tr style="border-top:1px solid var(--line)"><td style="padding:8px 4px">AI 분석</td><td style="text-align:center;color:var(--faint)">하루 5회</td><td style="text-align:center;color:var(--steel);font-weight:700">무제한·심층</td></tr>
+        <tr style="border-top:1px solid var(--line)"><td style="padding:8px 4px">투자 시나리오·종목 비교</td><td style="text-align:center;color:var(--faint)">—</td><td style="text-align:center;color:var(--steel)">✓</td></tr>
+        <tr style="border-top:1px solid var(--line)"><td style="padding:8px 4px">포트폴리오 AI 진단</td><td style="text-align:center;color:var(--faint)">—</td><td style="text-align:center;color:var(--steel)">✓</td></tr>
+        <tr style="border-top:1px solid var(--line)"><td style="padding:8px 4px">광고</td><td style="text-align:center;color:var(--faint)">있음</td><td style="text-align:center;color:var(--steel);font-weight:700">제거</td></tr>
+        <tr style="border-top:1px solid var(--line)"><td style="padding:8px 4px">PRO 배지·우선 응답</td><td style="text-align:center;color:var(--faint)">—</td><td style="text-align:center;color:var(--steel)">✓</td></tr>
+      </tbody>
+    </table>
+    <div style="background:var(--soft);border-radius:12px;padding:14px 16px;margin-bottom:12px">
+      <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:23px;font-weight:800">4,900원</span><span style="font-size:13px;color:var(--sub)">/ 30일</span><span style="margin-left:auto;font-size:11px;color:var(--faint)">자동결제 없음</span></div>
+      <div style="font-size:11.5px;color:var(--faint);margin-top:6px">90일·1년 장기 이용권은 준비 중입니다.</div>
     </div>
-    <a href="mailto:ironastro93@gmail.com?subject=ASTRO%20IRON%20Premium%20%EA%B5%AC%EB%A7%A4%20%EB%AC%B8%EC%9D%98" style="display:block;text-align:center;padding:13px 0;border-radius:10px;background:var(--charcoal);color:var(--bg);font-weight:700;font-size:14.5px;text-decoration:none;margin-bottom:10px">이메일로 구매 문의</a>
-    <p style="font-size:11.5px;color:var(--faint);line-height:1.6;margin-bottom:14px">1회 결제 · 자동결제 없음 · 입금 확인 후 24시간 내 코드 발송 · 미사용 시 7일 내 환불</p>
-    <div style="display:flex;gap:8px"><input id="proCode" placeholder="해제 코드 입력"/><button class="btn-g" id="unlockBtn" style="font-weight:700;color:var(--ink);white-space:nowrap">확인</button></div>
+    <a href="mailto:ironastro93@gmail.com?subject=ASTRO%20IRON%20Premium%20%EA%B5%AC%EB%A7%A4%20%EB%AC%B8%EC%9D%98" style="display:block;text-align:center;padding:13px 0;border-radius:10px;background:var(--charcoal);color:var(--bg);font-weight:700;font-size:14.5px;text-decoration:none;margin-bottom:10px">구매 문의하기</a>
+    <p style="font-size:11px;color:var(--faint);line-height:1.55;margin-bottom:12px">1회 결제·자동결제 없음 · 입금 확인 후 24시간 내 코드 발송 · 미사용 시 7일 내 환불. AI 분석은 참고용이며 투자자문·투자권유가 아닙니다.</p>
+    <div style="display:flex;gap:8px"><input id="proCode" placeholder="이용 코드 입력"/><button class="btn-g" id="unlockBtn" style="font-weight:700;color:var(--ink);white-space:nowrap">확인</button></div>
     <div id="codeErr" style="font-size:12.5px;color:var(--up);margin-top:8px;display:none">코드가 맞지 않아요.</div>
     <button id="closeModal" style="margin-top:16px;background:none;border:none;color:var(--faint);font-size:13px">닫기</button>
   </div>
@@ -620,6 +595,7 @@ async function aiApi(task,context,question,history){
     const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({task,context,question,history,premium:isPro(),proToken:(function(){try{return localStorage.getItem("proToken")||""}catch(e){return ""}})()})});
     const d=await res.json().catch(()=>({aiUnavailable:true}));
     if(res.status===404)return{aiUnavailable:true};
+    if(d&&d.limited&&d.error){try{toast(d.error)}catch(e){} if(!isPro()){try{showPro()}catch(e){}}}
     if(!res.ok||d.aiUnavailable)return{aiUnavailable:true,...d};
     return d;
   }catch{return{aiUnavailable:true}}
@@ -2762,7 +2738,7 @@ window.closeBrief=function(){var ov=document.getElementById("briefModal");if(ov)
 window.copyBrief=function(){var t=window._briefText||"";if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast("복사됐어요 · 카톡에 붙여넣기 📋")},function(){toast("복사 실패")})}else toast("길게 눌러 복사해 주세요")};
 window.shareBrief=async function(){var t=window._briefText||"";if(navigator.share){try{await navigator.share({text:t});return}catch(e){if(e&&e.name==="AbortError")return}}copyBrief()};
 document.getElementById("quotaBtn").addEventListener("click",()=>{if(!isPro())showPro()});
-try{document.getElementById("authBtn").addEventListener("click",function(){if(_fb&&_fb.user){if(window.confirm("로그아웃할까요? (이 기기의 데이터는 남아있어요)"))fbLogout();}else{fbLogin();}})}catch(e){}
+try{document.getElementById("authBtn").addEventListener("click",function(){if(_fb&&_fb.user){try{openAcct()}catch(e){if(window.confirm("로그아웃할까요?"))fbLogout();}}else{fbLogin();}})}catch(e){}
 document.getElementById("proModal").addEventListener("click",hidePro);
 document.getElementById("closeModal").addEventListener("click",hidePro);
 document.getElementById("unlockBtn").addEventListener("click",async()=>{var raw=document.getElementById("proCode").value.trim();var err=document.getElementById("codeErr");if(!raw){if(err)err.style.display="block";return}try{var r=await fetch("/api/redeem",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:raw})});var d=await r.json().catch(()=>({}));if(d&&d.ok&&d.token){try{localStorage.setItem("proToken",d.token);localStorage.setItem("proExp",String(d.exp||0))}catch(_){}try{trackEvent&&trackEvent("premium_unlock",{via:"server"})}catch(_){}hidePro();render();return}if(d&&!d.unconfigured){if(err)err.style.display="block";return}}catch(e){}if(await sha256(raw.toUpperCase())===PRO_HASH){try{localStorage.setItem("pro",PRO_HASH)}catch(_){}hidePro();render()}else if(err)err.style.display="block"});
@@ -2802,7 +2778,7 @@ async function initFirebase(){
     try{
       _fb.auth=firebase.auth();
       try{await _fb.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)}catch(e){}
-      _fb.auth.onAuthStateChanged(function(u){_fb.user=u||null;try{updateAuthUI()}catch(e){}if(u){try{cloudPull().then(function(){try{if(state.view!=="board")render()}catch(e){}})}catch(e){}}});
+      _fb.auth.onAuthStateChanged(function(u){_fb.user=u||null;try{updateAuthUI()}catch(e){}try{syncPremiumFromServer()}catch(e){}if(u){try{cloudPull().then(function(){try{if(state.view!=="board")render()}catch(e){}})}catch(e){}}});
     }catch(e){}
     try{await _fb.db.enablePersistence({synchronizeTabs:true})}catch(e){}
     try{if(state.view==="board")render()}catch(e){}
@@ -2878,6 +2854,52 @@ function _deferHeavy(){
   _idle(go,3500);
 }
 if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",_boot)}else{_boot()}
+</script>
+<script>
+/* ═══ 계정·Premium 서버 동기화 + Lemon Squeezy(MoR) 결제 — 설정 시 활성, 미설정 시 기존 방식 유지 ═══ */
+/* 운영자: Lemon Squeezy에서 상품 생성 후 'Buy link'를 아래에 붙여넣으면 계정 화면에 결제 버튼이 생깁니다. 비우면 Premium 소개로 폴백. */
+const LS_CHECKOUT_30 = "";   // 예) https://astroiron.lemonsqueezy.com/buy/xxxxxxxx
+let _acct = { email:"", premium:false, until:null };
+async function syncPremiumFromServer(){
+  try{
+    if(!(typeof _fb!=="undefined" && _fb && _fb.user)){ _acct={email:"",premium:false,until:null}; return; }
+    const idt = await _fb.user.getIdToken();
+    const r = await fetch("/api/me",{headers:{Authorization:"Bearer "+idt}});
+    if(!r.ok) return;                 // 503(미설정) 등 → 레거시(기존 코드/토큰) 유지
+    const d = await r.json();
+    _acct = { email:d.email||_fb.user.email||"", premium:!!d.premium, until:d.premiumUntil||null };
+    if(d.premium && d.proToken){
+      try{ localStorage.setItem("proToken", d.proToken); localStorage.setItem("proExp", String(d.exp||d.premiumUntil||0)); }catch(e){}
+    }else if(!d.premium){
+      try{ if(localStorage.getItem("proToken")){ localStorage.removeItem("proToken"); localStorage.removeItem("proExp"); } }catch(e){}
+    }
+    try{ render(); }catch(e){}
+  }catch(e){}
+}
+function _lsCheckoutUrl(base){
+  if(!base || !(typeof _fb!=="undefined" && _fb && _fb.user)) return "";
+  var u=_fb.user, sep=base.indexOf("?")>=0?"&":"?";
+  return base+sep+"checkout[custom][user_id]="+encodeURIComponent(u.uid)+"&checkout[email]="+encodeURIComponent(u.email||"");
+}
+function openAcct(){
+  var m=document.getElementById("acctModal");
+  if(!m){ m=document.createElement("div"); m.id="acctModal"; m.className="modalBg"; m.addEventListener("click",function(e){if(e.target===m)closeAcct()}); document.body.appendChild(m); }
+  var u=((typeof _fb!=="undefined"&&_fb&&_fb.user))||{}; var email=_acct.email||u.email||"";
+  var pm=_acct.premium?('<span style="color:var(--steel);font-weight:800">Premium 이용 중</span>'+(_acct.until?(' · 만료 '+new Date(_acct.until).toLocaleDateString("ko-KR")):"")):'무료 이용 중';
+  var buy=_lsCheckoutUrl(LS_CHECKOUT_30);
+  m.innerHTML='<div class="modal" onclick="event.stopPropagation()">'
+    +'<div style="font-size:12px;font-weight:800;color:var(--steel);letter-spacing:.1em;margin-bottom:8px">내 계정</div>'
+    +'<div style="font-size:15px;font-weight:700;margin-bottom:2px">'+(email?email.replace(/[<>]/g,""):"로그인됨")+'</div>'
+    +'<div style="font-size:13px;color:var(--sub);margin-bottom:14px">'+pm+'</div>'
+    +'<div style="background:var(--soft);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--sub);line-height:1.6;margin-bottom:14px">관심종목·포트폴리오·알림이 이 계정으로 기기 간 동기화됩니다. Premium 상태는 서버에서 확인됩니다.</div>'
+    +(_acct.premium?'':(buy?('<a href="'+buy+'" target="_blank" rel="noopener" style="display:block;text-align:center;padding:12px 0;border-radius:10px;background:var(--charcoal);color:var(--bg);font-weight:700;text-decoration:none;margin-bottom:8px">Premium 결제하기 · 4,900원/30일</a>'):('<button onclick="closeAcct();showPro()" style="display:block;width:100%;padding:12px 0;border-radius:10px;background:var(--charcoal);color:var(--bg);font-weight:700;border:0;margin-bottom:8px">Premium 보기</button>')))
+    +'<button onclick="fbLogout();closeAcct()" style="display:block;width:100%;padding:11px 0;border-radius:10px;background:none;border:1px solid var(--line);color:var(--ink);font-weight:600">로그아웃</button>'
+    +'<button onclick="closeAcct()" style="margin-top:10px;background:none;border:none;color:var(--faint);font-size:13px;width:100%">닫기</button>'
+    +'</div>';
+  m.classList.add("show");
+}
+function closeAcct(){var m=document.getElementById("acctModal");if(m)m.classList.remove("show")}
+window.openAcct=openAcct; window.closeAcct=closeAcct; window.syncPremiumFromServer=syncPremiumFromServer;
 </script>
 <script>
 /* 미국 시장 세션 배지 (한국시간·휴일 인식) — 뷰 재렌더와 독립, 자체 부트 */
