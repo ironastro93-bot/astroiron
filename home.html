@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASTRO IRON · 미국주식 실시간 시세·AI 분석 (무료)</title>
+<meta name="description" content="미국 주식시장을 한눈에. S&P500·나스닥·다우 실시간 지수, 종목 분석, 경제 캘린더, AI 시장 인사이트를 한국어로 무료 제공.">
+<meta name="theme-color" content="#0f1115">
+<meta property="og:title" content="ASTRO IRON · 미국주식 실시간 시세·AI 분석">
+<meta property="og:description" content="미국 증시를 한눈에. 실시간 지수·종목분석·경제캘린더·AI 인사이트. 한국어·무료.">
+<meta property="og:image" content="https://astroiron.com/og.png">
+<meta property="og:url" content="https://astroiron.com/">
+<style>
+  :root{
+    --bg:#0f1115;--card:#161922;--soft:#1d212b;--line:#272d39;--ink:#e9edf4;--sub:#99a4b4;--faint:#6b7480;
+    --up:#16b364;--down:#e5484d;--accent:#4da3ff;--teal:#35d0ba;--amber:#f5a623;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:960px;margin:0 auto;padding:0 18px}
+  /* header */
+  header{position:sticky;top:0;z-index:50;background:rgba(15,17,21,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .hin{display:flex;align-items:center;gap:14px;height:56px;max-width:960px;margin:0 auto;padding:0 18px}
+  .logo{font-weight:900;font-size:17px;letter-spacing:.3px}.logo b{color:var(--accent)}
+  nav.top{margin-left:auto;display:flex;gap:4px;overflow-x:auto}
+  nav.top a{color:var(--sub);font-size:13.5px;font-weight:600;padding:7px 11px;border-radius:8px;white-space:nowrap}
+  nav.top a:hover{color:var(--ink);background:var(--soft)}
+  .openapp{background:linear-gradient(90deg,var(--accent),var(--teal));color:#04121f!important;font-weight:800!important}
+  /* section */
+  section{padding:26px 0}
+  .shead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+  .shead h2{font-size:18px;font-weight:800;margin:0}
+  .shead a{font-size:13px;color:var(--accent);font-weight:700}
+  .muted{color:var(--faint);font-size:12px}
+  /* status + search */
+  .hero{padding-top:26px}
+  .mstat{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:6px 13px;margin-bottom:14px}
+  .mstat .dot{width:9px;height:9px;border-radius:50%}
+  .search{display:flex;gap:8px;margin:14px 0 6px}
+  .search input{flex:1;background:var(--soft);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-size:15px;padding:13px 15px;outline:none}
+  .search input::placeholder{color:var(--faint)}
+  .search button{background:var(--accent);color:#04121f;font-weight:800;border:0;border-radius:12px;padding:0 18px;font-size:15px;cursor:pointer}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+  .chips a{background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--sub)}
+  .chips a:hover{color:var(--ink);border-color:var(--accent)}
+  /* index cards */
+  .idx{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:4px}
+  .ic{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .ic .nm{font-size:12.5px;color:var(--sub);font-weight:600}
+  .ic .pv{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:4px;letter-spacing:-.02em}
+  .pct{display:inline-flex;align-items:center;gap:3px;margin-top:7px;padding:2px 8px;border-radius:8px;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;background:color-mix(in srgb,currentColor 13%,transparent)}
+  /* summary */
+  .sumcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+  .sumcard li{list-style:none;display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+  .sumcard li:last-child{border-bottom:0}
+  .sumcard li .ico{flex:0 0 auto;font-size:16px;margin-top:1px}
+  .detailbtn{display:inline-flex;align-items:center;gap:6px;margin-top:12px;background:var(--soft);border:1px solid var(--line);color:var(--ink);font-weight:700;font-size:13.5px;border-radius:10px;padding:9px 14px;cursor:pointer}
+  .detailbtn:hover{border-color:var(--accent)}
+  /* feature cards */
+  .feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .fc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:block;transition:.15s}
+  .fc:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .fc .fi{font-size:22px}
+  .fc .ft{font-weight:800;font-size:15px;margin-top:8px}
+  .fc .fd{color:var(--sub);font-size:12.5px;margin-top:3px}
+  /* list rows */
+  .row{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+  .row .rk{width:22px;text-align:center;font-weight:800;color:var(--faint);font-variant-numeric:tabular-nums}
+  .row .main{min-width:0;flex:1}
+  .row .t1{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .t2{color:var(--faint);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .rt{text-align:right;flex:0 0 auto}
+  .row .px{font-weight:800;font-variant-numeric:tabular-nums;font-size:14px}
+  /* faq */
+  .faq details{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden}
+  .faq summary{cursor:pointer;padding:14px 16px;font-weight:700;font-size:14.5px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary::after{content:"+";color:var(--faint);font-size:18px;font-weight:400}
+  .faq details[open] summary::after{content:"−"}
+  .faq .ans{padding:0 16px 15px;color:var(--sub);font-size:13.5px;line-height:1.7}
+  /* footer */
+  footer{border-top:1px solid var(--line);margin-top:20px;padding:28px 0 46px}
+  .fgrid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:22px}
+  footer h4{font-size:13px;color:var(--sub);margin:0 0 10px}
+  footer a{display:block;color:var(--faint);font-size:13px;padding:4px 0}
+  footer a:hover{color:var(--ink)}
+  .intro{color:var(--sub);font-size:13.5px;line-height:1.7}
+  .disc{color:var(--faint);font-size:11.5px;line-height:1.6;margin-top:22px;border-top:1px solid var(--line);padding-top:16px}
+  .cta{display:block;text-align:center;margin:30px 0 0;background:linear-gradient(90deg,var(--accent),var(--teal));color:#04121f;font-weight:800;border-radius:14px;padding:16px;font-size:16px}
+  @media (max-width:640px){
+    .idx{grid-template-columns:repeat(2,1fr)}
+    .fgrid{grid-template-columns:1fr 1fr}
+    nav.top a:not(.openapp){display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="hin">
+    <a class="logo" href="/">ASTRO <b>IRON</b></a>
+    <nav class="top">
+      <a href="#market">시장</a>
+      <a href="#features">기능</a>
+      <a href="#news">뉴스</a>
+      <a href="/market-hours">장시간</a>
+      <a href="/exchange">환율</a>
+      <a class="openapp" href="/">앱 열기</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- HERO: 시장 한눈에 -->
+  <section class="hero" id="market">
+    <div class="mstat"><span class="dot" id="msdot" style="background:var(--faint)"></span><span id="mstxt">시장 상태 확인 중…</span></div>
+    <h1 style="font-size:24px;font-weight:800;margin:4px 0 2px">미국 증시, 한눈에 👀</h1>
+    <p class="muted" style="font-size:13.5px;color:var(--sub)">핵심만 먼저. 더 궁금하면 눌러서 자세히 보세요.</p>
+
+    <div class="search">
+      <input id="q" placeholder="종목 검색 (예: 엔비디아, TSLA, 애플)" autocomplete="off">
+      <button id="qbtn">검색</button>
+    </div>
+    <div class="chips">
+      <a href="/stock/NVDA">엔비디아</a><a href="/stock/TSLA">테슬라</a><a href="/stock/AAPL">애플</a>
+      <a href="/stock/NVDA">NVDA</a><a href="/stock/MSFT">MSFT</a><a href="/stock/COIN">코인베이스</a><a href="/stock/CPNG">쿠팡</a>
+    </div>
+
+    <div class="idx" id="idx">
+      <div class="ic"><div class="nm">S&P 500</div><div class="pv">—</div></div>
+      <div class="ic"><div class="nm">나스닥100</div><div class="pv">—</div></div>
+      <div class="ic"><div class="nm">다우존스</div><div class="pv">—</div></div>
+      <div class="ic"><div class="nm">원/달러</div><div class="pv">—</div></div>
+    </div>
+    <p class="muted" id="idxAsOf" style="margin-top:10px">기준 시각 확인 중 · 공개 데이터, 최대 15분 지연</p>
+  </section>
+
+  <!-- 오늘의 시장 요약 -->
+  <section>
+    <div class="shead"><h2>오늘의 시장 요약</h2></div>
+    <div class="sumcard">
+      <ul style="margin:0;padding:0" id="sumList">
+        <li><span class="ico">📊</span><span>지수 데이터를 불러오는 중…</span></li>
+      </ul>
+      <a class="detailbtn" href="/">🤖 AI 상세 분석 보기 →</a>
+      <div class="muted" style="margin-top:9px">AI 분석과 확인된 시장 데이터는 구분해 표시됩니다 · 참고용, 투자 권유 아님</div>
+    </div>
+  </section>
+
+  <!-- 주요 기능 -->
+  <section id="features">
+    <div class="shead"><h2>주요 기능</h2></div>
+    <div class="feat">
+      <a class="fc" href="/"><div class="fi">📈</div><div class="ft">종목 분석</div><div class="fd">시세·차트·재무·AI 한 번에</div></a>
+      <a class="fc" href="/#watchlist"><div class="fi">⭐</div><div class="ft">관심 종목</div><div class="fd">저장·가격 알림 (로그인 X)</div></a>
+      <a class="fc" href="/#portfolio"><div class="fi">💼</div><div class="ft">포트폴리오</div><div class="fd">총자산·손익·분산 진단</div></a>
+      <a class="fc" href="/#cal"><div class="fi">📅</div><div class="ft">경제 캘린더</div><div class="fd">FOMC·CPI·실적 일정</div></a>
+      <a class="fc" href="/#map"><div class="fi">🌍</div><div class="ft">세계 뉴스 지도</div><div class="fd">나라별 증시 뉴스 한국어</div></a>
+      <a class="fc" href="/"><div class="fi">🤖</div><div class="ft">AI 시장 분석</div><div class="fd">요약·리스크·시나리오</div></a>
+    </div>
+  </section>
+
+  <!-- 인기 종목 -->
+  <section>
+    <div class="shead"><h2>실시간 인기 종목</h2><a href="/">전체 보기 →</a></div>
+    <div id="rank">
+      <div class="row"><div class="rk">1</div><div class="main"><div class="t1">불러오는 중…</div></div></div>
+    </div>
+    <p class="muted" style="margin-top:4px">거래량 순 · 최대 15분 지연</p>
+  </section>
+
+  <!-- 최신 뉴스 -->
+  <section id="news">
+    <div class="shead"><h2>최신 시장 뉴스</h2><a href="/#news">더보기 →</a></div>
+    <div id="newsList">
+      <div class="row"><div class="main"><div class="t1">뉴스를 불러오는 중…</div></div></div>
+    </div>
+  </section>
+
+  <a class="cta" href="/">무료로 전체 기능 시작하기 →</a>
+
+  <!-- FAQ -->
+  <section>
+    <div class="shead"><h2>자주 묻는 질문</h2></div>
+    <div class="faq">
+      <details><summary>ASTRO IRON은 어떤 서비스인가요?</summary><div class="ans">미국 주식 실시간 시세·차트, 종목별 분석, 경제 일정, AI 기반 시장 인사이트를 한국어로 한곳에서 제공하는 무료 금융 정보 플랫폼입니다.</div></details>
+      <details><summary>종목별 분석은 어떻게 확인하나요?</summary><div class="ans">상단 검색창에 한글 또는 티커(예: 엔비디아 / NVDA)로 검색하면 시세·차트·재무·관련 뉴스·AI 분석을 볼 수 있습니다.</div></details>
+      <details><summary>관심 종목은 어떻게 등록하나요?</summary><div class="ans">로그인 없이, 종목 화면에서 ⭐를 누르면 이 기기에 저장됩니다. 원하는 가격에 알림도 설정할 수 있습니다.</div></details>
+      <details><summary>시장 데이터는 언제 업데이트되나요?</summary><div class="ans">공개 API 기반의 근실시간 데이터로, 무료 서비스 특성상 최대 15분 지연될 수 있습니다. 각 화면에 기준 시각을 표시합니다.</div></details>
+      <details><summary>AI 분석은 어떻게 해석해야 하나요?</summary><div class="ans">AI는 제공된 데이터를 요약·해석하는 보조 기능입니다. 「자본시장법」상 투자자문·투자권유가 아니며 참고용입니다. 투자 판단과 책임은 이용자 본인에게 있습니다.</div></details>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div>
+        <h4>ASTRO IRON</h4>
+        <p class="intro">미국 주식시장 정보, 종목별 분석, 경제 일정, AI 기반 시장 인사이트를 한곳에서 확인하는 금융 정보 플랫폼입니다. 한국어·무료·로그인 없음.</p>
+      </div>
+      <div>
+        <h4>주요 기능</h4>
+        <a href="/">실시간 시세·차트</a>
+        <a href="/">종목 분석·AI</a>
+        <a href="/market-hours">미국장 시간</a>
+        <a href="/exchange">환율 계산기</a>
+        <a href="/blog/">투자 가이드</a>
+      </div>
+      <div>
+        <h4>안내</h4>
+        <a href="/about.html">서비스 소개</a>
+        <a href="/faq.html">자주 묻는 질문</a>
+        <a href="/privacy.html">개인정보 처리방침</a>
+        <a href="/terms.html">이용약관</a>
+        <a href="/contact.html">문의하기</a>
+      </div>
+    </div>
+    <p class="disc">실시간 금융 데이터는 공식·공개 API(Finnhub·Yahoo Finance·SEC EDGAR·FRED)에서 제공되며, AI는 요약·해석을 돕는 보조 기능입니다. 본 정보는 「자본시장법」상 투자자문·투자권유가 아니며 참고용입니다. 시세는 지연·오차가 있을 수 있고 수익을 보장하지 않습니다. 투자 판단과 책임은 이용자 본인에게 있습니다. · 문의: ironastro93@gmail.com</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // ---- sample fallback (렌더 즉시 보이게; 실제 사이트에선 fetch가 덮어씀) ----
+  var SAMPLE_IDX=[{name:"S&P 500",v:5763.25,p:-1.11},{name:"나스닥100",v:19709.8,p:-2.5},{name:"다우존스",v:42110.4,p:-0.78},{name:"원/달러",v:1330,p:null,krw:true}];
+  var SAMPLE_RANK=[["INTC","Intel",-5.8],["NVDA","NVIDIA",-1.4],["TSLA","Tesla",-2.1],["AAPL","Apple",0.4],["SOFI","SoFi",-3.6]];
+  var SAMPLE_NEWS=[["연준 '추가 인상 신중'… 국채금리 2007년來 최고","CNBC"],["엔비디아, 데이터센터 수요에 장중 반등","SeekingAlpha"],["달러 강세 지속 속 유가 상승","Reuters"]];
+  function fmt(n,d){if(n==null||isNaN(n))return "—";return Number(n).toLocaleString("ko-KR",{minimumFractionDigits:d||0,maximumFractionDigits:d||0})}
+  function pctHtml(p){if(p==null)return "";var up=p>=0,c=up?"var(--up)":"var(--down)";return '<span class="pct" style="color:'+c+'">'+(up?"▲":"▼")+" "+fmt(Math.abs(p),2)+'%</span>'}
+  function go(t){if(t)location.href="/stock/"+encodeURIComponent(String(t).toUpperCase().replace(/[^A-Z0-9.\-]/g,""))}
+
+  // ---- 시장 상태 배지 (한국시간·간이) ----
+  function etH(){try{var f=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',weekday:'short',hour12:false});var o={};f.formatToParts(new Date()).forEach(function(p){o[p.type]=p.value});return o}catch(e){return null}}
+  function paintStatus(){var p=etH();var el=document.getElementById("mstxt"),dot=document.getElementById("msdot");if(!p){return}
+    var wd=p.weekday,mins=(+p.hour)*60+(+p.minute),open=wd!=="Sat"&&wd!=="Sun";var s,c;
+    if(open&&mins>=240&&mins<570){s="프리마켓";c="var(--amber)"}
+    else if(open&&mins>=570&&mins<960){s="정규장 열림";c="var(--up)"}
+    else if(open&&mins>=960&&mins<1200){s="애프터마켓";c="var(--amber)"}
+    else{s="미국장 휴장";c="var(--down)"}
+    el.textContent=s;dot.style.background=c;}
+
+  function renderIdx(arr){
+    document.getElementById("idx").innerHTML=arr.map(function(x){
+      return '<div class="ic"><div class="nm">'+x.name+'</div><div class="pv">'+(x.krw?"₩":"")+fmt(x.v,x.krw?0:2)+'</div>'+pctHtml(x.p)+'</div>';
+    }).join("");
+  }
+  function renderSummary(idx){
+    var withp=idx.filter(function(x){return x.p!=null});
+    var downs=withp.filter(function(x){return x.p<0}).length, ups=withp.length-downs;
+    var biggest=withp.slice().sort(function(a,b){return Math.abs(b.p)-Math.abs(a.p)})[0];
+    var tone=downs>ups?"하락 우위":ups>downs?"상승 우위":"혼조";
+    var li=[];
+    li.push(['📊',"주요 지수 "+withp.length+"개 중 "+(downs>=ups?downs+"개 하락":ups+"개 상승")+" — 오늘은 <b>"+tone+"</b>"]);
+    if(biggest)li.push([biggest.p>=0?'🟢':'🔴',"가장 큰 변동: <b>"+biggest.name+" "+(biggest.p>=0?"+":"")+fmt(biggest.p,2)+"%</b>"]);
+    li.push(['📅',"이번 주 주요 일정은 <b>경제 캘린더</b>에서 확인 — FOMC·CPI·실적"]);
+    document.getElementById("sumList").innerHTML=li.map(function(x){return '<li><span class="ico">'+x[0]+'</span><span>'+x[1]+'</span></li>'}).join("");
+  }
+  function renderRank(rows){
+    document.getElementById("rank").innerHTML=rows.slice(0,5).map(function(r,i){
+      var t=r[0],nm=r[1],p=r[2];
+      return '<a class="row" href="/stock/'+t+'"><div class="rk">'+(i+1)+'</div><div class="main"><div class="t1">'+t+' <span style="color:var(--faint);font-weight:600">'+nm+'</span></div></div><div class="rt">'+pctHtml(p)+'</div></a>';
+    }).join("");
+  }
+  function renderNews(rows){
+    document.getElementById("newsList").innerHTML=rows.slice(0,3).map(function(r){
+      var title=r[0],src=r[1],url=r[2]||"/app";
+      return '<a class="row" href="'+url+'" target="_blank" rel="noopener"><div class="main"><div class="t1" style="white-space:normal">'+title+'</div><div class="t2">'+src+'</div></div></a>';
+    }).join("");
+  }
+
+  // 즉시 샘플 렌더
+  paintStatus();setInterval(paintStatus,30000);
+  renderIdx(SAMPLE_IDX);renderSummary(SAMPLE_IDX);renderRank(SAMPLE_RANK);renderNews(SAMPLE_NEWS);
+
+  // 검색
+  document.getElementById("qbtn").onclick=function(){go(document.getElementById("q").value)};
+  document.getElementById("q").addEventListener("keydown",function(e){if(e.key==="Enter")go(this.value)});
+
+  // ---- 실제 데이터 (astroiron.com 배포 시 동작) ----
+  async function live(){
+    try{
+      var r=await fetch("/api/finance?type=indices",{cache:"no-store"});var j=await r.json();
+      var map={"SPY":"S&P 500","QQQ":"나스닥100","DIA":"다우존스"};
+      var want=["SPY","QQQ","DIA"];var out=[];
+      (j.indices||[]).forEach(function(x){if(want.indexOf(x.symbol)>=0)out[want.indexOf(x.symbol)]={name:map[x.symbol],v:x.price,p:x.changePercent}});
+      out=out.filter(Boolean);
+      try{var fx=await (await fetch("/api/finance?type=fx",{cache:"no-store"})).json();if(fx&&fx.usdkrw)out.push({name:"원/달러",v:Math.round(fx.usdkrw),p:null,krw:true})}catch(e){}
+      if(out.length){renderIdx(out);renderSummary(out);document.getElementById("idxAsOf").textContent="기준 "+new Date().toLocaleString("ko-KR")+" · 공개 데이터, 최대 15분 지연"}
+    }catch(e){}
+    try{
+      var rk=await (await fetch("/api/finance?type=ranking",{cache:"no-store"})).json();
+      if(rk&&rk.ranking&&rk.ranking.length){renderRank(rk.ranking.map(function(x){return [x.symbol,x.name,x.changePercent]}))}
+    }catch(e){}
+    try{
+      var nw=await (await fetch("/api/finance?type=market_news",{cache:"no-store"})).json();
+      if(nw&&nw.news&&nw.news.length){renderNews(nw.news.map(function(x){return [x.title,x.source,x.url]}))}
+    }catch(e){}
+  }
+  if(location.hostname.indexOf("astroiron")>=0)live();
+})();
+</script>
+</body>
+</html>

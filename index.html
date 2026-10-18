@@ -205,7 +205,7 @@
   .rankrow .tk{font-size:14px;font-weight:700;font-family:'Inter',sans-serif;letter-spacing:.01em}
   .rankrow .nm{font-size:11.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .rankrow .vol{font-size:15.5px;font-weight:800;font-family:'Inter',sans-serif;letter-spacing:-.01em}
-  .rankrow .chg{font-size:11px;margin-top:1px;font-family:'Inter',sans-serif}
+  .rankrow .chg{font-size:11px;margin-top:3px;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:7px;background:color-mix(in srgb,currentColor 13%,transparent);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
   .card{overflow:hidden}
   @media (max-width:640px){ .met .v{font-size:15px} }
   .calchint{font-size:12px;color:var(--sub);line-height:1.65;margin-bottom:12px;background:var(--soft);border-radius:8px;padding:9px 12px}
@@ -217,7 +217,9 @@
   .qcell{flex:0 0 auto;width:150px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--soft);border-radius:12px}
   .qcell .qn{font-size:11.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .qcell .qp{font-size:16px;font-weight:700;font-family:'Inter',sans-serif;margin-top:5px}
-  .qcell .qc{font-size:11.5px;font-weight:700;font-family:'Inter',sans-serif;margin-top:2px}
+  .qcell .qc{font-size:11.5px;font-weight:700;font-family:'Inter',sans-serif;margin-top:7px;display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:8px;background:color-mix(in srgb,currentColor 13%,transparent);font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1.35}
+  #ovCh{display:inline-flex;align-items:center;padding:3px 11px;border-radius:9px;background:color-mix(in srgb,currentColor 14%,transparent);font-size:15.5px;font-variant-numeric:tabular-nums;letter-spacing:-.01em;width:fit-content}
+  #hdrCh{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;background:color-mix(in srgb,currentColor 14%,transparent);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
   @keyframes glowUp{0%{box-shadow:0 0 0 0 rgba(34,197,94,0)}30%{box-shadow:0 0 16px 2px rgba(34,197,94,.65)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
   @keyframes glowDown{0%{box-shadow:0 0 0 0 rgba(229,72,77,0)}30%{box-shadow:0 0 16px 2px rgba(229,72,77,.65)}100%{box-shadow:0 0 0 0 rgba(229,72,77,0)}}
   .glow-up{animation:glowUp 1s ease}
@@ -232,7 +234,7 @@
   @media(max-width:640px){.pstrip{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}.pstrip .pcell{flex:0 0 46%}}
   .pstrip .pl{font-size:10.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pstrip .pv{font-size:18px;font-weight:800;font-family:'Inter',sans-serif;margin-top:3px;color:var(--ink);line-height:1.12;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .pstrip .pc{font-size:11.5px;font-weight:700;font-family:'Inter',sans-serif;margin-top:2px}
+  .pstrip .pc{font-size:11.5px;font-weight:700;font-family:'Inter',sans-serif;margin-top:6px;display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:8px;background:color-mix(in srgb,currentColor 13%,transparent);font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1.35}
   .magbig{display:block;border-radius:12px;overflow:hidden;border:1px solid var(--line);margin-bottom:12px;text-decoration:none}
   .magbig .magthumb{height:150px;background-size:cover;background-position:center}
   .magbig .magbody{padding:12px 14px}
@@ -898,7 +900,7 @@ function renderStockResult(){
       <div class="met"><div class="k">고가 / 저가</div><div class="v" style="font-size:15px">$${fmt(q.high)} / $${fmt(q.low)}</div></div>
       <div class="met"><div class="k">시가 / 전일종가</div><div class="v" style="font-size:15px">$${fmt(q.open)} / $${fmt(q.prevClose)}</div></div></div>
       ${d.profile?.finnhubIndustry?`<div style="margin-top:14px;font-size:13.5px;color:var(--sub)">업종: ${esc(d.profile.finnhubIndustry)}${d.profile.marketCapitalization?` · 시총 $${fmt(d.profile.marketCapitalization/1000,1)}B`:""}${d.profile.country?` · ${esc(d.profile.country)}`:""}</div>`:""}
-      <p style="margin-top:16px;font-size:12px;color:var(--faint);line-height:1.6">모든 수치는 Finnhub 실시간 데이터입니다. 깊은 해석은 [AI 분석] 탭에서.</p>
+      <p style="margin-top:16px;font-size:12px;color:var(--faint);line-height:1.6">수치는 Finnhub 공개 데이터 기준이며, 무료 서비스 특성상 최대 15분 지연될 수 있어요. 깊은 해석은 [AI 분석] 탭(AI 생성·참고용)에서.</p>
       `;
     if(d.peers&&d.peers.length)t+=`<div class="card" style="margin-top:16px"><div style="padding:14px 18px"><div style="font-size:13px;font-weight:800;margin-bottom:10px">🔗 비슷한 종목</div><div style="display:flex;flex-wrap:wrap;gap:8px">${d.peers.map(p=>`<button class="tk" onclick="loadStock('${esc(p)}')"><b style="font-family:Inter">${esc(p)}</b></button>`).join("")}</div><div style="font-size:11px;color:var(--faint);margin-top:8px">같은 업종·연관 기업 (Finnhub)</div></div></div>`;
     t+=alertSetter(d.symbol,name);
@@ -1171,15 +1173,16 @@ function renderHome(){
     <div class="srow" id="searchWrap"><input id="tin" placeholder="티커·회사명 검색 · 예) TSLA, Apple, RKLB" value="${esc(state.symbol)}" autocomplete="off" aria-label="종목 티커 또는 회사명 검색"/><button class="btn" onclick="loadStock()">분석</button></div></div>
   <div id="pulseStrip" class="pstrip"><div class="pcell"><div class="skel" style="height:14px;width:60%;margin-bottom:6px"></div><div class="skel" style="height:16px;width:80%"></div></div><div class="pcell"><div class="skel" style="height:14px;width:60%;margin-bottom:6px"></div><div class="skel" style="height:16px;width:80%"></div></div><div class="pcell"><div class="skel" style="height:14px;width:60%;margin-bottom:6px"></div><div class="skel" style="height:16px;width:80%"></div></div><div class="pcell"><div class="skel" style="height:14px;width:60%;margin-bottom:6px"></div><div class="skel" style="height:16px;width:80%"></div></div><div class="pcell"><div class="skel" style="height:14px;width:60%;margin-bottom:6px"></div><div class="skel" style="height:16px;width:80%"></div></div></div>
   <div id="pulseStatus" onclick="pollHome()" title="지금 새로고침" style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--faint);margin:-6px 0 14px;cursor:pointer"><span class="live-dot" style="background:var(--faint)"></span> 실시간 연결 준비 중…</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-    <button onclick="switchView('news')" style="text-align:left;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px 16px;cursor:pointer;box-shadow:0 3px 12px rgba(20,30,60,.06);transition:.15s"><div style="font-size:22px;line-height:1">📰</div><div style="font-weight:800;font-size:15px;margin-top:6px">뉴스</div><div style="font-size:11.5px;color:var(--faint);margin-top:2px">미국 증시 · 나라별 정치·경제</div></button>
-    <button onclick="switchView('cal')" style="text-align:left;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px 16px;cursor:pointer;box-shadow:0 3px 12px rgba(20,30,60,.06);transition:.15s"><div style="font-size:22px;line-height:1">📅</div><div style="font-weight:800;font-size:15px;margin-top:6px">캘린더</div><div style="font-size:11.5px;color:var(--faint);margin-top:2px">전세계 중앙은행·지표·실적 + 내 일정</div></button>
+  <div style="font-size:12px;font-weight:800;color:var(--sub);letter-spacing:.02em;margin:2px 2px 9px">주요 기능 바로가기</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px">
+    ${[["news","📰","뉴스"],["cal","📅","캘린더"],["watchlist","⭐","관심종목"],["portfolio","💼","포트폴리오"],["paper","🎮","모의투자"],["map","🌍","세계지도"]].map(f=>`<button onclick="switchView('${f[0]}')" style="text-align:center;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:13px 8px;cursor:pointer;box-shadow:0 3px 12px rgba(20,30,60,.05);transition:.15s"><div style="font-size:21px;line-height:1">${f[1]}</div><div style="font-weight:700;font-size:12.5px;margin-top:6px">${f[2]}</div></button>`).join("")}
   </div>
   <div class="card" style="margin-bottom:16px;border:none;background:linear-gradient(135deg,#2F6BFF,#4F46E5);color:#fff;box-shadow:0 10px 30px rgba(47,107,255,.28)"><div style="padding:18px 20px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div style="font-size:11px;letter-spacing:.12em;opacity:.85;text-transform:uppercase">오늘의 시장 분위기</div><div id="mktSentiment" style="font-size:18px;font-weight:800;margin-top:4px">AI 시장 점수 계산 중…</div></div><div id="mktScore" style="min-width:56px;height:56px;padding:0 6px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;font-family:'Inter',sans-serif">–</div></div>
     <div id="mktSummary" class="clamp3" style="font-size:13px;line-height:1.6;margin-top:12px;opacity:.95;min-height:58px">시장 데이터를 불러온 뒤 요약해 드려요…</div>
     <div style="font-size:10.5px;opacity:.7;margin-top:8px">AI 점수는 추종 종목 등락 기반 참고용 · 투자 권유 아님</div>
   </div></div>
+  ${watch.length?`<div class="card" style="margin-bottom:16px"><div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)"><h2 style="font-size:14.5px">⭐ 관심종목 (${watch.length})</h2><button class="btn-g" onclick="switchView('watchlist')">전체 →</button></div><div style="padding:4px 12px 8px">${watch.slice(0,5).map(w=>`<div class="tk" style="border:none;width:100%;justify-content:space-between;background:none;padding:11px 8px" onclick="loadStock('${w.ticker}')"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${w.ticker}</b> <span>${esc(w.name)}</span></span><span id="hwq_${w.ticker}" style="color:var(--faint);font-size:12.5px;white-space:nowrap">·</span></div>`).join("")}</div></div>`:""}
   <div class="card" style="margin-bottom:16px"><div style="padding:18px 20px 8px;display:flex;align-items:center;gap:8px"><h2 style="font-size:15px">실시간 인기 종목</h2><span class="live"><span class="live-dot"></span>LIVE</span></div>
   <div id="dashRank"><div style="padding:6px 20px 14px">${Array(5).fill('<div class="skel" style="height:34px;margin-bottom:12px"></div>').join("")}</div></div>
   <div style="padding:4px 20px 15px;font-size:9.5px;color:var(--faint)">거래량 순 · Yahoo Finance · 최대 15분 지연</div></div>
@@ -1192,7 +1195,6 @@ function renderHome(){
   ${dashSection("미국 국채 금리","dashTreasury","2Y·10Y·30Y (FRED)")}
   ${dashSection("달러 · 원자재","dashMacro","달러인덱스·금·은·유가·가스 (FRED)")}
   </div>`:""}
-  ${watch.length?`<div class="card" style="margin-bottom:16px"><div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)"><h2 style="font-size:14.5px">관심종목 (${watch.length})</h2><button class="btn-g" onclick="switchView('watchlist')">전체 →</button></div><div style="padding:4px 12px 8px">${watch.slice(0,5).map(w=>`<div class="tk" style="border:none;width:100%;justify-content:space-between;background:none;padding:11px 8px" onclick="loadStock('${w.ticker}')"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${w.ticker}</b> <span>${esc(w.name)}</span></span><span id="hwq_${w.ticker}" style="color:var(--faint);font-size:12.5px;white-space:nowrap">·</span></div>`).join("")}</div></div>`:""}
   <div class="card" style="margin-bottom:16px"><div style="padding:15px 18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center"><div style="flex:1;min-width:150px"><div style="font-weight:800;font-size:14.5px">🎁 친구 초대 · 📊 브리핑 공유</div><div style="font-size:11.5px;color:var(--faint);margin-top:2px">초대하면 PRO 선물 · 오늘의 브리핑은 카톡에 붙여넣기</div></div><button class="btn-sm" onclick="openInvite()">친구 초대</button><button class="btn-g" onclick="openBrief()">브리핑</button></div></div>
   ${recent.length?`<div style="margin-bottom:20px"><h2 style="margin-bottom:12px;font-size:14.5px">최근 조회</h2><div style="display:flex;flex-wrap:wrap;gap:8px">${recent.map(r=>`<button class="tk" onclick="loadStock('${r.ticker}')"><b>${r.ticker}</b><span>${esc(r.name)}</span></button>`).join("")}</div></div>`:""}`;
   document.getElementById("app").insertAdjacentHTML("beforeend", coupangBanner());
@@ -1227,7 +1229,7 @@ async function loadDashboard(){
   // 미국 주식 히트맵 (시장 상세)
   if(state.homeMore)(async()=>{try{const d=cGet("dash_movers")||await finApi("movers");cSet("dash_movers",d);collected.movers=d.movers;renderHeat("dashMovers",d.movers);renderMarketScore(collected)}catch(e){fill("dashMovers",errHtml(e.message))}})();
   // 인기 종목 랭킹(넓은 유니버스, 더보기)
-  (async()=>{try{window._rankShow=10;const d=cGet("dash_rank")||await finApi("ranking");cSet("dash_rank",d);renderRank(d.ranking)}catch(e){renderRank([])}})();
+  (async()=>{try{window._rankShow=6;const d=cGet("dash_rank")||await finApi("ranking");cSet("dash_rank",d);renderRank(d.ranking)}catch(e){renderRank([])}})();
   // 섹터 ETF (시장 상세)
   if(state.homeMore)(async()=>{try{const d=cGet("dash_sectors")||await finApi("sectors");cSet("dash_sectors",d);renderHeat("dashSectors",d.sectors)}catch(e){fill("dashSectors",errHtml(e.message))}})();
   // 국채 (시장 상세)
@@ -1256,6 +1258,8 @@ function paintPulse(){
   const qqq=idx.find(x=>x.symbol==="QQQ")||find(idx,/\ub098\uc2a4\ub2e5|Nasdaq/i);
   if(spy)cells.push(pulseNum("S&P 500",spy.price!=null?fmt(spy.price):"\u2014",spy.changePercent));
   if(qqq)cells.push(pulseNum("\ub098\uc2a4\ub2e5100",qqq.price!=null?fmt(qqq.price):"\u2014",qqq.changePercent));
+  const dia=idx.find(x=>x.symbol==="DIA")||find(idx,/\ub2e4\uc6b0|Dow/i);
+  if(dia)cells.push(pulseNum("\ub2e4\uc6b0",dia.price!=null?fmt(dia.price):"\u2014",dia.changePercent));
   const t10=find(c.treasury,/10/);
   if(t10)cells.push(pulseNum("\ubbf8 10\ub144\ubb3c",t10.latest!=null?fmt(t10.latest)+"%":"\u2014",t10.changePercent));
   const dxy=find(c.dollar,/\ub2ec\ub7ec|DXY|Dollar/i);
@@ -1289,7 +1293,7 @@ function rankAd(){const t=(window._rankAll||[])[0];return `<div style="display:f
 function renderRank(list){
   const el=document.getElementById("dashRank");if(!el)return;
   if(list)window._rankAll=list;const all=window._rankAll||[];
-  if(!window._rankShow)window._rankShow=10;
+  if(!window._rankShow)window._rankShow=6;
   if(!all.length){el.innerHTML='<div style="padding:14px 20px;font-size:12.5px;color:var(--faint)">데이터를 불러오지 못했어요.</div>';return}
   const show=Math.min(window._rankShow,all.length);
   const parts=all.slice(0,show).map((x,i)=>rankRow(x,i));
