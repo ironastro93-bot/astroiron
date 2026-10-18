@@ -1,0 +1,40 @@
+rules_version = '2';
+// ASTRO IRON — Firestore 보안 규칙
+// 적용: Firebase 콘솔(astroiron-46437) → Firestore Database → 규칙(Rules) 탭에 붙여넣고 '게시(Publish)'.
+// 목적: 개인 데이터(관심종목·포트폴리오·알림·기기)는 본인만, 토론방은 공개, 초대 카운트는 제한적 허용.
+// 주의: 실시간 금융 데이터·Premium 권한은 Firestore가 아니라 서버(api/* + Upstash)에서 관리되므로 여기 규칙과 무관.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── 개인 데이터: 로그인한 '본인(uid)'만 읽기/쓰기 ──
+    // users/{uid} 문서 + 하위 컬렉션(devices 등) 전부 소유자 전용
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      match /{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // ── 초대 카운트: 민감정보 아님. 읽기 허용, 쓰기는 정해진 필드만 ──
+    match /invites/{id} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['count', 'updatedAt']);
+    }
+
+    // ── 토론방(board): 공개 읽기. 작성은 형식/길이 제한으로 스팸 완화 ──
+    match /board/{postId} {
+      allow read: if true;
+      allow create: if request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 2000
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() <= 40;
+      // 신고(reports) 증가 등 업데이트 — 현행 동작 유지. 운영하며 악용 시 강화 권장.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reports']);
+      // 삭제는 현재 앱이 작성자 본인 UI에서만 호출. 더 엄격히 하려면 추후 작성자 검증 추가.
+      allow delete: if true;
+    }
+
+    // 그 외 경로는 기본 거부(명시 안 함 = deny)
+  }
+}
