@@ -65,7 +65,7 @@ const FREE_DAILY = +(process.env.FREE_AI_DAILY || 5);    // 무료: 하루 N회(
 const PRO_DAILY  = +(process.env.PRO_AI_DAILY  || 120);  // Premium 공정사용 소프트캡
 const AI_BURST   = +(process.env.AI_BURST || 12);        // 10초당 최대 요청(버스트/중복/동시 폭주 방지)
 // 사용자가 '분석'으로 소비하는 작업만 일일 한도에 집계(번역·시세요약 등 배경 작업은 제외)
-const COUNTED = new Set(["summary","risk","scenario","stock_deep","portfolio_deep","compare","recommend","chat","portfolio","order_assist","board_qa"]);
+const COUNTED = new Set(["summary","risk","scenario","stock_deep","portfolio_deep","compare","recommend","chat","portfolio","order_assist","board_qa","filing_summary"]);
 async function uq(cmd) {
   const r = await fetch(Q_URL, { method: "POST", headers: { Authorization: "Bearer " + Q_TOK, "Content-Type": "application/json" }, body: JSON.stringify(cmd) });
   if (!r.ok) throw new Error("upstash " + r.status);
@@ -324,6 +324,10 @@ export default async function handler(req, res) {
     const ctxStr = JSON.stringify(context || {}).slice(0, 4500);
     const depth = isPremium ? "심층적으로 (기업 개요·성장성·경쟁 환경 포함)" : "간결하게 (핵심만)";
 
+    // 캐시(챗 제외) — 비싼 작업(공시 원문 fetch 등) 전에 먼저 확인
+    const ckey = task !== "chat" ? (task + "|" + (isPremium ? 1 : 0) + "|" + ctxStr) : null;
+    if (ckey) { const hit = cacheGet(ckey); if (hit) return res.status(200).json(hit); }
+
     let prompt, maxTokens = isPremium ? 1400 : 800, wantJson = true;
     if (task === "summary") {
       prompt = `다음은 미국 주식/ETF의 실제 금융 데이터입니다. 이 데이터만 근거로 ${depth} 분석하세요. 수치를 지어내지 마세요.
@@ -412,13 +416,47 @@ ONLY raw JSON, 한국어: {"tone":"positive|neutral|negative","headline":"밤사
 ${history ? "이전 대화:\n" + history + "\n" : ""}질문: ${String(question || "").slice(0, 500)}
 ${isPremium ? "4~6문장" : "2~3문장"} 한국어. 일반 텍스트.`;
       wantJson = false; maxTokens = isPremium ? 900 : 500;
+    } else if (task === "earnings_brief") {
+      prompt = `다음은 ${(context && context.company) || "한 미국 기업"}의 최근 분기별 EPS 실적(실제 vs 예상, 서프라이즈%)입니다. 이 데이터만 근거로 서학개미(미국주식 투자 한국인)에게 실적 흐름을 한국어로 쉽게 설명하세요. 수치 날조 금지, 투자권유·목표가 단정 금지, 중립적으로.
+데이터: ${ctxStr}
+ONLY raw JSON, 한국어: {"headline":"최근 실적 흐름 한 줄","detail":"직전 분기 중심 2~3문장(예상 상회/하회와 추세)","impact":"참고 관점 1문장(중립)"}`;
+      maxTokens = 500;
+    } else if (task === "filing_summary") {
+      // 서학개미가 못 읽는 영문 SEC 공시를 한글로 요약 — 서버가 원문을 직접 가져옴(본문 크기 제한 회피)
+      const url = String((context && context.url) || "");
+      // SSRF 방지: SEC EDGAR 도메인만 허용
+      if (!/^https:\/\/(www\.sec\.gov|data\.sec\.gov|sec\.gov)\//i.test(url)) {
+        return res.status(400).json({ error: "SEC 공시 원문(sec.gov) 링크만 요약할 수 있어요.", aiUnavailable: true });
+      }
+      const ftype = String((context && context.filingType) || "").slice(0, 16);
+      const company = String((context && context.company) || "").slice(0, 80);
+      let doc = "";
+      try {
+        const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 12000);
+        const rr = await fetch(url, { signal: ctrl.signal, headers: { "User-Agent": "ASTRO IRON ironastro93@gmail.com", "Accept": "text/html,application/xhtml+xml" } });
+        clearTimeout(to);
+        if (rr.ok) doc = await rr.text();
+      } catch (e) { /* 아래에서 처리 */ }
+      if (!doc) return res.status(200).json({ error: "공시 원문을 가져오지 못했어요. 원문 링크를 확인해 주세요.", aiUnavailable: true });
+      // 태그·공백 제거 → 평문 → 길이 제한
+      const text = String(doc)
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&#\d+;|&[a-z]+;/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 14000);
+      if (text.length < 80) return res.status(200).json({ error: "요약할 본문이 충분하지 않아요.", aiUnavailable: true });
+      prompt = `당신은 서학개미(미국주식 투자 한국인)를 위해 영문 SEC 공시를 한국어로 쉽게 요약합니다.
+회사: ${company || "(미상)"} · 공시유형: ${ftype || "(미상)"}
+아래는 공시 원문에서 추출한 텍스트입니다(길이 제한으로 일부만 포함될 수 있음). 이 내용만 근거로 요약하세요. 원문에 없는 수치·사실 날조 금지, 투자 권유·목표가 단정 금지, 과장 없이 중립적으로.
+원문: ${text}
+ONLY raw JSON, 한국어: {"title":"공시 핵심을 한 줄 제목으로","what":"이 공시가 무엇인지 1~2문장(공시유형이 어떤 서류인지 설명 포함)","keys":["핵심 내용 3~5개, 각 한 줄(수치는 원문 그대로)"],"impact":"투자자 관점에서의 의미 1문장(중립, 주가 방향 단정 금지)"}`;
+      maxTokens = isPremium ? 1000 : 700;
     } else {
       return res.status(400).json({ error: "지원하지 않는 AI 작업입니다." });
     }
-
-    // 캐시(챗 제외 — 대화는 매번 신선하게)
-    const ckey = task !== "chat" ? (task + "|" + (isPremium ? 1 : 0) + "|" + ctxStr) : null;
-    if (ckey) { const hit = cacheGet(ckey); if (hit) return res.status(200).json(hit); }
 
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {

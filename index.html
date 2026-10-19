@@ -882,6 +882,50 @@ function earningsChart(list){
     '<rect x="92" y="'+(H-11)+'" width="10" height="10" rx="2" style="fill:var(--down)"/><text x="106" y="'+(H-2)+'" style="fill:var(--faint)">하회</text></g>';
   return '<div style="overflow-x:auto;margin-bottom:14px"><svg viewBox="0 0 '+W+' '+(H+2)+'" width="100%" style="max-width:'+Math.max(340,W)+'px" role="img" aria-label="분기별 EPS 실제 대 예상 차트">'+zeroLine+bars+legend+'</svg></div>';
 }
+// ═══ 무기②: 영문 SEC 공시 한글 AI 요약 ═══
+function filingSumHtml(r){
+  let h='<div style="margin-top:10px;padding:12px 14px;background:var(--soft);border-radius:10px;border-left:3px solid var(--steel)">';
+  if(r.title)h+='<div style="font-size:13px;font-weight:700;margin-bottom:6px">🇰🇷 '+esc(r.title)+'</div>';
+  if(r.what)h+='<div style="font-size:12.5px;color:var(--sub);line-height:1.65;margin-bottom:8px">'+esc(r.what)+'</div>';
+  if(r.keys&&r.keys.length)h+='<ul style="margin:0 0 8px;padding-left:18px">'+r.keys.map(k=>'<li style="font-size:12.5px;line-height:1.65;margin-bottom:3px">'+esc(k)+'</li>').join("")+'</ul>';
+  if(r.impact)h+='<div style="font-size:12px;color:var(--steel)"><b>투자 관점</b> · '+esc(r.impact)+'</div>';
+  h+='<div style="font-size:10px;color:var(--faint);margin-top:9px">AI가 SEC 원문을 요약 · 오역 가능 · 투자권유 아님 · 중요한 내용은 원문 확인</div></div>';
+  return h;
+}
+window.summarizeFiling=async function(i){
+  const d=state.data;const f=d&&d.filings&&d.filings[i];const box=document.getElementById("fsum_"+i);
+  if(!f||!box)return;
+  if(box.getAttribute("data-open")==="1"){box.innerHTML="";box.removeAttribute("data-open");return;}
+  const ck="fsum_"+f.url;const cached=aiCache(ck,1440);
+  if(cached){box.innerHTML=filingSumHtml(cached);box.setAttribute("data-open","1");return;}
+  box.setAttribute("data-open","1");
+  box.innerHTML='<div style="font-size:12px;color:var(--faint);padding:10px 0">🇰🇷 AI가 영문 공시를 한글로 요약하는 중… (원문이 길면 10초 이상 걸릴 수 있어요)</div>';
+  let r;try{r=await aiApi("filing_summary",{url:f.url,filingType:f.type,company:(d.profile&&d.profile.name)||d.symbol})}catch(e){r=null}
+  if(!r||r.aiUnavailable||!r.what){box.innerHTML='<div style="font-size:12px;color:var(--faint);padding:10px 0">요약을 불러오지 못했어요'+(r&&r.error?' ('+esc(r.error)+')':'')+'. 원문 링크를 확인해 주세요.</div>';return;}
+  aiCacheSet(ck,r);box.innerHTML=filingSumHtml(r);
+};
+// ═══ 실적 한글 AI 요약 ═══
+function earningsBriefHtml(r){
+  let h='<div style="margin-top:12px;padding:12px 14px;background:var(--soft);border-radius:10px;border-left:3px solid var(--steel)">';
+  if(r.headline)h+='<div style="font-size:13px;font-weight:700;margin-bottom:6px">🇰🇷 '+esc(r.headline)+'</div>';
+  if(r.detail)h+='<div style="font-size:12.5px;color:var(--sub);line-height:1.7;margin-bottom:7px">'+esc(r.detail)+'</div>';
+  if(r.impact)h+='<div style="font-size:12px;color:var(--steel)"><b>참고</b> · '+esc(r.impact)+'</div>';
+  h+='<div style="font-size:10px;color:var(--faint);margin-top:9px">AI 요약 · 참고용, 투자권유 아님</div></div>';
+  return h;
+}
+window.summarizeEarnings=async function(){
+  const d=state.data;const box=document.getElementById("earnSum");const e=d&&d.earnings;
+  if(!box)return;
+  if(!e||!e.length){box.innerHTML='<div style="font-size:12px;color:var(--faint);margin-top:10px">요약할 실적 데이터가 없어요.</div>';return;}
+  const ck="earnsum_"+d.symbol+"_"+e.length;const cached=aiCache(ck,720);
+  if(cached){box.innerHTML=earningsBriefHtml(cached);return;}
+  box.innerHTML='<div style="font-size:12px;color:var(--faint);margin-top:10px">🇰🇷 AI가 실적 흐름을 요약하는 중…</div>';
+  const rows=e.slice(0,8).map(x=>({year:x.year,q:x.quarter,actual:x.actual,est:x.estimate,surprisePct:x.surprisePercent}));
+  let r;try{r=await aiApi("earnings_brief",{company:(d.profile&&d.profile.name)||d.symbol,earnings:rows})}catch(ex){r=null}
+  if(!r||r.aiUnavailable||!r.headline){box.innerHTML='<div style="font-size:12px;color:var(--faint);margin-top:10px">요약을 불러오지 못했어요.</div>';return;}
+  aiCacheSet(ck,r);box.innerHTML=earningsBriefHtml(r);
+};
+
 function renderStockResult(){
   const d=state.data;const q=d.quote;const cc=q.changePercent>=0?"var(--up)":"var(--down)";const wl=inWatch(d.symbol);const name=d.profile?.name||d.symbol;
   let t="";
@@ -916,7 +960,7 @@ function renderStockResult(){
   else if(state.tab==="filings"){
     if(d.filings===null)t=Array(3).fill('<div class="skel" style="height:48px;margin-bottom:10px"></div>').join("");
     else if(!d.filings.length)t='<p style="font-size:14px;color:var(--sub)">최근 SEC 공시를 찾지 못했어요. (ETF·해외기업은 없을 수 있어요)</p>';
-    else t=d.filings.map((f,i)=>`<a class="newslink" href="${esc(f.url)}" target="_blank" rel="noreferrer" style="display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:${i<d.filings.length-1?"1px solid var(--line)":"none"}"><span style="flex-shrink:0;font-size:11px;font-weight:700;color:var(--steel);font-family:Inter;background:color-mix(in srgb,var(--steel) 12%,transparent);padding:4px 9px;border-radius:7px">${esc(f.type)}</span><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:500">${esc(f.label||f.desc)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:2px">${esc(f.desc)}</div></div><span style="flex-shrink:0;font-size:11.5px;color:var(--faint);font-family:Inter">${esc(f.date)} →</span></a>`).join("")+'<p style="font-size:11.5px;color:var(--faint);margin-top:14px">SEC EDGAR 공식 공시 원문 링크.</p>';
+    else t='<div style="font-size:12px;color:var(--sub);margin-bottom:10px;line-height:1.5">🇰🇷 <b>영문 공시를 한글로</b> — 10-K·10-Q·8-K 원문을 AI가 핵심만 요약해 드려요. (서학개미 전용)</div>'+d.filings.map((f,i)=>`<div style="border-bottom:${i<d.filings.length-1?"1px solid var(--line)":"none"};padding:13px 0"><div style="display:flex;align-items:center;gap:12px"><span style="flex-shrink:0;font-size:11px;font-weight:700;color:var(--steel);font-family:Inter;background:color-mix(in srgb,var(--steel) 12%,transparent);padding:4px 9px;border-radius:7px">${esc(f.type)}</span><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:500">${esc(f.label||f.desc)}</div><div style="font-size:11.5px;color:var(--faint);margin-top:2px">${esc(f.desc)}</div></div><span style="flex-shrink:0;font-size:11.5px;color:var(--faint);font-family:Inter">${esc(f.date)}</span></div><div style="display:flex;gap:10px;align-items:center;margin-top:9px"><button class="btn-sm" style="font-size:11.5px;padding:6px 12px" onclick="summarizeFiling(${i})">🇰🇷 한글 요약</button><a href="${esc(f.url)}" target="_blank" rel="noreferrer" style="font-size:11.5px;color:var(--faint);align-self:center">원문(영어) →</a></div><div id="fsum_${i}"></div></div>`).join("")+'<p style="font-size:11.5px;color:var(--faint);margin-top:14px">SEC EDGAR 공식 공시 원문. 한글 요약은 AI가 원문을 요약한 참고용이며 오역이 있을 수 있어요.</p>';
   }
   else if(state.tab==="dividend"){
     if(d.financials===null)t='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">'+Array(4).fill('<div class="skel" style="height:64px"></div>').join("")+'</div>';
@@ -936,7 +980,7 @@ function renderStockResult(){
   else if(state.tab==="earnings"){
     if(d.earnings===null)t=Array(3).fill('<div class="skel" style="height:44px;margin-bottom:10px"></div>').join("");
     else if(!d.earnings.length)t='<p style="font-size:14px;color:var(--sub)">실적 서프라이즈 데이터가 없어요.</p>';
-    else t=earningsChart(d.earnings)+'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--faint);font-size:11.5px"><th style="text-align:left;padding:8px 6px">분기</th><th style="text-align:right;padding:8px 6px">예상 EPS</th><th style="text-align:right;padding:8px 6px">실제 EPS</th><th style="text-align:right;padding:8px 6px">서프라이즈</th></tr></thead><tbody>'+d.earnings.map(e=>{const up=(e.surprisePercent??0)>=0;const col=up?"var(--up)":"var(--down)";return `<tr style="border-top:1px solid var(--line);font-family:Inter"><td style="text-align:left;padding:10px 6px">${esc(e.year)} Q${esc(e.quarter)}</td><td style="text-align:right;padding:10px 6px">${e.estimate!=null?fmt(e.estimate,2):"—"}</td><td style="text-align:right;padding:10px 6px;font-weight:700">${e.actual!=null?fmt(e.actual,2):"—"}</td><td style="text-align:right;padding:10px 6px;color:${col};font-weight:700">${e.surprisePercent!=null?(up?"+":"")+fmt(e.surprisePercent,1)+"%":"—"}</td></tr>`;}).join("")+'</tbody></table></div><p style="font-size:11.5px;color:var(--faint);margin-top:12px">Finnhub 최근 분기 EPS 실제 vs 예상. 양수 서프라이즈는 예상 상회를 뜻해요.</p>';
+    else t='<div style="margin-bottom:16px"><button class="btn-sm" style="font-size:12px" onclick="summarizeEarnings()">🇰🇷 AI 실적 요약</button><div style="font-size:11px;color:var(--faint);margin-top:6px">EPS 서프라이즈 흐름을 한국어로 쉽게 풀어드려요</div><div id="earnSum"></div></div>'+earningsChart(d.earnings)+'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--faint);font-size:11.5px"><th style="text-align:left;padding:8px 6px">분기</th><th style="text-align:right;padding:8px 6px">예상 EPS</th><th style="text-align:right;padding:8px 6px">실제 EPS</th><th style="text-align:right;padding:8px 6px">서프라이즈</th></tr></thead><tbody>'+d.earnings.map(e=>{const up=(e.surprisePercent??0)>=0;const col=up?"var(--up)":"var(--down)";return `<tr style="border-top:1px solid var(--line);font-family:Inter"><td style="text-align:left;padding:10px 6px">${esc(e.year)} Q${esc(e.quarter)}</td><td style="text-align:right;padding:10px 6px">${e.estimate!=null?fmt(e.estimate,2):"—"}</td><td style="text-align:right;padding:10px 6px;font-weight:700">${e.actual!=null?fmt(e.actual,2):"—"}</td><td style="text-align:right;padding:10px 6px;color:${col};font-weight:700">${e.surprisePercent!=null?(up?"+":"")+fmt(e.surprisePercent,1)+"%":"—"}</td></tr>`;}).join("")+'</tbody></table></div><p style="font-size:11.5px;color:var(--faint);margin-top:12px">Finnhub 최근 분기 EPS 실제 vs 예상. 양수 서프라이즈는 예상 상회를 뜻해요.</p>';
   }
   else if(state.tab==="ai")t=renderAiTab(d);
   else if(state.tab==="discuss")t=renderDiscuss(d.symbol);
