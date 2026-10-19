@@ -44,7 +44,8 @@
 <link rel="dns-prefetch" href="https://static2.finnhub.io"/><link rel="dns-prefetch" href="https://query1.finance.yahoo.com"/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" media="print" onload="this.media='all'"/>
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"/></noscript>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9617531470345660" crossorigin="anonymous"></script>
+<!-- AdSense 스크립트 비활성(광고 미노출 상태) — 광고 재개 시 아래 주석 해제
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9617531470345660" crossorigin="anonymous"></script> -->
 <style>
   :root{--bg:#fff;--soft:#F7F8FA;--line:#E8EAEE;--line-d:#D8DBE2;--ink:#1D2025;--charcoal:#26292F;--charcoal-d:#1B1E23;--sub:#5A606B;--faint:#5B616B;--steel:#2B3A55;--up:#E5484D;--down:#3B6FE0;--hold:#8A919E;--card:rgba(255,255,255,.94)}
   [data-theme="dark"]{--bg:#14161A;--soft:#1E2127;--line:#2A2E36;--line-d:#3A3F49;--ink:#F3F4F6;--charcoal:#F3F4F6;--charcoal-d:#F3F4F6;--sub:#B3B9C4;--faint:#8B93A1;--steel:#4EA8FF;--down:#4E9BFF;--card:rgba(30,33,39,.94)}
@@ -488,7 +489,7 @@ window.setConsent=(v)=>{try{localStorage.setItem("cookieConsent",v)}catch(e){}co
 window.aiDwellStart=()=>{clearTimeout(window._aiDwell);window._aiDwell=setTimeout(()=>trackEvent("read_ai_summary_fully",{section:"stock_ai",duration_sec:10}),10000)};
 window.aiDwellStop=()=>{clearTimeout(window._aiDwell)};
 // AdSense
-function initAds(){if(!ADSENSE_CLIENT||window._adsInit)return;window._adsInit=true;var sc=document.createElement("script");sc.async=true;sc.crossOrigin="anonymous";sc.src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client="+ADSENSE_CLIENT;document.head.appendChild(sc)}
+function initAds(){ /* 광고 비활성: 스크립트 로딩 안 함 */ }
 function proTeaser(){
   if(isPro())return "";
   const used=getUsage(),left=Math.max(0,FREE-used),pct=Math.min(100,Math.round(used/FREE*100));

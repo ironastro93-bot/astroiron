@@ -8,7 +8,16 @@
 //   AI_PROVIDER_ORDER(선택, 예: "nvidia,anthropic" — 우선순위 재정의)
 // 어떤 키도 코드에 하드코딩하지 않는다.
 
-import { verifyToken, verifyTokenPayload } from "./redeem.js";
+import { verifyToken } from "./redeem.js";
+// 토큰에서 sub(uid) 추출 — redeem.js 버전과 무관하게 자체 구현(크래시 방지)
+function _tokenSub(tok) {
+  try {
+    if (!verifyToken(tok)) return null;
+    const p = String(tok).split(".")[0];
+    const o = JSON.parse(Buffer.from(p.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
+    return (o && o.sub) ? o.sub : null;
+  } catch (e) { return null; }
+}
 const KEY = process.env.ANTHROPIC_API_KEY;
 const NVIDIA_KEY = process.env.NVIDIA_API_KEY;
 // EOL 대비: 후보 모델을 순서대로 시도하고, 살아있는 첫 모델을 캐시(goodNvModel)한다.
@@ -246,7 +255,7 @@ const PROVIDERS = {
 };
 function providerOrder() {
   const envOrder = (process.env.AI_PROVIDER_ORDER || "").split(",").map((s) => s.trim()).filter(Boolean);
-  const base = envOrder.length ? envOrder : ["nvidia", "anthropic"]; // 기본: NVIDIA 우선
+  const base = envOrder.length ? envOrder : ["anthropic", "nvidia"]; // 기본: Anthropic(haiku) 우선 — 빠르고 안정, NVIDIA는 폴백
   return base.filter((n) => PROVIDERS[n] && PROVIDERS[n].available());
 }
 // 우선 Provider부터 시도 → 실패하면 다음 Provider로 자동 폴백
@@ -309,9 +318,8 @@ export default async function handler(req, res) {
     if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
     const { task, context, question, premium } = body || {};
     const FAST_TASK = ["translate_news","news_summary","news_sentiment","market_summary","watch_brief","news_explain","board_qa"].includes(task);
-    const _tp = verifyTokenPayload(body && body.proToken);
-    const isPremium = !!_tp || (!process.env.PRO_SECRET && !!premium);
-    const _q = await quotaCheck(ip, isPremium, _tp && _tp.sub, task);
+    const isPremium = verifyToken(body && body.proToken) || (!process.env.PRO_SECRET && !!premium);
+    const _q = await quotaCheck(ip, isPremium, _tokenSub(body && body.proToken), task);
     if (!_q.ok) return res.status(429).json({ error: _q.msg, aiUnavailable: true, limited: true });
     const ctxStr = JSON.stringify(context || {}).slice(0, 4500);
     const depth = isPremium ? "심층적으로 (기업 개요·성장성·경쟁 환경 포함)" : "간결하게 (핵심만)";
