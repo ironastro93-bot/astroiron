@@ -1,0 +1,30 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>
+:root{--bg:#fff;--soft:#F7F8FA;--line:#E8EAEE;--line-d:#D8DBE2;--ink:#1D2025;--sub:#5A606B;--faint:#5B616B;--steel:#2B3A55;--up:#E5484D;--down:#3B6FE0;--card:#fff}
+body{font-family:'Noto Sans KR',system-ui,sans-serif;background:#eef0f4;margin:0;padding:22px;max-width:440px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 4px 16px rgba(20,30,60,.06)}
+.btn-sm{background:var(--steel);color:#fff;border:none;border-radius:9px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer}
+.btn-g{background:none;border:none;cursor:pointer}
+.pill{padding:2px 8px;border-radius:999px}
+h4{font:inherit;margin:18px 2px 7px;font-size:12px;font-weight:800;color:#5A606B}
+</style></head><body>
+
+<h4>① 관심종목 있을 때 — 홈 최상단 히어로</h4>
+<div class="card" id="mbCard" style="margin-bottom:16px;border-left:4px solid var(--steel)"><div style="padding:16px 18px">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:13px;font-weight:800;color:var(--steel)">☀️ 좋은 아침이에요</span><span class="pill" style="font-size:10px;font-weight:700;background:color-mix(in srgb,var(--steel) 14%,transparent);color:var(--steel)">혼조</span><span style="font-size:11px;color:var(--faint);margin-left:auto">10월 20일 (월)</span></div>
+<div id="mbBody" style="font-size:13.5px;line-height:1.75">
+<div style="display:flex;gap:8px;margin-bottom:6px"><span style="flex:0 0 auto">🌙</span><div><b style="color:var(--steel);font-size:11px;margin-right:5px">밤사이</b>관심종목은 전반적으로 혼조세였어요. 테슬라가 크게 올랐지만 엔비디아는 밀렸습니다.</div></div>
+<div style="display:flex;gap:8px;margin-bottom:6px"><span style="flex:0 0 auto">💡</span><div><b style="color:var(--steel);font-size:11px;margin-right:5px">이유</b>테슬라(+5.6%)는 인도량 호조 소식에 강세, 엔비디아(-3.4%)는 중국 수출 규제 우려로 하락했어요.</div></div>
+<div style="display:flex;gap:8px"><span style="flex:0 0 auto">📅</span><div><b style="color:var(--steel);font-size:11px;margin-right:5px">오늘</b>밤 미국 CPI(소비자물가) 발표가 예정돼 있어 변동성에 유의하세요.</div></div>
+<div style="font-size:10px;color:var(--faint);margin-top:9px">AI 관찰 · 투자권유 아님</div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><span style="font-size:10px;color:var(--faint)">AI · ANTHROPIC</span><button class="btn-g" style="font-size:11px;color:var(--steel)">↻ 새로고침</button></div>
+</div></div>
+
+<h4>② 관심종목 없을 때 — 담기 유도(리텐션 루프)</h4>
+<div class="card" style="margin-bottom:16px;border-left:4px solid var(--steel)"><div style="padding:16px 18px">
+<div style="font-size:13px;font-weight:800;color:var(--steel);margin-bottom:5px">☀️ 좋은 아침이에요</div>
+<div style="font-size:13px;color:var(--sub);line-height:1.65;margin-bottom:12px">⭐ 관심종목을 담아두면, 매일 아침 <b>밤사이 움직임</b>과 <b>그 이유</b>를 AI가 한국어 3줄로 요약해 드려요.</div>
+<button class="btn-sm">관심종목 담기 →</button>
+</div></div>
+
+</body></html>

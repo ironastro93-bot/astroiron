@@ -1163,6 +1163,7 @@ function renderHome(){
   const recent=getList("recent");const watch=getList("watchlist");
   document.getElementById("app").innerHTML=`<div style="margin-bottom:22px"><h1 style="display:inline">Market Pulse <span style="font-size:15px;font-weight:600;color:var(--sub);letter-spacing:0">시장의 흐름</span></h1>${mktSessionBadge()}<p class="lede">미국 증시를 한눈에 · 뉴스·캘린더·관심종목까지 빠르게.</p>
     <div class="srow" id="searchWrap"><input id="tin" placeholder="티커·회사명 검색 · 예) TSLA, Apple, RKLB" value="${esc(state.symbol)}" autocomplete="off" aria-label="종목 티커 또는 회사명 검색"/><button class="btn" onclick="loadStock()">분석</button></div></div>
+  ${morningBriefCardHtml()}
   <div id="pulseStrip" class="pstrip"><div class="pcell"><div class="skel" style="height:14px;width:60%;margin-bottom:6px"></div><div class="skel" style="height:16px;width:80%"></div></div><div class="pcell"><div class="skel" style="height:14px;width:60%;margin-bottom:6px"></div><div class="skel" style="height:16px;width:80%"></div></div><div class="pcell"><div class="skel" style="height:14px;width:60%;margin-bottom:6px"></div><div class="skel" style="height:16px;width:80%"></div></div><div class="pcell"><div class="skel" style="height:14px;width:60%;margin-bottom:6px"></div><div class="skel" style="height:16px;width:80%"></div></div><div class="pcell"><div class="skel" style="height:14px;width:60%;margin-bottom:6px"></div><div class="skel" style="height:16px;width:80%"></div></div></div>
   <div id="pulseStatus" onclick="pollHome()" title="지금 새로고침" style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--faint);margin:-6px 0 14px;cursor:pointer"><span class="live-dot" style="background:var(--faint)"></span> 실시간 연결 준비 중…</div>
   <div style="font-size:12px;font-weight:800;color:var(--sub);letter-spacing:.02em;margin:2px 2px 9px">주요 기능 바로가기</div>
@@ -1192,6 +1193,7 @@ function renderHome(){
   loadDashboard();
   startHomePoll();
   try{fillHomeWatch()}catch(e){}
+  try{loadMorningBrief()}catch(e){}
 }
 async function fillHomeWatch(){
   var w=getList("watchlist").slice(0,5);
@@ -1377,12 +1379,74 @@ async function hydrateWatch(){const w=getList("watchlist");if(!w.length)return;w
   if((m==="chgDesc"||m==="chgAsc")&&fetched&&window._wlSortSig!==sig){window._wlSortSig=sig;renderWatchlist();return}
   loadWatchBrief()}
 
+// ═══ 아침 브리핑 입력 수집 (밤사이 시세 + 이유 뉴스 + 오늘 일정) — 홈·관심종목 공용 ═══
+async function gatherBriefInputs(){
+  const w=getList("watchlist").slice(0,12);
+  const holdings=[];
+  for(const x of w){try{let q=cGet("hq_"+x.ticker);if(!q){q=await finApi("quote",{symbol:x.ticker});cSet("hq_"+x.ticker,q)}if(q&&q.price!=null)holdings.push({ticker:x.ticker,price:+(+q.price).toFixed(2),changePct:q.changePercent!=null?+(+q.changePercent).toFixed(2):null})}catch(e){}}
+  // 변동 큰 종목의 뉴스로 '이유' 보강
+  let news=[];
+  try{
+    const movers=holdings.filter(h=>h.changePct!=null).sort((a,b)=>Math.abs(b.changePct)-Math.abs(a.changePct)).slice(0,3).map(h=>h.ticker);
+    if(movers.length){const ck="brief_news_"+movers.slice().sort().join(",");let nd=cGet(ck);if(!nd){nd=await finApi("watch_news",{query:movers.join(",")});cSet(ck,nd)}
+      news=((nd&&nd.news)||[]).slice(0,6).map(n=>({t:String(n.title||n.headline||"").slice(0,90),tk:n.related||n.ticker||n.symbol||""})).filter(n=>n.t);}
+  }catch(e){}
+  // 오늘 일정 (경제지표 + 관심종목 실적 + 내 일정)
+  let agenda=[];
+  try{
+    const todayStr=new Date().toISOString().slice(0,10);
+    (typeof ECON_EVENTS!=="undefined"?ECON_EVENTS:[]).forEach(e=>{if(e&&e.d===todayStr)agenda.push(e.t)});
+    const em=window._earnCal||{};(em[todayStr]||[]).forEach(tk=>agenda.push(tk+" 실적 발표"));
+    getList("mycal").forEach(e=>{if(e&&e.d===todayStr&&e.title)agenda.push(e.title)});
+  }catch(e){}
+  return {holdings, news, agenda:agenda.slice(0,6), count:holdings.length};
+}
+
+// ═══ 홈 아침 브리핑 히어로 카드 (리텐션 · "매일 와야 하는 이유") ═══
+function mbGreeting(){
+  const d=new Date();const h=d.getHours();const wd=["일","월","화","수","목","금","토"][d.getDay()];
+  const date=(d.getMonth()+1)+"월 "+d.getDate()+"일 ("+wd+")";
+  let g=h<11?"☀️ 좋은 아침이에요":h<18?"📈 오늘의 브리핑":"🌙 오늘의 마감 브리핑";
+  return {g,date};
+}
+function morningBriefCardHtml(){
+  const w=getList("watchlist");const gr=mbGreeting();
+  if(!w.length){
+    return '<div class="card" style="margin-bottom:16px;border-left:4px solid var(--steel)"><div style="padding:16px 18px"><div style="font-size:13px;font-weight:800;color:var(--steel);margin-bottom:5px">'+gr.g+'</div><div style="font-size:13px;color:var(--sub);line-height:1.65;margin-bottom:12px">⭐ 관심종목을 담아두면, 매일 아침 <b>밤사이 움직임</b>과 <b>그 이유</b>를 AI가 한국어 3줄로 요약해 드려요.</div><button class="btn-sm" onclick="switchView(\'watchlist\')">관심종목 담기 →</button></div></div>';
+  }
+  return '<div class="card" id="mbCard" style="margin-bottom:16px;border-left:4px solid var(--steel)"><div style="padding:16px 18px">'+
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:13px;font-weight:800;color:var(--steel)">'+gr.g+'</span><span id="mbTone"></span><span style="font-size:11px;color:var(--faint);margin-left:auto">'+gr.date+'</span></div>'+
+    '<div id="mbBody" style="font-size:13.5px;line-height:1.75"><span style="color:var(--faint)">✨ AI가 밤사이 내 종목을 살펴보는 중…</span></div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><span id="mbProv" style="font-size:10px;color:var(--faint)"></span><button class="btn-g" onclick="loadMorningBrief(true)" style="font-size:11px;color:var(--steel)">↻ 새로고침</button></div>'+
+  '</div></div>';
+}
+function morningBriefHtml(b){
+  let h="";
+  if(b.headline)h+='<div style="display:flex;gap:8px;margin-bottom:6px"><span style="flex:0 0 auto">🌙</span><div><b style="color:var(--steel);font-size:11px;margin-right:5px">밤사이</b>'+esc(b.headline)+'</div></div>';
+  const why=b.why||b.mover;if(why)h+='<div style="display:flex;gap:8px;margin-bottom:6px"><span style="flex:0 0 auto">💡</span><div><b style="color:var(--steel);font-size:11px;margin-right:5px">이유</b>'+esc(why)+'</div></div>';
+  const ag=b.agenda||b.watch;if(ag)h+='<div style="display:flex;gap:8px"><span style="flex:0 0 auto">📅</span><div><b style="color:var(--steel);font-size:11px;margin-right:5px">오늘</b>'+esc(ag)+'</div></div>';
+  h+='<div style="font-size:10px;color:var(--faint);margin-top:9px">AI 관찰 · 투자권유 아님</div>';
+  return h;
+}
+function paintMorningBrief(b){const el=document.getElementById("mbBody");const tn=document.getElementById("mbTone");const pv=document.getElementById("mbProv");if(tn)tn.innerHTML=wbToneBadge(b.tone);if(pv)pv.textContent=b._provider?("AI · "+String(b._provider).toUpperCase()):"AI";if(el)el.innerHTML=morningBriefHtml(b)}
+window.loadMorningBrief=async function(force){
+  const card=document.getElementById("mbCard");const el=document.getElementById("mbBody");if(!card||!el)return;
+  const w=getList("watchlist");if(!w.length)return;
+  const sig="mbrief_"+w.map(x=>x.ticker).join(",")+"|"+new Date().toDateString();
+  if(!force){const c=aiCache(sig,30);if(c){paintMorningBrief(c);return}}
+  let inp;try{inp=await gatherBriefInputs()}catch(e){inp=null}
+  if(!inp||!inp.holdings.length){card.style.display="none";return}
+  let r;try{r=await aiApi("watch_brief",inp)}catch(e){r=null}
+  if(!r||r.aiUnavailable||!r.headline){el.innerHTML='<span style="font-size:12px;color:var(--faint)">AI 브리핑을 지금 불러올 수 없어요. 아래에서 시세를 확인하세요.</span>';const tn=document.getElementById("mbTone");if(tn)tn.innerHTML="";return}
+  aiCacheSet(sig,r);paintMorningBrief(r);
+};
+
 // ═══ 오늘의 관심종목 브리핑 (NVIDIA 무료 AI) ═══
 function watchBriefCardHtml(){
   return `<div class="card" id="watchBriefCard" style="margin-bottom:14px;border-left:4px solid var(--steel)"><div style="padding:14px 18px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:12px;font-weight:800;color:var(--steel)">✨ 오늘의 관심종목 브리핑</span><span id="wbTone"></span><span id="wbProv" style="font-size:10px;color:var(--faint);margin-left:auto"></span></div><div id="watchBrief" style="font-size:13px;line-height:1.7"><span style="color:var(--faint)">✨ AI가 관심종목을 살펴보는 중…</span></div></div></div>`;
 }
 function wbToneBadge(t){const m=({positive:["긍정 흐름","var(--up)"],negative:["약세 흐름","var(--down)"],neutral:["혼조","var(--steel)"]})[t];if(!m)return "";return '<span class="pill" style="font-size:10px;font-weight:700;background:color-mix(in srgb,'+m[1]+' 14%,transparent);color:'+m[1]+'">'+m[0]+'</span>'}
-function watchBriefHtml(b){let h='<div style="font-weight:600">'+esc(b.headline||"")+'</div>';if(b.mover)h+='<div style="font-size:12.5px;color:var(--sub);margin-top:6px"><b style="color:var(--steel)">눈에 띄는 종목</b> · '+esc(b.mover)+'</div>';if(b.watch)h+='<div style="font-size:12.5px;color:var(--sub);margin-top:3px"><b style="color:var(--steel)">지켜볼 점</b> · '+esc(b.watch)+'</div>';h+='<div style="font-size:10px;color:var(--faint);margin-top:7px">AI 관찰 · 투자권유 아님</div>';return h}
+function watchBriefHtml(b){return morningBriefHtml(b)}
 function paintWatchBrief(b){const el=document.getElementById("watchBrief");const tn=document.getElementById("wbTone");const pv=document.getElementById("wbProv");if(tn)tn.innerHTML=wbToneBadge(b.tone);if(pv)pv.textContent=b._provider?String(b._provider).toUpperCase():"";if(el)el.innerHTML=watchBriefHtml(b)}
 async function fillWatchQuotes(){for(const x of getList("watchlist")){try{let q=cGet("hq_"+x.ticker);if(!q){q=await finApi("quote",{symbol:x.ticker});cSet("hq_"+x.ticker,q)}const el=document.getElementById("wq_"+x.ticker);if(el&&q&&q.price!=null){const cc=q.changePercent>=0?"var(--up)":"var(--down)";el.innerHTML='<span style="text-align:right;display:inline-block"><span style="font-size:14px;font-weight:700;font-family:Inter">$'+fmt(q.price)+'</span><br/><span style="font-size:12px;font-weight:700;color:'+cc+';font-family:Inter">'+(q.changePercent>=0?"▲":"▼")+' '+fmt(Math.abs(q.changePercent||0))+'%</span></span>'}}catch(e){}}}
 window.loadWatchBrief=async function(force){
@@ -1390,10 +1454,9 @@ window.loadWatchBrief=async function(force){
   const sig="wbrief_"+w.map(x=>x.ticker).join(",")+"|"+new Date().toDateString();
   fillWatchQuotes();
   if(!force){const c=aiCache(sig,30);if(c){paintWatchBrief(c);return}}
-  const rows=[];
-  for(const x of w.slice(0,12)){try{let q=cGet("hq_"+x.ticker);if(!q){q=await finApi("quote",{symbol:x.ticker});cSet("hq_"+x.ticker,q)}if(q&&q.price!=null)rows.push({ticker:x.ticker,price:+(+q.price).toFixed(2),changePct:q.changePercent!=null?+(+q.changePercent).toFixed(2):null})}catch(e){}}
-  if(!rows.length){card.style.display="none";return}
-  let r;try{r=await aiApi("watch_brief",{holdings:rows,count:rows.length})}catch(e){r=null}
+  let inp;try{inp=await gatherBriefInputs()}catch(e){inp=null}
+  if(!inp||!inp.holdings.length){card.style.display="none";return}
+  let r;try{r=await aiApi("watch_brief",inp)}catch(e){r=null}
   if(!r||r.aiUnavailable||!r.headline){el.innerHTML='<span style="font-size:12px;color:var(--faint)">AI 브리핑은 지금 불러올 수 없어요. 시세는 아래 목록에서 확인하세요.</span>';const tn=document.getElementById("wbTone");if(tn)tn.innerHTML="";return}
   aiCacheSet(sig,r);paintWatchBrief(r);
 };
