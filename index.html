@@ -1409,6 +1409,14 @@ function mbGreeting(){
   let g=h<11?"☀️ 좋은 아침이에요":h<18?"📈 오늘의 브리핑":"🌙 오늘의 마감 브리핑";
   return {g,date};
 }
+function mbPushCta(){
+  try{
+    if(typeof FCM_VAPID_KEY==="undefined"||!FCM_VAPID_KEY)return "";
+    if(typeof fbEnabled==="function"&&!fbEnabled())return "";
+    if(window.Notification&&(Notification.permission==="granted"||Notification.permission==="denied"))return "";
+    return '<button class="btn-g" onclick="enablePush()" style="font-size:11px;color:var(--steel);font-weight:700">🔔 매일 아침 받기</button>';
+  }catch(e){return ""}
+}
 function morningBriefCardHtml(){
   const w=getList("watchlist");const gr=mbGreeting();
   if(!w.length){
@@ -1417,7 +1425,7 @@ function morningBriefCardHtml(){
   return '<div class="card" id="mbCard" style="margin-bottom:16px;border-left:4px solid var(--steel)"><div style="padding:16px 18px">'+
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:13px;font-weight:800;color:var(--steel)">'+gr.g+'</span><span id="mbTone"></span><span style="font-size:11px;color:var(--faint);margin-left:auto">'+gr.date+'</span></div>'+
     '<div id="mbBody" style="font-size:13.5px;line-height:1.75"><span style="color:var(--faint)">✨ AI가 밤사이 내 종목을 살펴보는 중…</span></div>'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><span id="mbProv" style="font-size:10px;color:var(--faint)"></span><button class="btn-g" onclick="loadMorningBrief(true)" style="font-size:11px;color:var(--steel)">↻ 새로고침</button></div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px"><span id="mbProv" style="font-size:10px;color:var(--faint)"></span><span style="display:flex;gap:14px;align-items:center">'+mbPushCta()+'<button class="btn-g" onclick="loadMorningBrief(true)" style="font-size:11px;color:var(--steel)">↻ 새로고침</button></span></div>'+
   '</div></div>';
 }
 function morningBriefHtml(b){

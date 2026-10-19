@@ -3,7 +3,10 @@ importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-com
 firebase.initializeApp({apiKey:"AIzaSyD1sOh487RQRmvxOVA6PX2B_JhExbhDMn0",authDomain:"astroiron-46437.firebaseapp.com",projectId:"astroiron-46437",messagingSenderId:"1053533695091",appId:"1:1053533695091:web:5d69e522e720ce10c1ce06"});
 const messaging=firebase.messaging();
 messaging.onBackgroundMessage(function(payload){
-  var n=payload.notification||{};
-  self.registration.showNotification(n.title||"ASTRO IRON",{body:n.body||"",icon:"/icon-192.png",badge:"/icon-192.png",data:payload.data||{}});
+  var d=payload.data||{};var n=payload.notification||{};
+  var title=d.title||n.title||"ASTRO IRON";
+  var body=d.body||n.body||"";
+  var data=payload.data||{};if(!data.url)data.url="https://astroiron.com/";
+  self.registration.showNotification(title,{body:body,icon:"/icon-192.png",badge:"/icon-192.png",data:data});
 });
 self.addEventListener("notificationclick",function(e){e.notification.close();var url=(e.notification.data&&e.notification.data.url)||"https://astroiron.com/";e.waitUntil(clients.openWindow(url))});
