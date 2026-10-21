@@ -1607,13 +1607,40 @@ function allocDonut(p,cost){
   const dayRow=hasQ?`<div style="padding:2px 20px 0;font-size:12.5px;color:var(--faint)">오늘 변동 <b style="color:${dayChg>=0?"var(--up)":"var(--down)"};font-family:Inter">${dayChg>=0?"+":""}$${fmt(dayChg,0)} (${dayPct>=0?"+":""}${fmt(dayPct)}%)</b></div>`:"";
   return `<div class="card" style="margin-bottom:16px"><div style="padding:16px 20px 4px"><h2 style="font-size:14.5px">자산 배분</h2></div>${dayRow}<div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;padding:8px 20px 18px"><svg width="140" height="140" viewBox="0 0 140 140" style="flex:0 0 auto" role="img" aria-label="종목별 비중 도넛 차트">${segs}<text x="70" y="66" text-anchor="middle" style="font-size:11px;fill:var(--faint)">종목</text><text x="70" y="82" text-anchor="middle" style="font-size:16px;font-weight:800;fill:var(--ink);font-family:Inter">${p.length}</text></svg><div style="flex:1;min-width:160px">${leg}</div></div></div>`;
 }
+// 원화 환산 + 해외주식 양도소득세 예상(전량 매도 가정) — 서학개미 전용
+function fxTaxCard(now,pnl){
+  const rate=window._usdkrw;if(!rate||now==null)return "";
+  const won=(v)=>"₩"+fmt(Math.round(v),0);
+  const valueKRW=now*rate, gainKRW=pnl*rate, DED=2500000;
+  const taxBase=Math.max(0,gainKRW-DED), tax=Math.round(taxBase*0.22), net=Math.round(valueKRW-tax);
+  const row=(k,v,col)=>'<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span style="color:var(--sub)">'+k+'</span><b style="font-family:Inter'+(col?';color:'+col:'')+'">'+v+'</b></div>';
+  let h='<div class="card" style="margin-bottom:16px"><div style="padding:16px 20px">'+
+    '<div style="font-size:14px;font-weight:800">원화 환산 · 양도세 예상</div>'+
+    '<div style="font-size:11.5px;color:var(--faint);margin:3px 0 13px">전량 매도 가정 · 환율 ₩'+fmt(rate,0)+'/$ 기준</div>'+
+    row("평가금액",won(valueKRW))+
+    row("평가손익",(pnl>=0?"+":"-")+won(Math.abs(gainKRW)),pnl>=0?"var(--up)":"var(--down)")+
+    '<div style="border-top:1px solid var(--line);margin:4px 0 12px"></div>';
+  if(pnl<=0) h+='<div style="font-size:12.5px;color:var(--sub);line-height:1.6">현재 평가손실 상태라 양도세가 발생하지 않아요.</div>';
+  else if(gainKRW<=DED) h+='<div style="font-size:12.5px;color:var(--sub);line-height:1.6">평가차익이 연 기본공제(250만원) 이내라 예상 세액은 0원이에요.</div>';
+  else h+=row("양도세 예상",won(tax),"var(--down)")+'<div style="display:flex;justify-content:space-between;font-size:14px;margin-top:4px"><span style="font-weight:800">세후 실수령(예상)</span><b style="font-family:Inter;font-weight:800">'+won(net)+'</b></div>';
+  h+='<div style="font-size:10.5px;color:var(--faint);margin-top:12px;line-height:1.55">해외주식 양도소득세 22%(지방소득세 포함)·연 250만원 기본공제·손익통산 가정. 실제 신고액과 다를 수 있는 참고용이에요.</div></div></div>';
+  return h;
+}
+function ensureFx(){
+  if(window._usdkrw!=null)return;
+  const c=aiCache("fx",60);
+  if(c){window._usdkrw=c;return}
+  finApi("fx").then(r=>{if(r&&r.usdkrw){window._usdkrw=r.usdkrw;aiCacheSet("fx",r.usdkrw);if(state.view==="portfolio")render()}}).catch(()=>{});
+}
 function renderPortfolio(){
+  try{ensureFx()}catch(e){}
   const p=getList("portfolio");const cost=p.reduce((s,h)=>s+h.qty*h.price,0);const hasQ=Object.keys(pQ).length>0;
   const now=p.reduce((s,h)=>s+((pQ[h.ticker]?pQ[h.ticker].price:h.price)*h.qty),0);const pnl=now-cost;const pct=cost?pnl/cost*100:0;
   document.getElementById("app").innerHTML=myTabs("portfolio")+`<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px"><h1 style="margin:0">포트폴리오</h1>${p.length?'<div style="display:flex;gap:8px"><button class="btn-g" onclick="exportPortfolioCSV()">CSV 내보내기</button><button class="btn-sm" id="pR" onclick="refreshPort()">평가손익 계산</button></div>':""}</div><p class="lede">보유 종목·수량·평단을 입력하면 실시간 평가손익을 계산해요. (이 기기에 저장)</p>
   <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap"><input id="pT" placeholder="티커" style="width:90px;padding:10px 12px;font-size:14px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><input id="pQty" placeholder="수량" inputmode="decimal" style="width:90px;padding:10px 12px;font-size:14px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><input id="pP" placeholder="평단($)" inputmode="decimal" style="width:110px;padding:10px 12px;font-size:14px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><button class="btn-sm" onclick="addPort()">추가</button></div>
   ${p.length===0?'<div style="border:1px dashed var(--line-d);border-radius:14px;padding:36px 22px;text-align:center"><div style="font-size:26px;margin-bottom:8px"></div><div style="font-size:14.5px;font-weight:700;margin-bottom:6px">아직 보유 종목이 없어요</div><div style="font-size:13px;color:var(--sub);line-height:1.7">위에 <b>티커·수량·평단($)</b>을 입력하고 추가하면,<br/>실시간 시세로 평가손익·비중을 계산해 드려요.<br/><span style="font-size:12px;color:var(--faint)">예) AAPL · 10주 · $180</span></div></div>':`
   <div class="grid" style="grid-template-columns:${hasQ?"repeat(auto-fit,minmax(150px,1fr))":"1fr"};margin-bottom:16px"><div style="background:var(--soft);border-radius:12px;padding:16px 20px"><div style="font-size:12.5px;color:var(--faint)">투자 원금</div><div style="font-size:22px;font-weight:700;font-family:Inter">$${fmt(cost,0)}</div></div>${hasQ?`<div style="background:var(--soft);border-radius:12px;padding:16px 20px"><div style="font-size:12.5px;color:var(--faint)">평가금액</div><div style="font-size:22px;font-weight:700;font-family:Inter">$${fmt(now,0)}</div></div><div style="background:color-mix(in srgb,${pnl>=0?"var(--up)":"var(--down)"} 8%,transparent);border-radius:12px;padding:16px 20px"><div style="font-size:12.5px;color:var(--faint)">평가손익</div><div style="font-size:22px;font-weight:700;color:${pnl>=0?"var(--up)":"var(--down)"};font-family:Inter">${pnl>=0?"+":""}$${fmt(pnl,0)} <span style="font-size:14px">(${pct>=0?"+":""}${fmt(pct)}%)</span></div></div>`:""}</div>
+  ${hasQ?fxTaxCard(now,pnl):""}
   ${allocDonut(p,cost)}
   <div class="card">${p.map((h,i)=>{const c=h.qty*h.price;const w=cost?c/cost*100:0;const q=pQ[h.ticker];const pp=q?(q.price-h.price)*h.qty:null;const pc=q?(q.price-h.price)/h.price*100:null;const col=pp>=0?"var(--up)":"var(--down)";return `<div style="padding:14px 18px;border-bottom:${i<p.length-1?"1px solid var(--line)":"none"}"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;flex-wrap:wrap"><div onclick="loadStock('${h.ticker}')" style="cursor:pointer"><b style="font-family:Inter;font-size:14.5px">${h.ticker}</b><span style="font-size:12.5px;color:var(--faint);margin-left:8px">${h.qty}주 × $${h.price}</span></div><div style="display:flex;align-items:center;gap:12px">${q?`<div style="text-align:right"><div style="font-size:13.5px;font-weight:700;color:${col};font-family:Inter">${pp>=0?"+":""}$${fmt(pp,0)} (${pc>=0?"+":""}${fmt(pc,1)}%)</div><div style="font-size:11.5px;color:var(--faint)">현재 $${fmt(q.price)}</div></div>`:`<span style="font-size:13.5px;font-weight:700;font-family:Inter">$${fmt(c,0)}</span>`}<button onclick="delPort('${h.ticker}')" style="font-size:12px;color:var(--faint);background:none;border:none">삭제</button></div></div><div style="height:5px;border-radius:3px;background:var(--line);overflow:hidden"><div style="width:${w}%;height:100%;background:var(--steel)"></div></div><div style="font-size:11.5px;color:var(--faint);margin-top:4px">비중 ${fmt(w,1)}%</div></div>`}).join("")}</div>
   ${isPro()?'<button class="btn-sm" style="margin-top:14px" onclick="aiPortfolioDiag()">AI 포트폴리오 심화 진단 (PRO)</button><div id="pDiag" style="margin-top:12px"></div>':'<div style="margin-top:14px">'+paywallBox("AI 포트폴리오 진단",'<div style="font-size:13.5px;line-height:1.8"><b>섹터 편중:</b> ●●●●● ●●●<br/><b>분산 수준:</b> ●●● ●●●●●<br/><b>위험도:</b> ●●●<br/><b>개선 의견:</b> ●●●● ●●●●● ●●</div>')+'</div>'}
