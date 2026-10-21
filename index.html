@@ -57,7 +57,10 @@
   .wrap{max-width:900px;margin:0 auto;padding:28px 24px 72px;position:relative;z-index:1}
   .num{font-family:'Inter',sans-serif}
   #sky{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-  #sky .neb{position:absolute;top:0;left:0;right:0;height:420px;background:radial-gradient(ellipse 90% 60% at 15% -10%,rgba(43,58,85,.15),transparent 60%),radial-gradient(ellipse 70% 50% at 85% -15%,rgba(90,70,140,.09),transparent 60%),linear-gradient(180deg,rgba(24,32,52,.09) 0%,rgba(255,255,255,0) 85%)}
+  /* 라이트모드: 점·입자(별) 숨김 — 깔끔한 배경. 다크모드에서만 별밤 표시 */
+  #stars,#particles{display:none}
+  [data-theme="dark"] #stars,[data-theme="dark"] #particles{display:block}
+  #sky .neb{position:absolute;top:0;left:0;right:0;height:360px;background:linear-gradient(180deg,rgba(47,107,255,.05) 0%,rgba(124,58,237,.03) 32%,rgba(255,255,255,0) 90%)}
   [data-theme="dark"] #sky .neb{background:radial-gradient(ellipse 90% 60% at 15% -10%,rgba(80,100,150,.18),transparent 60%),radial-gradient(ellipse 70% 50% at 85% -15%,rgba(120,90,170,.12),transparent 60%)}
   nav{border-bottom:1px solid var(--line);background:var(--card);backdrop-filter:blur(8px);position:sticky;top:0;z-index:10}
   .navin{max-width:900px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:10px}
@@ -462,10 +465,10 @@ const COUPANG_ADS=[
   {src:"https://coupa.ng/cnXc8M",w:120,h:240},
   {src:"https://coupa.ng/cnXc9b",w:120,h:240},
 ];
-function coupangBanner(){ return "";  /* 쿠팡 배너 비활성 */
+function coupangBanner(){
   if(!COUPANG_ADS.length)return "";
   const a=COUPANG_ADS[Math.floor(Math.random()*COUPANG_ADS.length)];
-  return `<div style="margin:16px 0 6px;text-align:center"><iframe src="${a.src}" title="쿠팡 파트너스 광고" width="${a.w}" height="${a.h}" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:0;max-width:100%" loading="lazy"></iframe><div style="font-size:10px;color:var(--faint);margin-top:6px;line-height:1.45">이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</div></div>`;
+  return `<div style="margin:28px 0 4px;padding-top:18px;border-top:1px solid var(--line);text-align:center;opacity:.78"><div style="font-size:10px;color:var(--faint);margin-bottom:8px;letter-spacing:.04em">광고</div><iframe src="${a.src}" title="쿠팡 파트너스 광고" width="${a.w}" height="${a.h}" frameborder="0" scrolling="no" referrerpolicy="unsafe-url" style="border:0;max-width:100%" loading="lazy"></iframe><div style="font-size:9.5px;color:var(--faint);margin-top:6px;line-height:1.45">이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</div></div>`;
 }
 // GA4
 function initGA(){if(!GA4_ID||window._gaInit)return;window._gaInit=true;var sc=document.createElement("script");sc.async=true;sc.src="https://www.googletagmanager.com/gtag/js?id="+GA4_ID;document.head.appendChild(sc);window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments)};gtag("js",new Date());gtag("config",GA4_ID,{send_page_view:false});try{gaPage()}catch(e){}}
@@ -882,6 +885,35 @@ function earningsChart(list){
     '<rect x="92" y="'+(H-11)+'" width="10" height="10" rx="2" style="fill:var(--down)"/><text x="106" y="'+(H-2)+'" style="fill:var(--faint)">하회</text></g>';
   return '<div style="overflow-x:auto;margin-bottom:14px"><svg viewBox="0 0 '+W+' '+(H+2)+'" width="100%" style="max-width:'+Math.max(340,W)+'px" role="img" aria-label="분기별 EPS 실제 대 예상 차트">'+zeroLine+bars+legend+'</svg></div>';
 }
+// ═══ 오늘 왜 움직이나 — 최근 뉴스 근거 한글 설명(기존 chat AI 활용) ═══
+function moveReasonCard(d,q){
+  if(!q||q.changePercent==null||Math.abs(q.changePercent)<2.5)return "";
+  const up=q.changePercent>=0, col=up?"var(--up)":"var(--down)";
+  return '<div class="card" style="margin-bottom:16px;border-left:3px solid '+col+'"><div style="padding:15px 18px">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div style="font-size:14px;font-weight:800">오늘 왜 '+(up?"올랐나":"내렸나")+'?</div><div style="font-size:14px;font-weight:700;color:'+col+';font-family:Inter">'+(up?"+":"")+fmt(q.changePercent)+'%</div></div>'+
+    '<div id="moveWhy"><button class="btn-sm" style="font-size:12px;margin-top:10px" onclick="explainMove()">최근 뉴스로 이유 보기</button><div style="font-size:11px;color:var(--faint);margin-top:7px">최근 뉴스를 근거로 AI가 설명해요 · 참고용</div></div>'+
+  '</div></div>';
+}
+function moveWhyHtml(ans){
+  return '<div style="font-size:13.5px;line-height:1.75;margin-top:4px">'+esc(ans)+'</div><div style="font-size:10px;color:var(--faint);margin-top:9px">최근 뉴스 기반 AI 해석 · 투자권유 아님</div>';
+}
+window.explainMove=async function(){
+  const d=state.data;const q=d&&d.quote;const box=document.getElementById("moveWhy");if(!d||!q||!box)return;
+  if(!isPro()&&getUsage()>=FREE){showPro();return}
+  const ck="movewhy_"+d.symbol+"_"+new Date().toDateString();
+  const cached=aiCache(ck,180);if(cached){box.innerHTML=moveWhyHtml(cached);return}
+  box.innerHTML='<div style="font-size:12px;color:var(--faint);padding:8px 0">최근 뉴스를 살펴보는 중…</div>';
+  let news=d.news;
+  if(!news||!news.length){try{const r=await finApi("news",{symbol:d.symbol});news=r.news||[];d.news=news}catch(e){news=[]}}
+  const heads=(news||[]).slice(0,6).map(n=>n&&n.title).filter(Boolean);
+  const name=(d.profile&&d.profile.name)||d.symbol;
+  const chg=(q.changePercent>=0?"+":"")+fmt(q.changePercent)+"%";
+  const ques=name+"("+d.symbol+") 주가가 오늘 "+chg+" 움직였어요. 위 최근 뉴스 제목을 근거로 '왜 이렇게 움직였는지' 초보 투자자도 이해하게 한국어 2~3문장으로 설명해 주세요. 뉴스에 뚜렷한 개별 이유가 없으면 '개별 호재·악재보다 시장 전반 흐름의 영향으로 보인다'고 해 주세요. 매매 지시·목표가 단정 금지.";
+  let r;try{r=await aiApi("chat",{ticker:d.symbol,name:name,price:q.price,changePercent:q.changePercent,headlines:heads},ques)}catch(e){r=null}
+  if(!r||r.aiUnavailable||!r.answer){box.innerHTML='<div style="font-size:12px;color:var(--faint);padding:8px 0">지금은 이유를 불러올 수 없어요. [뉴스] 탭에서 최근 소식을 확인해 보세요.</div>';return}
+  if(!isPro())addUsage();
+  aiCacheSet(ck,r.answer);box.innerHTML=moveWhyHtml(r.answer);
+};
 // ═══ 무기②: 영문 SEC 공시 한글 AI 요약 ═══
 function filingSumHtml(r){
   let h='<div style="margin-top:10px;padding:12px 14px;background:var(--soft);border-radius:10px;border-left:3px solid var(--steel)">';
@@ -930,7 +962,7 @@ function renderStockResult(){
   const d=state.data;const q=d.quote;const cc=q.changePercent>=0?"var(--up)":"var(--down)";const wl=inWatch(d.symbol);const name=d.profile?.name||d.symbol;
   let t="";
   if(state.tab==="overview"){
-    t=`<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+    t=moveReasonCard(d,q)+`<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
       <div class="met"><div class="k">현재가 <span id="ovLive" style="font-size:10px;color:var(--faint);font-weight:700;letter-spacing:0"></span></div><div class="v" id="ovPx">$${fmt(q.price)}</div></div>
       <div class="met"><div class="k">전일 대비</div><div class="v" id="ovCh" style="color:${cc}">${q.changePercent>=0?"+":""}${fmt(q.changePercent)}%</div></div>
       <div class="met"><div class="k">고가 / 저가</div><div class="v" style="font-size:15px">$${fmt(q.high)} / $${fmt(q.low)}</div></div>
@@ -1330,6 +1362,7 @@ function renderMarketScore(c){
   const sen=score>=70?["강세 우세","var(--up)"]:score>=56?["매수 우위","#E86A3A"]:score>=45?["중립 · 관망","#94A3B8"]:score>=30?["매도 우위","#5B7FD0"]:["약세 우세","var(--down)"];
   const se=document.getElementById("mktSentiment");if(se)se.textContent=sen[0];
   const sc=document.getElementById("mktScore");if(sc){sc.textContent=score;sc.style.background=sen[1]}
+  try{paintAutoSummary(c)}catch(e){}
 }
 function volFmt(v){if(v==null)return "—";if(v>=1e8)return (v/1e8).toFixed(2)+"억 주";if(v>=1e4)return Math.round(v/1e4).toLocaleString()+"만 주";return Math.round(v).toLocaleString()+" 주"}
 function rankRow(x,i){const rank=i+1,up=x.changePercent>=0;const rc=rank===1?"#F5C451":rank<=3?"var(--steel)":"var(--faint)";const arrow=x.changePercent==null?"—":(up?"▲":"▼");
@@ -1356,16 +1389,20 @@ window.retryMktSummary=async()=>{const el=document.getElementById("mktSummary");
 function mktAutoSummary(c){
   const idx=(c.indices||[]).filter(x=>x&&x.changePercent!=null);
   if(!idx.length)return "";
-  const up=idx.filter(x=>x.changePercent>=0).length;
-  let head;
-  if(up===idx.length)head="주요 지수가 일제히 상승 중입니다.";
-  else if(up===0)head="주요 지수가 일제히 하락 중입니다.";
-  else head="주요 지수가 엇갈리고 있습니다.";
+  // 점수(renderMarketScore)와 '동일한 유니버스·동일한 구간'으로 문구 결정 → 라벨과 요약이 절대 안 어긋남
+  const all=[...(c.movers||[]),...idx].filter(x=>x&&x.changePercent!=null);
+  const upPct=Math.round(all.filter(x=>x.changePercent>=0).length/all.length*100);
+  const head=upPct>=70?"상승 종목이 우세한 강세 흐름이에요.":upPct>=56?"상승 종목이 조금 더 많아요.":upPct>=45?"상승·하락이 팽팽한 혼조세예요.":upPct>=30?"하락 종목이 조금 더 많아요.":"하락 종목이 우세한 약세 흐름이에요.";
   const brief=idx.slice(0,3).map(x=>x.name+" "+(x.changePercent>=0?"+":"")+(+x.changePercent).toFixed(1)+"%").join("  ·  ");
   let extra="";
   const btc=(c.crypto||[]).find(x=>/BTC|비트|Bitcoin/i.test(x.name||""));
   if(btc&&btc.changePercent!=null)extra="  비트코인 "+(btc.changePercent>=0?"+":"")+(+btc.changePercent).toFixed(1)+"%.";
-  return head+" "+brief+"."+extra;
+  return head+" 주요 지수는 "+brief+"."+extra;
+}
+// 점수가 갱신될 때마다 요약도 같은 데이터로 다시 그림(라벨-요약 불일치 방지)
+function paintAutoSummary(c){
+  const el=document.getElementById("mktSummary");if(!el||el.dataset.full==="1")return;
+  const s=mktAutoSummary(c);if(s)el.textContent=s;
 }
 async function maybeSummary(c){paintPulse();
   if(!c.indices||!c.indices.length)return; // 지수만 있으면 진행(크립토 실패와 무관하게 멈추지 않음)
