@@ -1399,29 +1399,15 @@ function mktAutoSummary(c){
   if(btc&&btc.changePercent!=null)extra="  비트코인 "+(btc.changePercent>=0?"+":"")+(+btc.changePercent).toFixed(1)+"%.";
   return head+" 주요 지수는 "+brief+"."+extra;
 }
-// 점수가 갱신될 때마다 요약도 같은 데이터로 다시 그림(라벨-요약 불일치 방지)
+// 점수가 갱신될 때마다 요약도 같은 데이터로 다시 그림(라벨-요약 일치 + 폴링 시 계속 갱신)
 function paintAutoSummary(c){
-  const el=document.getElementById("mktSummary");if(!el||el.dataset.full==="1")return;
+  const el=document.getElementById("mktSummary");if(!el)return;
   const s=mktAutoSummary(c);if(s)el.textContent=s;
 }
-async function maybeSummary(c){paintPulse();
-  if(!c.indices||!c.indices.length)return; // 지수만 있으면 진행(크립토 실패와 무관하게 멈추지 않음)
-  const el=document.getElementById("mktSummary");if(!el)return;
-  const ctx={
-    indices:(c.indices||[]).map(x=>({name:x.name,changePercent:x.changePercent})),
-    crypto:(c.crypto||[]).map(x=>({name:x.name,changePercent:x.changePercent})),
-    treasury:(c.treasury||[]).map(x=>({name:x.name,value:x.latest})),
-    dollar:(c.dollar||[]).map(x=>({name:x.name,changePercent:x.changePercent})),
-  };
-  window._mktCtx=ctx;
-  // 1) 즉시: 데이터 기반 요약으로 먼저 채움 — 절대 비거나 멈추지 않게
-  if(el.dataset.full!=="1"){const auto=mktAutoSummary(c);if(auto)el.textContent=auto;}
-  // 2) 캐시된 상세 요약이 있으면 교체
-  const cached=aiCache("mkt",180);
-  if(cached){el.textContent=cached;el.dataset.full="1";return}
-  // 3) 더 풍부한 요약 1회 시도 — 실패해도 위의 즉시 요약이 그대로 남음
-  if(summaryDone)return;summaryDone=true;
-  try{const r=await aiApi("market_summary",ctx);if(r&&!r.aiUnavailable&&r.summary){aiCacheSet("mkt",r.summary);el.textContent=r.summary;el.dataset.full="1";}}catch(e){}
+function maybeSummary(c){paintPulse();
+  if(!c.indices||!c.indices.length)return; // 지수만 있으면 진행
+  // 데이터 기반 요약만 사용(AI 비사용) — 항상 즉시·정확·갱신마다 반영, 잘림/멈춤 없음
+  paintAutoSummary(c);
 }
 window.loadMktSummary=async()=>{const el=document.getElementById("mktSummary");if(!el||!window._mktCtx)return;el.innerHTML='<span style="color:rgba(255,255,255,.8)">요약 중…</span>';const r=await aiApi("market_summary",window._mktCtx);if(r.aiUnavailable||!r.summary){el.innerHTML=mktFailHtml();return}aiCacheSet("mkt",r.summary);el.innerHTML=esc(r.summary)+'<div style="font-size:11px;color:var(--faint);margin-top:8px">AI 요약 · 투자 권유가 아닌 참고용</div>'};
 
@@ -1714,7 +1700,17 @@ window.calcDiv=()=>{const inv=parseFloat(document.getElementById("d_inv").value)
 function setNavH(){try{const n=document.querySelector("nav");if(n)document.documentElement.style.setProperty("--navh",n.offsetHeight+"px")}catch{}}
 window.addEventListener("resize",setNavH);
 let _ptResizeT;window.addEventListener("resize",()=>{clearTimeout(_ptResizeT);_ptResizeT=setTimeout(paintParticles,300)});
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&state.view==="home")pollHome()});
+// 탭을 오래 떠났다 돌아와도 앱이 계속 살아있게: 즉시 갱신 + 폴링 재가동
+function resumeLive(){
+  if(document.hidden)return;
+  try{
+    if(state.view==="home"){ if(!window._homePoll)startHomePoll(); pollHome(); }
+    else if(state.view==="stock"){ if(!window._stockPoll)window._stockPoll=setInterval(liveStock,25000); liveStock(); }
+    else if(state.view==="news"){ startNewsPoll(); }
+  }catch(e){}
+}
+document.addEventListener("visibilitychange",resumeLive);
+try{window.addEventListener("focus",resumeLive);window.addEventListener("pageshow",resumeLive);}catch(e){}
 
 // ═══ AI 뉴스 센터 ═══
 function newsSentBadge(sen){const m=({positive:["긍정","#16A34A","▲"],negative:["부정","#DC2626","▼"],neutral:["중립","#B45309","•"]})[sen]||["중립","#B45309","•"];return `<span class="pill" style="font-size:10px;font-weight:700;background:color-mix(in srgb,${m[1]} 15%,transparent);color:${m[1]}">${m[2]} ${m[0]}</span>`}
