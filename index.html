@@ -938,7 +938,7 @@ function renderStockResult(){
       ${d.profile?.finnhubIndustry?`<div style="margin-top:14px;font-size:13.5px;color:var(--sub)">업종: ${esc(d.profile.finnhubIndustry)}${d.profile.marketCapitalization?` · 시총 $${fmt(d.profile.marketCapitalization/1000,1)}B`:""}${d.profile.country?` · ${esc(d.profile.country)}`:""}</div>`:""}
       <p style="margin-top:16px;font-size:12px;color:var(--faint);line-height:1.6">수치는 Finnhub 공개 데이터 기준이며, 무료 서비스 특성상 최대 15분 지연될 수 있어요. 깊은 해석은 [AI 분석] 탭(AI 생성·참고용)에서.</p>
       `;
-    if(d.peers&&d.peers.length)t+=`<div class="card" style="margin-top:16px"><div style="padding:14px 18px"><div style="font-size:13px;font-weight:800;margin-bottom:10px">🔗 비슷한 종목</div><div style="display:flex;flex-wrap:wrap;gap:8px">${d.peers.map(p=>`<button class="tk" onclick="loadStock('${esc(p)}')"><b style="font-family:Inter">${esc(p)}</b></button>`).join("")}</div><div style="font-size:11px;color:var(--faint);margin-top:8px">같은 업종·연관 기업 (Finnhub)</div></div></div>`;
+    if(d.peers&&d.peers.length)t+=`<div class="card" style="margin-top:16px"><div style="padding:14px 18px"><div style="font-size:13px;font-weight:800;margin-bottom:10px">비슷한 종목</div><div style="display:flex;flex-wrap:wrap;gap:8px">${d.peers.map(p=>`<button class="tk" onclick="loadStock('${esc(p)}')"><b style="font-family:Inter">${esc(p)}</b></button>`).join("")}</div><div style="font-size:11px;color:var(--faint);margin-top:8px">같은 업종·연관 기업 (Finnhub)</div></div></div>`;
     t+=alertSetter(d.symbol,name);
   }
   else if(state.tab==="chart"){
@@ -1086,7 +1086,7 @@ function miniCell(it){
   const clickable=it.symbol&&it.symbol!=="SPACEX";
   return `<div class="qcell" data-sym="${esc(sym)}" ${clickable?`onclick="loadStock('${esc(it.symbol)}')" style="cursor:pointer"`:""}><div class="qn">${esc(it.name)}${it.symbol?` <span style="opacity:.55">${esc(it.symbol)}</span>`:""}</div><div class="qp">${it.price!=null?"$"+fmt(it.price,2):"—"}</div><div class="qc" style="color:${has?(up?"var(--up)":"var(--down)"):"var(--faint)"}">${has?(up?"▲":"▼")+" "+fmt(Math.abs(it.changePercent),2)+"%":"—"}</div></div>`;
 }
-function spacexChip(){return `<div class="qcell" data-sym="SPACEX" onclick="loadPrivate('SPACEX')" style="cursor:pointer"><div class="qn">🚀 SpaceX <span style="opacity:.55">비상장</span></div><div class="qp" style="font-size:13px;color:var(--steel)">뉴스 보기 →</div><div class="qc" style="color:var(--faint)">Private</div></div>`}
+function spacexChip(){return `<div class="qcell" data-sym="SPACEX" onclick="loadPrivate('SPACEX')" style="cursor:pointer"><div class="qn">SpaceX <span style="opacity:.55">비상장</span></div><div class="qp" style="font-size:13px;color:var(--steel)">뉴스 보기 →</div><div class="qc" style="color:var(--faint)">Private</div></div>`}
 function indicesMarquee(items){const cells=items.map(miniCell).join("")+spacexChip();return `<div class="marquee"><div class="marquee-track">${cells}${cells}</div></div>`}
 function cryptoRow(items){return `<div style="display:flex;flex-wrap:wrap;gap:10px;padding:14px 16px">${items.map(miniCell).join("")}</div>`}
 function updateQuoteCells(items){
@@ -1201,7 +1201,7 @@ function renderEconCal(){
   }).join("")+'</div><div style="padding:8px 16px 14px;font-size:9.5px;color:var(--faint)">잠정 일정 · 공식 발표(Fed·BLS·BEA) 기준 변동 가능</div>';
 }
 window.toggleEconRemind=(d)=>{const l=getList("econRemind"),ex=l.includes(d);setList("econRemind",ex?l.filter(x=>x!==d):[...l,d]);if(!ex){try{if(window.Notification&&Notification.permission==="default")Notification.requestPermission()}catch{}toast("알림 설정됨 · 해당일 접속 시 알려드려요")}renderEconCal()};
-function checkEconReminders(){try{const rem=getList("econRemind"),nt=getList("econNotified");rem.forEach(d=>{const dd=econDday(d);if(dd>=0&&dd<=1&&!nt.includes(d)){const ev=ECON_EVENTS.find(e=>e.d===d);if(ev){const msg=(dd===0?"오늘":"내일")+" · "+ev.t;if(window.Notification&&Notification.permission==="granted"){try{new Notification("ASTRO IRON 경제 캘린더",{body:msg})}catch{}}toast("📅 "+msg);setList("econNotified",[...nt,d])}}})}catch(e){}}
+function checkEconReminders(){try{const rem=getList("econRemind"),nt=getList("econNotified");rem.forEach(d=>{const dd=econDday(d);if(dd>=0&&dd<=1&&!nt.includes(d)){const ev=ECON_EVENTS.find(e=>e.d===d);if(ev){const msg=(dd===0?"오늘":"내일")+" · "+ev.t;if(window.Notification&&Notification.permission==="granted"){try{new Notification("ASTRO IRON 경제 캘린더",{body:msg})}catch{}}toast(msg);setList("econNotified",[...nt,d])}}})}catch(e){}}
 function mktSessionBadge(){try{var ss=ppSession();var map={reg:["#16A34A","정규장 열림"],pre:["#B45309","프리마켓"],post:["#B45309","애프터마켓"],closed:["#6B7280","미국장 휴장"]};var c=map[ss.k]||map.closed;return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;background:color-mix(in srgb,'+c[0]+' 15%,transparent);color:'+c[0]+';vertical-align:middle;margin-left:10px;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:'+c[0]+';display:inline-block"></span>'+c[1]+'</span>'}catch(e){return ""}}
 function navIcon(k){
   const p={
@@ -1230,7 +1230,7 @@ function renderHome(){
     <div id="mktSummary" style="font-size:13px;line-height:1.65;margin-top:12px;opacity:.96;min-height:40px"></div>
     <div style="font-size:10.5px;opacity:.68;margin-top:10px">추종 종목 상승 비율 기반 · 참고용</div>
   </div></div>
-  ${watch.length?`<div class="card" style="margin-bottom:16px"><div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)"><h2 style="font-size:14.5px">⭐ 관심종목 (${watch.length})</h2><button class="btn-g" onclick="switchView('watchlist')">전체 →</button></div><div style="padding:4px 12px 8px">${watch.slice(0,5).map(w=>`<div class="tk" style="border:none;width:100%;justify-content:space-between;background:none;padding:11px 8px" onclick="loadStock('${w.ticker}')"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${w.ticker}</b> <span>${esc(w.name)}</span></span><span id="hwq_${w.ticker}" style="color:var(--faint);font-size:12.5px;white-space:nowrap">·</span></div>`).join("")}</div></div>`:""}
+  ${watch.length?`<div class="card" style="margin-bottom:16px"><div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)"><h2 style="font-size:14.5px">관심종목 (${watch.length})</h2><button class="btn-g" onclick="switchView('watchlist')">전체 →</button></div><div style="padding:4px 12px 8px">${watch.slice(0,5).map(w=>`<div class="tk" style="border:none;width:100%;justify-content:space-between;background:none;padding:11px 8px" onclick="loadStock('${w.ticker}')"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${w.ticker}</b> <span>${esc(w.name)}</span></span><span id="hwq_${w.ticker}" style="color:var(--faint);font-size:12.5px;white-space:nowrap">·</span></div>`).join("")}</div></div>`:""}
   <div class="card" style="margin-bottom:16px"><div style="padding:18px 20px 8px;display:flex;align-items:center;gap:8px"><h2 style="font-size:15px">실시간 인기 종목</h2><span class="live"><span class="live-dot"></span>LIVE</span></div>
   <div id="dashRank"><div style="padding:6px 20px 14px">${Array(5).fill('<div class="skel" style="height:34px;margin-bottom:12px"></div>').join("")}</div></div>
   <div style="padding:4px 20px 15px;font-size:9.5px;color:var(--faint)">거래량 순 · Yahoo Finance · 최대 15분 지연</div></div>
@@ -1414,14 +1414,14 @@ window.loadMarket=async()=>{const b=document.getElementById("mBtn"),body=documen
 
 // ═══ 뷰: 관심종목 ═══
 function backupData(){return {v:1,watchlist:getList("watchlist"),portfolio:getList("portfolio"),alerts:getList("alerts"),econRemind:getList("econRemind"),mycal:getList("mycal")}}
-window.quickBackup=()=>{try{const code="AIRON1:"+btoa(unescape(encodeURIComponent(JSON.stringify(backupData()))));const done=()=>toast("백업 코드가 복사됐어요 📋");if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(done,()=>window.prompt("아래 코드를 복사해 보관하세요",code))}else{window.prompt("아래 코드를 복사해 보관하세요",code)}}catch(e){toast("백업 실패")}};
+window.quickBackup=()=>{try{const code="AIRON1:"+btoa(unescape(encodeURIComponent(JSON.stringify(backupData()))));const done=()=>toast("백업 코드가 복사됐어요");if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(done,()=>window.prompt("아래 코드를 복사해 보관하세요",code))}else{window.prompt("아래 코드를 복사해 보관하세요",code)}}catch(e){toast("백업 실패")}};
 window.toggleRestore=()=>{const el=document.getElementById("bkRestore");if(el)el.style.display=(el.style.display==="none"?"block":"none")};
 window.importBackup=(mode)=>{mode=mode||"merge";const ta=document.getElementById("bkIn");if(!ta)return;let code=(ta.value||"").trim();if(!code){toast("코드를 붙여넣어 주세요");return}if(code.indexOf("AIRON1:")===0)code=code.slice(7);let obj;try{obj=JSON.parse(decodeURIComponent(escape(atob(code))))}catch(e){toast("코드가 올바르지 않아요");return}if(!obj||typeof obj!=="object"){toast("코드가 올바르지 않아요");return}const mergeObj=(k,key)=>{const inc=Array.isArray(obj[k])?obj[k]:[];if(mode==="replace"){setList(k,inc);return}const mm={};[...getList(k),...inc].forEach(it=>{const kk=(it&&it[key]!=null)?String(it[key]):JSON.stringify(it);mm[kk]=it});setList(k,Object.values(mm))};mergeObj("watchlist","ticker");mergeObj("portfolio","ticker");mergeObj("alerts","id");mergeObj("mycal","id");{const inc=Array.isArray(obj.econRemind)?obj.econRemind:[];setList("econRemind",mode==="replace"?inc:Array.from(new Set([...getList("econRemind"),...inc])))}toast("복원 완료!");render()};
 function backupPanel(){
   return `<div class="card" style="margin-top:16px;padding:18px 20px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:16px">🔐</span><b style="font-size:14.5px">데이터 백업 · 복원</b></div>
     <div style="font-size:12px;color:var(--faint);line-height:1.6;margin-bottom:14px">관심종목·포트폴리오·알림·달력을 코드 하나로 다른 기기에 옮겨요. (캐시 삭제 전 백업 권장)</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-sm" onclick="quickBackup()">📤 백업 코드 복사</button><button class="btn-g" style="border:1.5px solid var(--line-d);border-radius:9px;padding:8px 14px" onclick="toggleRestore()">📥 코드로 복원</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-sm" onclick="quickBackup()">백업 코드 복사</button><button class="btn-g" style="border:1.5px solid var(--line-d);border-radius:9px;padding:8px 14px" onclick="toggleRestore()">코드로 복원</button></div>
     <div id="bkRestore" style="display:none;margin-top:12px"><textarea id="bkIn" placeholder="백업 코드 붙여넣기 (AIRON1:...)" style="width:100%;height:54px;font-size:11px;font-family:monospace;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--card);color:var(--ink);resize:vertical"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button class="btn-sm" onclick="importBackup('merge')">합치기(권장)</button><button class="btn-g" style="color:var(--faint)" onclick="importBackup('replace')">덮어쓰기</button></div></div>
   </div>`;
 }
@@ -1564,7 +1564,7 @@ window.clearPfChat=function(){window._pfChat=[];var out=document.getElementById(
 function portfolioQAbox(){
   const chips=["내 포트폴리오에서 리스크가 큰 종목은?","섹터가 한쪽에 치우쳐 있나요?","방어적으로 바꾸려면 무엇을 볼까요?"];
   return `<div class="card" style="margin-top:16px"><div style="padding:16px 18px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><div style="font-size:14px;font-weight:800">💬 AI에게 포트폴리오 질문</div>${(window._pfChat&&window._pfChat.length)?'<button class="btn-g" style="color:var(--faint);font-size:11px" onclick="clearPfChat()">대화 지우기</button>':''}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><div style="font-size:14px;font-weight:800">AI에게 포트폴리오 질문</div>${(window._pfChat&&window._pfChat.length)?'<button class="btn-g" style="color:var(--faint);font-size:11px" onclick="clearPfChat()">대화 지우기</button>':''}</div>
     <div style="font-size:11.5px;color:var(--faint);margin-bottom:10px">보유 종목·비중·현재가를 근거로 답해요. 개인 맞춤 매매 지시는 하지 않아요(참고용).</div>
     <div style="display:flex;gap:8px"><input id="pqIn" placeholder="예) 내 포트폴리오에서 손실이 큰 종목은?" style="flex:1;min-width:0;padding:10px 12px;font-size:13.5px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)" onkeydown="if(event.key==='Enter')askPortfolioAI()"/><button class="btn-sm" onclick="askPortfolioAI()">질문</button></div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${chips.map(c=>`<button class="tk" style="font-size:11.5px" onclick="document.getElementById('pqIn').value=this.textContent;askPortfolioAI()">${c}</button>`).join("")}</div>
@@ -1612,7 +1612,7 @@ function renderPortfolio(){
   const now=p.reduce((s,h)=>s+((pQ[h.ticker]?pQ[h.ticker].price:h.price)*h.qty),0);const pnl=now-cost;const pct=cost?pnl/cost*100:0;
   document.getElementById("app").innerHTML=myTabs("portfolio")+`<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px"><h1 style="margin:0">포트폴리오</h1>${p.length?'<div style="display:flex;gap:8px"><button class="btn-g" onclick="exportPortfolioCSV()">CSV 내보내기</button><button class="btn-sm" id="pR" onclick="refreshPort()">평가손익 계산</button></div>':""}</div><p class="lede">보유 종목·수량·평단을 입력하면 실시간 평가손익을 계산해요. (이 기기에 저장)</p>
   <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap"><input id="pT" placeholder="티커" style="width:90px;padding:10px 12px;font-size:14px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><input id="pQty" placeholder="수량" inputmode="decimal" style="width:90px;padding:10px 12px;font-size:14px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><input id="pP" placeholder="평단($)" inputmode="decimal" style="width:110px;padding:10px 12px;font-size:14px;border-radius:9px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><button class="btn-sm" onclick="addPort()">추가</button></div>
-  ${p.length===0?'<div style="border:1px dashed var(--line-d);border-radius:14px;padding:36px 22px;text-align:center"><div style="font-size:26px;margin-bottom:8px">📊</div><div style="font-size:14.5px;font-weight:700;margin-bottom:6px">아직 보유 종목이 없어요</div><div style="font-size:13px;color:var(--sub);line-height:1.7">위에 <b>티커·수량·평단($)</b>을 입력하고 추가하면,<br/>실시간 시세로 평가손익·비중을 계산해 드려요.<br/><span style="font-size:12px;color:var(--faint)">예) AAPL · 10주 · $180</span></div></div>':`
+  ${p.length===0?'<div style="border:1px dashed var(--line-d);border-radius:14px;padding:36px 22px;text-align:center"><div style="font-size:26px;margin-bottom:8px"></div><div style="font-size:14.5px;font-weight:700;margin-bottom:6px">아직 보유 종목이 없어요</div><div style="font-size:13px;color:var(--sub);line-height:1.7">위에 <b>티커·수량·평단($)</b>을 입력하고 추가하면,<br/>실시간 시세로 평가손익·비중을 계산해 드려요.<br/><span style="font-size:12px;color:var(--faint)">예) AAPL · 10주 · $180</span></div></div>':`
   <div class="grid" style="grid-template-columns:${hasQ?"repeat(auto-fit,minmax(150px,1fr))":"1fr"};margin-bottom:16px"><div style="background:var(--soft);border-radius:12px;padding:16px 20px"><div style="font-size:12.5px;color:var(--faint)">투자 원금</div><div style="font-size:22px;font-weight:700;font-family:Inter">$${fmt(cost,0)}</div></div>${hasQ?`<div style="background:var(--soft);border-radius:12px;padding:16px 20px"><div style="font-size:12.5px;color:var(--faint)">평가금액</div><div style="font-size:22px;font-weight:700;font-family:Inter">$${fmt(now,0)}</div></div><div style="background:color-mix(in srgb,${pnl>=0?"var(--up)":"var(--down)"} 8%,transparent);border-radius:12px;padding:16px 20px"><div style="font-size:12.5px;color:var(--faint)">평가손익</div><div style="font-size:22px;font-weight:700;color:${pnl>=0?"var(--up)":"var(--down)"};font-family:Inter">${pnl>=0?"+":""}$${fmt(pnl,0)} <span style="font-size:14px">(${pct>=0?"+":""}${fmt(pct)}%)</span></div></div>`:""}</div>
   ${allocDonut(p,cost)}
   <div class="card">${p.map((h,i)=>{const c=h.qty*h.price;const w=cost?c/cost*100:0;const q=pQ[h.ticker];const pp=q?(q.price-h.price)*h.qty:null;const pc=q?(q.price-h.price)/h.price*100:null;const col=pp>=0?"var(--up)":"var(--down)";return `<div style="padding:14px 18px;border-bottom:${i<p.length-1?"1px solid var(--line)":"none"}"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;flex-wrap:wrap"><div onclick="loadStock('${h.ticker}')" style="cursor:pointer"><b style="font-family:Inter;font-size:14.5px">${h.ticker}</b><span style="font-size:12.5px;color:var(--faint);margin-left:8px">${h.qty}주 × $${h.price}</span></div><div style="display:flex;align-items:center;gap:12px">${q?`<div style="text-align:right"><div style="font-size:13.5px;font-weight:700;color:${col};font-family:Inter">${pp>=0?"+":""}$${fmt(pp,0)} (${pc>=0?"+":""}${fmt(pc,1)}%)</div><div style="font-size:11.5px;color:var(--faint)">현재 $${fmt(q.price)}</div></div>`:`<span style="font-size:13.5px;font-weight:700;font-family:Inter">$${fmt(c,0)}</span>`}<button onclick="delPort('${h.ticker}')" style="font-size:12px;color:var(--faint);background:none;border:none">삭제</button></div></div><div style="height:5px;border-radius:3px;background:var(--line);overflow:hidden"><div style="width:${w}%;height:100%;background:var(--steel)"></div></div><div style="font-size:11.5px;color:var(--faint);margin-top:4px">비중 ${fmt(w,1)}%</div></div>`}).join("")}</div>
@@ -1834,7 +1834,7 @@ function bindMapGestures(){
 window.openCountry=function(code){try{trackEvent("map_country",{country:code})}catch(e){}state.view="news";state.newsWatch=false;state.newsCountry=code;state.newsCat="전체";state.newsShow=12;window._news=null;window._newsSent=null;render();loadNews(true);try{window.scrollTo({top:0,behavior:"smooth"})}catch(e){}};
 window.shareMap=async function(){
   const url=location.origin+"/#map";
-  const txt="🌍 세계 뉴스 지도 — 지도에서 나라를 누르면 그 나라 오늘 뉴스가 한국어로. 미국주식·세계경제 한눈에, 무료. ASTRO IRON";
+  const txt="세계 뉴스 지도 — 지도에서 나라를 누르면 그 나라 오늘 뉴스가 한국어로. 미국주식·세계경제 한눈에, 무료. ASTRO IRON";
   try{if(navigator.share){await navigator.share({title:"ASTRO IRON 세계 뉴스 지도",text:txt,url});try{trackEvent("map_share",{})}catch(_){}return}}catch(e){if(e&&e.name==="AbortError")return}
   try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(txt+" "+url);toast("링크 복사됨 · 붙여넣기 해서 공유하세요");try{trackEvent("map_share",{})}catch(_){}return}}catch(e){}
   toast(url);
@@ -1868,12 +1868,12 @@ function worldBriefCard(code,ko,flag,items){
 async function loadWorldBrief(){
   const box=document.getElementById("worldBrief");if(!box)return;
   const codes=[["US","미국","🇺🇸"],["KR","한국","🇰🇷"],["JP","일본","🇯🇵"],["CN","중국","🇨🇳"],["GB","영국","🇬🇧"],["IN","인도","🇮🇳"]];
-  box.innerHTML='<div style="font-size:13px;font-weight:800;margin-bottom:8px">🗞️ 오늘의 세계 브리핑</div>'+Array(3).fill('<div class="skel" style="height:52px;margin-bottom:10px"></div>').join("");
+  box.innerHTML='<div style="font-size:13px;font-weight:800;margin-bottom:8px">오늘의 세계 브리핑</div>'+Array(3).fill('<div class="skel" style="height:52px;margin-bottom:10px"></div>').join("");
   const results=await Promise.all(codes.map(async c=>{try{const ck="world_"+c[0];let d=cGet(ck);if(!d){d=await finApi("worldnews",{country:c[0]});cSet(ck,d)}return {c,items:(d.news||[]).slice(0,3)}}catch(e){return {c,items:[]}}}));
   const all=results.flatMap(r=>r.items);
   if(state.newsKo){try{await translateTitles(all)}catch(e){}}
   const cur=document.getElementById("worldBrief");if(!cur)return;
-  cur.innerHTML='<div style="font-size:13px;font-weight:800;margin-bottom:8px">🗞️ 오늘의 세계 브리핑'+(state.newsKo?' <span style="font-size:10px;color:var(--faint);font-weight:500">· 한국어</span>':'')+'</div>'+results.map(r=>worldBriefCard(r.c[0],r.c[1],r.c[2],r.items)).join("");
+  cur.innerHTML='<div style="font-size:13px;font-weight:800;margin-bottom:8px">오늘의 세계 브리핑'+(state.newsKo?' <span style="font-size:10px;color:var(--faint);font-weight:500">· 한국어</span>':'')+'</div>'+results.map(r=>worldBriefCard(r.c[0],r.c[1],r.c[2],r.items)).join("");
 }
 
 function newsCountryOpts(){var cur=state.newsCountry||"";return NEWS_COUNTRIES.map(function(o){return '<option value="'+o[0]+'"'+(o[0]===cur?" selected":"")+'>'+o[1]+'</option>'}).join("")}
@@ -1900,7 +1900,7 @@ function renderNews(){
   <p class="lede" style="margin-bottom:12px">${watch?"내 관심종목 관련 뉴스만 모아서. 제목·출처·원문 링크만 표시합니다.":world?"선택한 나라의 정치·경제 뉴스를 실시간으로. 제목·출처·원문 링크만 표시합니다.":"미국 증시 헤드라인과 글로벌 뉴스. 제목·출처·원문 링크만 표시하고, 요약·감성 분석은 AI가 생성합니다."}</p>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px">
     <select aria-label="나라 선택" onchange="setNewsCountry(this.value)" style="flex:1;min-width:0;max-width:230px;padding:9px 12px;font-size:13.5px;font-weight:700;border-radius:10px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink);cursor:pointer">${newsCountryOpts()}</select>
-    <div style="display:flex;gap:6px"><button class="chip ${watch?"on":""}" style="white-space:nowrap" onclick="setNewsWatch(${watch?"false":"true"})">⭐ 관심종목</button><button class="chip" style="white-space:nowrap" onclick="aiNewsSentiment()">감성분석</button><button class="chip ${state.newsKo?"on":""}" style="white-space:nowrap" onclick="toggleNewsKo()">${state.newsKo?"🇰🇷 한국어 ✓":"🇬🇧 원문(영어)"}</button></div>
+    <div style="display:flex;gap:6px"><button class="chip ${watch?"on":""}" style="white-space:nowrap" onclick="setNewsWatch(${watch?"false":"true"})">관심종목</button><button class="chip" style="white-space:nowrap" onclick="aiNewsSentiment()">감성분석</button><button class="chip ${state.newsKo?"on":""}" style="white-space:nowrap" onclick="toggleNewsKo()">${state.newsKo?"🇰🇷 한국어 ✓":"🇬🇧 원문(영어)"}</button></div>
   </div>
   <div style="display:flex;gap:6px;flex-wrap:wrap;overflow-x:auto;margin-bottom:16px">${cats.map(c=>`<button class="chip ${cat===c?"on":""}" onclick="setNewsCat('${c}')">${c}</button>`).join("")}</div>
   ${newsSentBanner()}${body}`;
@@ -2198,7 +2198,7 @@ function calUpcoming(){
   if(!items.length)return "";
   var col={econ:"#3B6FE0",earn:"var(--up)",mine:"var(--steel)"};
   var rows=items.map(function(e){var dd=econDday(e.d);var dtxt=dd===0?"오늘":dd===1?"내일":"D-"+dd;var attr=e.kind==="earn"?'onclick="loadStock(\''+e.tk+'\')"':e.kind==="econ"?'onclick="evInfo(this.dataset.ev)" data-ev="'+esc(e.t)+'"':'';var cur=attr?';cursor:pointer':'';return '<div '+attr+' style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-top:1px solid var(--line)'+cur+'"><span style="width:8px;height:8px;border-radius:2px;background:'+col[e.kind]+';flex:0 0 auto"></span><span style="flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(e.t)+(e.kind==="econ"?' <span style="color:var(--steel);font-size:11px">ⓘ</span>':'')+'</span><span style="font-size:11.5px;font-weight:700;color:var(--faint);white-space:nowrap">'+dtxt+' · '+e.d.slice(5).replace("-","/")+'</span></div>';}).join("");
-  return '<div class="card" style="margin-top:16px"><div style="padding:12px 16px 2px;font-size:13px;font-weight:800">📌 다가오는 일정</div><div style="padding:0 14px 10px">'+rows+'</div></div>';
+  return '<div class="card" style="margin-top:16px"><div style="padding:12px 16px 2px;font-size:13px;font-weight:800">다가오는 일정</div><div style="padding:0 14px 10px">'+rows+'</div></div>';
 }
 function renderMyCal(){
   const app=document.getElementById("app");if(!app)return;
@@ -2310,7 +2310,7 @@ function ppBookHTML(px){var ob=ppOrderBook(px);var mxv=Math.max.apply(null,ob.as
 window.ppBook=(pr)=>{if(PP.otype==="market")PP.otype="limit";PP.limit=String(pr);paintSheet()};
 window.ppField=(k,v)=>{PP[k]=v};
 function ppAIScore(q){if(!q||q.price==null)return null;var chg=q.changePercent||0;var rng=(q.high!=null&&q.low!=null&&q.price)?(q.high-q.low)/q.price*100:null;var pos=(q.high!=null&&q.low!=null&&q.high>q.low)?(q.price-q.low)/(q.high-q.low):null;var score=50+Math.max(-22,Math.min(22,chg*4));if(pos!=null)score+=(pos-0.5)*16;score=Math.round(Math.max(1,Math.min(99,score)));var risk=rng==null?"—":(rng>6?"높음":rng>3?"중간":"낮음");return{score:score,risk:risk,rng:rng,pos:pos,chg:chg}}
-function ppAIHTML(){var a=ppAIScore(PP.quote);if(!a)return "";var col=a.score>=66?"var(--up)":a.score>=40?"var(--steel)":"var(--down)";return '<div class="aiPanel"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:12px;font-weight:800;color:var(--steel)">AI 참고 지표</div><span style="font-size:9.5px;color:var(--faint)">실데이터·투자권유 아님</span></div><div class="aiG"><div><span>AI 점수</span><b style="color:'+col+'">'+a.score+'</b></div><div><span>리스크</span><b>'+a.risk+'</b></div><div><span>일중 위치</span><b>'+(a.pos!=null?fmt(a.pos*100,0)+"%":"—")+'</b></div><div><span>전일대비</span><b style="color:'+(a.chg>=0?"var(--up)":"var(--down)")+'">'+(a.chg>=0?"+":"")+fmt(a.chg,2)+'%</b></div></div><div id="ppAIComment" style="font-size:12px;color:var(--faint);margin-top:8px">'+(PP.aiComment?esc(PP.aiComment)+' · 참고용':'<button class="aiBtn" onclick="ppAIComment()">🔎 AI 주문 분석</button>')+'</div></div>'}
+function ppAIHTML(){var a=ppAIScore(PP.quote);if(!a)return "";var col=a.score>=66?"var(--up)":a.score>=40?"var(--steel)":"var(--down)";return '<div class="aiPanel"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:12px;font-weight:800;color:var(--steel)">AI 참고 지표</div><span style="font-size:9.5px;color:var(--faint)">실데이터·투자권유 아님</span></div><div class="aiG"><div><span>AI 점수</span><b style="color:'+col+'">'+a.score+'</b></div><div><span>리스크</span><b>'+a.risk+'</b></div><div><span>일중 위치</span><b>'+(a.pos!=null?fmt(a.pos*100,0)+"%":"—")+'</b></div><div><span>전일대비</span><b style="color:'+(a.chg>=0?"var(--up)":"var(--down)")+'">'+(a.chg>=0?"+":"")+fmt(a.chg,2)+'%</b></div></div><div id="ppAIComment" style="font-size:12px;color:var(--faint);margin-top:8px">'+(PP.aiComment?esc(PP.aiComment)+' · 참고용':'<button class="aiBtn" onclick="ppAIComment()">AI 주문 분석</button>')+'</div></div>'}
 window.ppAIComment=async()=>{var el=document.getElementById("ppAIComment");if(el)el.innerHTML='<span style="color:var(--faint)">NVIDIA AI 분석 중…</span>';var q=PP.quote;var ctx={ticker:PP.ticker,price:q&&q.price,changePercent:q&&q.changePercent,high:q&&q.high,low:q&&q.low,open:q&&q.open,prevClose:q&&q.prevClose};var r=await aiApi("order_assist",ctx);var e2=document.getElementById("ppAIComment");if(!e2)return;if(r.aiUnavailable){e2.innerHTML='<span style="color:var(--faint)">지금은 AI 주문 분석을 불러올 수 없어요.</span>';return}var rk=r.risk||"—";var rc=rk==="높음"?"var(--down)":rk==="낮음"?"var(--up)":"var(--steel)";var prov=r._provider?(" · "+String(r._provider).toUpperCase()):"";e2.innerHTML='<div style="display:flex;flex-direction:column;gap:5px;margin-top:2px">'+'<div class="oaRow"><span>밸류에이션</span><b>'+esc(r.valuation||"—")+'</b></div>'+'<div class="oaRow"><span>예상 변동성</span><b>'+esc(r.volatility||"—")+'</b></div>'+'<div class="oaRow"><span>손절 참고</span><b>'+esc(r.suggestStop||"—")+'</b></div>'+'<div class="oaRow"><span>익절 참고</span><b>'+esc(r.suggestTake||"—")+'</b></div>'+'<div class="oaRow"><span>위험도</span><b style="color:'+rc+'">'+esc(rk)+'</b></div>'+(r.opinion?'<div style="font-size:11.5px;color:var(--faint);margin-top:2px">'+esc(r.opinion)+'</div>':"")+'<div style="font-size:10px;color:var(--faint)">참고용·투자권유 아님'+prov+' 분석</div></div>'};
 function ppSLTPHTML(){return '<div style="display:flex;gap:8px;margin-bottom:12px"><div style="flex:1"><label class="ppL">손절(-%) · 선택</label><input class="ppNum" inputmode="decimal" value="'+(PP.sl||"")+'" oninput="ppField(\'sl\',this.value)" placeholder="예: 5"></div><div style="flex:1"><label class="ppL">익절(+%) · 선택</label><input class="ppNum" inputmode="decimal" value="'+(PP.tp||"")+'" oninput="ppField(\'tp\',this.value)" placeholder="예: 10"></div></div>'}
 function ppClickSound(){try{if(localStorage.getItem("ppMute")==="1")return;var A=window.AudioContext||window.webkitAudioContext;if(!A)return;ppAC=ppAC||new A();var t=ppAC.currentTime;var o=ppAC.createOscillator(),g=ppAC.createGain();o.type="triangle";o.frequency.setValueAtTime(880,t);o.frequency.exponentialRampToValueAtTime(320,t+0.09);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.22,t+0.008);g.gain.exponentialRampToValueAtTime(0.0001,t+0.14);o.connect(g);g.connect(ppAC.destination);o.start(t);o.stop(t+0.15)}catch(e){}}
@@ -2437,7 +2437,7 @@ window.paperShare=async()=>{
     try{if(navigator.share){await navigator.share({text:text,url:url});return}}catch(e){}
     try{await navigator.clipboard.writeText(text)}catch(e){}
     try{var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="astroiron-수익률.png";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},1500)}catch(e){}
-    toast("성과 카드 저장 · 공유 문구 복사됨 📋 커뮤니티에 자랑해 보세요!");
+    toast("성과 카드 저장 · 공유 문구 복사됨 커뮤니티에 자랑해 보세요!");
   },"image/png");
 };
 window.paperTradeFrom=(t)=>{switchView("paper");setTimeout(()=>openSheet("buy",t),90)};
@@ -2575,7 +2575,7 @@ function renderPaper(){
   var pos=ppPos();var pend=ppPending();var ords=getList("paperOrders");
   var upPos=pnl>=0;var heroCol=todayPL>=0?"var(--up)":"var(--down)";var tab=PP.tab||"hold";
   var app=myTabs("paper")+`
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="display:flex;align-items:center;gap:8px"><h1 style="margin:0">모의투자</h1><span class="pill" style="background:color-mix(in srgb,var(--steel) 16%,transparent);color:var(--steel);font-size:10px;font-weight:800">가상 · 모의</span></div><div style="display:flex;gap:6px"><button class="btn-g" onclick="paperShare()" style="color:var(--steel);font-size:12px;font-weight:700">📤 성과 공유</button><button class="btn-g" onclick="ppMute()" aria-label="체결음 켜기/끄기" style="color:var(--faint);font-size:12px">${localStorage.getItem("ppMute")==="1"?"🔇":"🔊"}</button><button class="btn-g" onclick="paperReset()" style="color:var(--faint);font-size:12px">시작자금·초기화</button></div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="display:flex;align-items:center;gap:8px"><h1 style="margin:0">모의투자</h1><span class="pill" style="background:color-mix(in srgb,var(--steel) 16%,transparent);color:var(--steel);font-size:10px;font-weight:800">가상 · 모의</span></div><div style="display:flex;gap:6px"><button class="btn-g" onclick="paperShare()" style="color:var(--steel);font-size:12px;font-weight:700">성과 공유</button><button class="btn-g" onclick="ppMute()" aria-label="체결음 켜기/끄기" style="color:var(--faint);font-size:12px">${localStorage.getItem("ppMute")==="1"?"🔇":"🔊"}</button><button class="btn-g" onclick="paperReset()" style="color:var(--faint);font-size:12px">시작자금·초기화</button></div></div>
   <div class="ppHero">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div><span class="sessBadge ${ppSession().k}" style="margin-bottom:4px;display:inline-block">${ppSession().t}</span><div style="font-size:12.5px;opacity:.7">총 평가자산</div><div style="font-size:30px;font-weight:800;font-family:Inter;letter-spacing:-.5px">$${fmt(eq.equity,0)}</div>
@@ -2639,7 +2639,7 @@ function renderPaper(){
       var mmax=Math.max.apply(null,mk.map(k=>Math.abs(mon[k])))||1;
       app+=`<div class="card" style="padding:14px 16px;margin-top:14px"><div style="font-size:13px;font-weight:800;margin-bottom:10px">월별 실현손익</div><div style="display:flex;align-items:flex-end;gap:10px;height:96px">`+mk.map(k=>{var v=mon[k];var h=Math.round(Math.abs(v)/mmax*72)+2;var up=v>=0;return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%"><div style="font-size:10px;font-weight:700;color:${up?"var(--up)":"var(--down)"}">${v>=0?"+":""}${fmt(v,0)}</div><div style="width:70%;height:${h}px;background:${up?"var(--up)":"var(--down)"};border-radius:5px;opacity:.85"></div><div style="font-size:10px;color:var(--faint);margin-top:5px">${k.slice(5)}월</div></div>`}).join("")+`</div></div>`;
     }
-    app+=`<div style="font-size:11.5px;color:var(--faint);margin-top:12px;padding:0 2px">🏆 글로벌 수익률 랭킹은 준비 중이에요. 지금은 개인 성과 기준으로 표시됩니다.</div>`;
+    app+=`<div style="font-size:11.5px;color:var(--faint);margin-top:12px;padding:0 2px">글로벌 수익률 랭킹은 준비 중이에요. 지금은 개인 성과 기준으로 표시됩니다.</div>`;
   }
   app+=`<p style="font-size:11px;color:var(--faint);margin:16px 2px 2px;line-height:1.6">⚠ 모의투자는 교육·연습용 가상거래입니다. 실제 현금 입출금·실물 주식 거래가 없으며, 시세는 지연·오차가 있을 수 있습니다. 「자본시장법」상 투자권유가 아닙니다.</p>
   <div style="height:78px"></div>
@@ -2808,7 +2808,7 @@ function handleRef(){try{
   u.searchParams.delete("ref");history.replaceState(null,"",u.pathname+(u.search||"")+(u.hash||""));
   if(ref===myRefCode()||localStorage.getItem("refWelcomed"))return;
   localStorage.setItem("refWelcomed","1");localStorage.setItem("referredBy",ref);localStorage.setItem("pendingInvite",ref);
-  if(!isPro())grantPro(3,"🎁 초대 링크 환영! PRO 3일이 지급됐어요");
+  if(!isPro())grantPro(3,"초대 링크 환영! PRO 3일이 지급됐어요");
   flushInviteCredit();
 }catch(e){}}
 window.openInvite=async function(){
@@ -2816,10 +2816,10 @@ window.openInvite=async function(){
   var ov=document.getElementById("inviteModal");
   if(!ov){ov=document.createElement("div");ov.id="inviteModal";ov.className="nrov";ov.addEventListener("click",function(e){if(e.target===ov)closeInvite()});document.body.appendChild(ov)}
   ov.innerHTML='<div class="nrcard"><button class="nrx" onclick="closeInvite()" aria-label="닫기">✕</button>'+
-   '<h2 style="font-size:19px;margin:0 0 6px">🎁 친구 초대하고 PRO 받기</h2>'+
+   '<h2 style="font-size:19px;margin:0 0 6px">친구 초대하고 PRO 받기</h2>'+
    '<p style="font-size:13.5px;color:var(--sub);line-height:1.7;margin:0 0 12px">내 링크로 친구가 들어오면 <b>친구는 PRO 3일</b>을 받고, 나는 <b>3명 초대 시 PRO 7일 · 10명 시 30일</b>을 받아요.</p>'+
    '<div style="display:flex;gap:8px;margin-bottom:10px"><input id="invLink" readonly value="'+esc(link)+'" style="flex:1;min-width:0;padding:11px 12px;font-size:12.5px;border-radius:10px;border:1.5px solid var(--line-d);background:var(--card);color:var(--ink)"/><button class="btn-sm" onclick="copyInvite()">복사</button></div>'+
-   '<button class="btn" style="width:100%;padding:13px" onclick="shareInvite()">📤 친구에게 공유하기</button>'+
+   '<button class="btn" style="width:100%;padding:13px" onclick="shareInvite()">친구에게 공유하기</button>'+
    '<div id="invCount" style="font-size:13px;color:var(--sub);margin-top:14px;text-align:center">'+(loggedIn?"초대 집계 불러오는 중…":'<span style="color:var(--faint)">구글 로그인하면 초대 수가 기기 간 정확히 집계돼요.</span>')+'</div>'+
    '<div style="font-size:10.5px;color:var(--faint);margin-top:12px;line-height:1.5">PRO는 AI 심화 분석 잠금 해제 혜택입니다. 초대 집계는 로그인 시 가장 정확합니다.</div></div>';
   ov.classList.add("show");try{document.body.style.overflow="hidden"}catch(e){}
@@ -2829,7 +2829,7 @@ window.closeInvite=function(){var ov=document.getElementById("inviteModal");if(o
 window.copyInvite=function(){var l=inviteLink();if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(l).then(function(){toast("초대 링크 복사됨 📋")},function(){toast(l)})}else toast(l)};
 window.shareInvite=async function(){try{trackEvent("invite_share",{})}catch(e){}var l=inviteLink();var t="미국주식 실시간·AI 분석 무료 앱 ASTRO IRON! 이 링크로 들어오면 PRO 3일 무료 🎁";if(navigator.share){try{await navigator.share({title:"ASTRO IRON 초대",text:t,url:l});return}catch(e){if(e&&e.name==="AbortError")return}}copyInvite()};
 async function loadInviteCount(){try{if(!(_fb&&_fb.ready&&_fb.db&&_fb.user))return;var doc=await _fb.db.collection("invites").doc(_fb.user.uid.slice(0,12)).get();var n=(doc.exists&&doc.data().count)||0;var claimed=+localStorage.getItem("refClaimed")||0;
-  if(n>=10&&claimed<10){grantPro(30,"🎉 10명 초대 달성! PRO 30일 지급");localStorage.setItem("refClaimed","10")}
+  if(n>=10&&claimed<10){grantPro(30,"10명 초대 달성! PRO 30일 지급");localStorage.setItem("refClaimed","10")}
   else if(n>=3&&claimed<3){grantPro(7,"🎉 3명 초대 달성! PRO 7일 지급");localStorage.setItem("refClaimed","3")}
   var el=document.getElementById("invCount");if(el)el.innerHTML='초대한 친구 <b style="color:var(--steel);font-size:16px">'+n+'</b>명'+(n<3?' · 3명이면 PRO 7일!':n<10?' · 10명이면 PRO 30일!':' · 최고 등급 🏆');
 }catch(e){}}
@@ -2841,16 +2841,16 @@ async function buildBriefText(){
   try{if(state.newsKo!==false)await translateTitles(picks.map(function(p){return p.it}))}catch(e){}
   var lines=["📊 "+ds+" 미국·세계 증시 브리핑 (ASTRO IRON)",""];
   var mkt=aiCache("mkt",720);if(mkt)lines.push("🇺🇸 시장: "+String(mkt).replace(/\s+/g," ").trim(),"");
-  lines.push("🌎 오늘의 세계 주요 뉴스");
+  lines.push("오늘의 세계 주요 뉴스");
   picks.forEach(function(p){lines.push(p.flag+" "+(p.it._ko||p.it.title))});
-  lines.push("","👉 실시간·차트·AI분석 무료 astroiron.com");
+  lines.push("","실시간·차트·AI분석 무료 astroiron.com");
   return lines.join("\n");
 }
 window.openBrief=async function(){
   try{trackEvent("brief_open",{})}catch(e){}
   var ov=document.getElementById("briefModal");
   if(!ov){ov=document.createElement("div");ov.id="briefModal";ov.className="nrov";ov.addEventListener("click",function(e){if(e.target===ov)closeBrief()});document.body.appendChild(ov)}
-  ov.innerHTML='<div class="nrcard"><button class="nrx" onclick="closeBrief()" aria-label="닫기">✕</button><h2 style="font-size:18px;margin:0 0 6px">📊 오늘의 브리핑 공유</h2><div style="font-size:12px;color:var(--faint);margin-bottom:8px">카톡·오픈채팅에 붙여넣기 좋은 요약이에요.</div><textarea id="briefText" readonly style="width:100%;height:210px;padding:12px;font-size:12.5px;line-height:1.6;border-radius:12px;border:1.5px solid var(--line-d);background:var(--soft);color:var(--ink);resize:none">불러오는 중…</textarea><div style="display:flex;gap:8px;margin-top:12px"><button class="btn" style="flex:1;padding:12px" onclick="copyBrief()">복사</button><button class="btn-g" style="padding:12px 16px" onclick="shareBrief()">공유</button></div></div>';
+  ov.innerHTML='<div class="nrcard"><button class="nrx" onclick="closeBrief()" aria-label="닫기">✕</button><h2 style="font-size:18px;margin:0 0 6px">오늘의 브리핑 공유</h2><div style="font-size:12px;color:var(--faint);margin-bottom:8px">카톡·오픈채팅에 붙여넣기 좋은 요약이에요.</div><textarea id="briefText" readonly style="width:100%;height:210px;padding:12px;font-size:12.5px;line-height:1.6;border-radius:12px;border:1.5px solid var(--line-d);background:var(--soft);color:var(--ink);resize:none">불러오는 중…</textarea><div style="display:flex;gap:8px;margin-top:12px"><button class="btn" style="flex:1;padding:12px" onclick="copyBrief()">복사</button><button class="btn-g" style="padding:12px 16px" onclick="shareBrief()">공유</button></div></div>';
   ov.classList.add("show");try{document.body.style.overflow="hidden"}catch(e){}
   var txt=await buildBriefText();window._briefText=txt;var ta=document.getElementById("briefText");if(ta)ta.value=txt;
 };
@@ -2911,7 +2911,7 @@ window.fbLogin=async()=>{
   try{
     var provider=new firebase.auth.GoogleAuthProvider();provider.setCustomParameters({prompt:"select_account"});
     await _fb.auth.signInWithPopup(provider);
-    toast("로그인됐어요 · 기기 간 동기화가 켜졌어요 ☁️");
+    toast("로그인됐어요 · 기기 간 동기화가 켜졌어요");
   }catch(e){
     var c=(e&&e.code)||"";
     if(c==="auth/operation-not-allowed")toast("운영자 설정 필요: Firebase 콘솔 > Authentication에서 Google 로그인을 켜주세요");
